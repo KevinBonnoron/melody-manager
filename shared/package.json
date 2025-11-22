@@ -1,0 +1,18 @@
+{
+  "name": "@melody-manager/shared",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
