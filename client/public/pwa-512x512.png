@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="256" cy="256" r="256" fill="url(#gradient4)"/>
+  <!-- Lettre M -->
+  <path d="M160 160V352M160 160L256 256M256 256L352 160M352 160V352" stroke="white" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+  <!-- Petite note décorative -->
+  <circle cx="384" cy="128" r="24" fill="white" opacity="0.8"/>
+  <rect x="372" y="128" width="16" height="48" rx="8" fill="white" opacity="0.8"/>
+  <defs>
+    <linearGradient id="gradient4" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+</svg>

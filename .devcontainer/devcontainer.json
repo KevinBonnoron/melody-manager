@@ -1,0 +1,38 @@
+{
+  "name": "Melody Manager",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "VARIANT": "latest"
+    }
+  },
+  "runArgs": [
+    "--network=host"
+  ],
+  "features": {
+    "ghcr.io/kevinbonnoron/features/pocketbase:latest": {},
+    "ghcr.io/skriptfabrik/devcontainer-features/mailpit:1": {},
+    "ghcr.io/kevinbonnoron/features/ffmpeg:latest": {
+      "version": "system"
+    },
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installGradle": "true"
+    },
+    "ghcr.io/devcontainers-extra/features/yt-dlp:2": {}
+  },
+  "remoteEnv": {
+    "ANDROID_HOME": "/home/bun/android-sdk",
+    "ANDROID_SDK_ROOT": "/home/bun/android-sdk"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "biomejs.biome",
+        "Anthropic.claude-code"
+      ]
+    }
+  },
+  "postCreateCommand": "bash -c 'bunx lefthook install && if [ ! -d \"$ANDROID_HOME\" ]; then mkdir -p $ANDROID_HOME && cd $ANDROID_HOME && wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && unzip -q commandlinetools-linux-11076708_latest.zip && rm commandlinetools-linux-11076708_latest.zip && mkdir -p cmdline-tools/latest && mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true && yes | cmdline-tools/latest/bin/sdkmanager --licenses && cmdline-tools/latest/bin/sdkmanager \"platform-tools\" \"platforms;android-34\" \"build-tools;34.0.0\"; fi'"
+}

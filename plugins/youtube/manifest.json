@@ -1,0 +1,20 @@
+{
+  "id": "youtube",
+  "name": "YouTube",
+  "description": "Search, stream and import music from YouTube videos and playlists",
+  "version": "1.0.0",
+  "icon": "youtube",
+  "entry": "./src/index.ts",
+  "features": ["search", "stream", "import"],
+  "searchTypes": ["track", "album", "artist", "playlist"],
+  "importTypes": ["track", "album", "artist", "playlist"],
+  "configSchema": [
+    {
+      "name": "splitChapters",
+      "type": "boolean",
+      "label": "Split chapters",
+      "description": "When adding a video with chapters, create one track per chapter instead of a single track",
+      "required": false
+    }
+  ]
+}

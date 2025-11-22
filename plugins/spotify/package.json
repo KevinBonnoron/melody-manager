@@ -1,0 +1,11 @@
+{
+  "name": "@melody-manager/plugin-spotify",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@melody-manager/plugin-sdk": "workspace:*",
+    "@melody-manager/shared": "workspace:*",
+    "hono": "^4.7.11"
+  }
+}

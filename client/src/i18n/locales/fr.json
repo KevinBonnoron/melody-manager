@@ -1,0 +1,350 @@
+{
+  "forms": {
+    "errors": {
+      "email": "Veuillez entrer une adresse email valide",
+      "minLength": "Veuillez entrer au moins {{length}} caractères",
+      "required": "Ce champ est obligatoire"
+    }
+  },
+  "AlbumPage": {
+    "tracks_one": "titre",
+    "tracks_other": "titres",
+    "albumLabel": "Album",
+    "noTracksInAlbum": "Aucun titre dans cet album",
+    "unknownArtist": "Artiste inconnu"
+  },
+  "AlbumTable": {
+    "title": "Titre",
+    "artist": "Artiste",
+    "provider": "Fournisseur",
+    "actions": "Actions"
+  },
+  "TrackPage": {
+    "title": "Titres",
+    "description": "Parcourez votre collection par titre"
+  },
+  "AlbumsPage": {
+    "title": "Albums",
+    "description": "Parcourez votre collection par album"
+  },
+  "ArtistsPage": {
+    "title": "Artistes",
+    "description": "Parcourez votre collection par artiste"
+  },
+  "FavoritesPage": {
+    "title": "Favoris",
+    "description": "Vos titres, albums et artistes aimés",
+    "tabTracks": "Titres",
+    "tabAlbums": "Albums",
+    "tabArtists": "Artistes",
+    "noLikedTracks": "Aucun titre aimé pour l'instant",
+    "startLikingTracks": "Ajoutez des titres en favori pour les voir ici",
+    "noLikedAlbums": "Aucun album aimé pour l'instant",
+    "startLikingAlbums": "Ajoutez des albums en favori pour les voir ici",
+    "noLikedArtists": "Aucun artiste aimé pour l'instant",
+    "startLikingArtists": "Ajoutez des artistes en favori pour les voir ici"
+  },
+  "TrackGrid": {
+    "noTracksFound": "Aucun titre trouvé",
+    "addMusicToGetStarted": "Ajoutez de la musique pour commencer",
+    "noTracksFromProvider": "Aucun titre du fournisseur {{provider}}"
+  },
+  "AlbumGrid": {
+    "noAlbumsFound": "Aucun album trouvé",
+    "addMusicToSeeAlbums": "Ajoutez de la musique pour voir vos albums ici",
+    "noAlbumsFromProvider": "Aucun album avec des titres du fournisseur {{provider}}"
+  },
+  "ArtistGrid": {
+    "noArtistsFound": "Aucun artiste trouvé",
+    "addMusicToSeeArtists": "Ajoutez de la musique pour voir vos artistes ici",
+    "noArtistsFromProvider": "Aucun artiste avec des titres du fournisseur {{provider}}"
+  },
+  "AlbumActionsMenu": {
+    "syncChapters": "Synchroniser les chapitres",
+    "syncing": "Synchronisation...",
+    "syncNoTracks": "Aucun titre trouvé dans cet album",
+    "syncSuccess": "{{count}} chapitres synchronisés avec succès",
+    "syncError": "Échec de la synchronisation des chapitres",
+    "delete": "Supprimer l'album",
+    "deleting": "Suppression...",
+    "deleteConfirmTitle": "Supprimer l'album",
+    "deleteConfirmDescription": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+    "deleteSuccess": "\"{{name}}\" a été supprimé",
+    "deleteError": "Échec de la suppression de l'album",
+    "cancel": "Annuler"
+  },
+  "AppLayout": {
+    "search": "Ajouter"
+  },
+  "BackButton": {
+    "label": "Retour"
+  },
+  "SignOutDropdownMenuItem": {
+    "label": "Déconnexion"
+  },
+  "AppSidebar": {
+    "tagline": "Votre musique, partout avec vous",
+    "userFallback": "Utilisateur",
+    "noEmail": "Aucun email",
+    "tracks": "Titres",
+    "favorites": "Favoris",
+    "albums": "Albums",
+    "artists": "Artistes",
+    "admin": "Admin"
+  },
+  "Admin": {
+    "title": "Admin",
+    "description": "Gérer vos fournisseurs de musique et appareils",
+    "providersTitle": "Fournisseurs",
+    "providersDescription": "Configurer vos sources musicales et appareils de lecture",
+    "tabMusicSources": "Sources musicales",
+    "tabPlaybackDevices": "Appareils de lecture",
+    "addProvider": "Ajouter un fournisseur",
+    "addProviderDialogTitleTrack": "Ajouter une source musicale",
+    "addProviderDialogTitleDevice": "Ajouter un appareil de lecture",
+    "addProviderDialogDescription": "Choisissez le type de fournisseur à ajouter dans la liste ci-dessous.",
+    "addProviderSelectPlaceholder": "Sélectionner un fournisseur",
+    "addProviderCancel": "Annuler",
+    "addProviderConfirm": "Ajouter",
+    "noProvidersInCategory": "Aucun fournisseur ajouté. Utilisez le bouton ci-dessus pour en ajouter un.",
+    "providersCount": "{{count}} fournisseur(s) configuré(s)",
+    "allProviderTypesAdded": "Tous les types sont déjà ajoutés",
+    "providerActions": "Actions du fournisseur"
+  },
+  "ArtistPage": {
+    "playAll": "Lire tout",
+    "artistLabel": "Artiste",
+    "albumsSectionTitle": "Albums",
+    "artistNotFound": "Artiste introuvable",
+    "albums_one": "album",
+    "albums_other": "albums",
+    "tracks_one": "titre",
+    "tracks_other": "titres"
+  },
+  "AuthLayout": {
+    "description": "Votre gestionnaire de bibliothèque musicale personnelle. Stream, organisez et profitez de votre collection musicale sur tous vos appareils.",
+    "multiSourceStreaming": "Streaming multi-source (Spotify, YouTube, Fichiers locaux)",
+    "sonosIntegration": "Intégration Sonos pour un playback sans interruption",
+    "smartSearch": "Recherche intelligente dans toutes vos sources musicales"
+  },
+  "GlobalSearch": {
+    "noProvidersConfigured": "Aucun fournisseur configuré",
+    "configureOneProvider": "Configurez au moins un fournisseur de musique pour rechercher",
+    "configureProviders": "Configurer les fournisseurs",
+    "searchingTypes": "Recherche de {{type}}...",
+    "noTypesFound": "Aucun {{type}} trouvé",
+    "searchResults": "Résultats de recherche",
+    "addedTracks": "{{count}} titres ajoutés depuis \"{{title}}\"",
+    "addedSuccessfully": "\"{{title}}\" ajouté avec succès",
+    "failedToAdd": "Erreur lors de l'ajout",
+    "searchFor": "Ajouter",
+    "tracks": "Titres",
+    "albums": "Albums",
+    "artists": "Artistes",
+    "playlists": "Playlists",
+    "searchForMusic": "Rechercher de la musique à ajouter"
+  },
+  "LoginPage": {
+    "title": "Bon retour parmi nous",
+    "description": "Connectez-vous à votre compte pour continuer"
+  },
+  "LoginForm": {
+    "success": "Vous êtes connecté !"
+  },
+  "MusicPlayer": {
+    "playbackError": "Impossible de lire \"{{title}}\"",
+    "playbackErrorGeneric": "Erreur de lecture",
+    "deviceError": "Impossible de communiquer avec l'appareil"
+  },
+  "DeviceSelector": {
+    "selectDevice": "Sélectionner un appareil de lecture",
+    "playbackDevices": "Appareils de lecture",
+    "thisBrowser": "Ce navigateur",
+    "sonosSpeakers": "Haut-parleurs Sonos"
+  },
+  "FormatSelector": {
+    "selectFormat": "Sélectionner le format audio",
+    "audioFormat": "Format audio",
+    "source": "Source (original)",
+    "mp3": "MP3 320kbps",
+    "aac": "AAC 256kbps",
+    "flac": "FLAC (sans perte)",
+    "wav": "WAV (non compressé)"
+  },
+  "QueueSheet": {
+    "title": "Queue de lecture",
+    "tracksCount_one": "{{count}} titre",
+    "tracksCount_other": "{{count}} titres",
+    "clearAll": "Tout effacer",
+    "emptyTitle": "Aucun titre dans la queue",
+    "emptyDescription": "Lancez un album ou un titre pour commencer"
+  },
+  "ProviderCard": {
+    "local": {
+      "title": "Fichiers locaux",
+      "description": "Scanner les fichiers musicaux de votre ordinateur",
+      "fields": {
+        "path": {
+          "label": "Chemin du dossier",
+          "placeholder": "/home/user/Music",
+          "help": "Le chemin vers votre dossier musical"
+        }
+      }
+    },
+    "youtube": {
+      "title": "YouTube",
+      "description": "Rechercher et ajouter des titres depuis YouTube",
+      "fields": {
+        "splitChapters": {
+          "label": "Diviser les vidéos en chapitres",
+          "help": "Lorsque activé, les vidéos YouTube avec des chapitres seront divisées en pistes distinctes et regroupées en tant qu'album"
+        }
+      }
+    },
+    "soundcloud": {
+      "title": "SoundCloud",
+      "description": "Rechercher et ajouter des titres depuis SoundCloud"
+    },
+    "spotify": {
+      "title": "Spotify",
+      "description": "Synchroniser vos playlists et titres likés",
+      "fields": {
+        "clientId": {
+          "label": "Client ID",
+          "placeholder": "Votre Client ID Spotify",
+          "help": "Trouvez dans le tableau de bord développeur Spotify"
+        },
+        "clientSecret": {
+          "label": "Client Secret",
+          "placeholder": "Votre Client Secret Spotify",
+          "help": "Trouvez dans le tableau de bord développeur Spotify"
+        }
+      }
+    },
+    "bandcamp": {
+      "title": "Bandcamp",
+      "description": "Synchroniser vos titres likés et artistes suivis",
+      "fields": {
+        "cookies": {
+          "label": "Cookies (format Netscape)",
+          "placeholder": "# Netscape HTTP Cookie File\n.bandcamp.com\tTRUE\t/\tTRUE\t...",
+          "help": "Installez l'extension \"Get cookies.txt LOCALLY\", allez sur bandcamp.com, cliquez sur l'extension, et collez le contenu complet de cookies.txt ici"
+        }
+      }
+    },
+    "sonos": {
+      "title": "Sonos",
+      "description": "Découvrir et jouer de la musique sur les haut-parleurs Sonos",
+      "discoveryHelp": "Les périphériques Sonos seront automatiquement découverts sur votre réseau local. Assurez-vous que vos haut-parleurs Sonos sont connectés au même réseau que ce serveur."
+    }
+  },
+  "ProviderCardStatus": {
+    "configured": "Configuré",
+    "connected": "Connecté",
+    "notConfigured": "Non configuré",
+    "notConnected": "Non connecté"
+  },
+  "ProviderCardActions": {
+    "networkRequirements": "Exigences réseau :",
+    "sonosRequirement1": "Les haut-parleurs Sonos doivent être sur le même réseau local",
+    "sonosRequirement2": "UPnP/SSDP doit être activé sur votre réseau",
+    "sonosRequirement3": "Le serveur doit avoir les permissions de découverte réseau",
+    "discovering": "Découverte en cours...",
+    "saving": "Enregistrement...",
+    "discoverDevices": "Découvrir les appareils",
+    "update": "Mettre à jour",
+    "connect": "Connecter",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "disconnect": "Déconnecter",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "deleteConfirmTitle": "Supprimer le fournisseur",
+    "deleteConfirmDescription": "Êtes-vous sûr de vouloir supprimer « {{title}} » ? Cette action est irréversible.",
+    "providerDeletedSuccess": "« {{title}} » a été supprimé",
+    "providerDeleteError": "Impossible de supprimer « {{title}} »",
+    "validationError": "Veuillez remplir les champs obligatoires",
+    "devicesDiscoveredSuccess": "Appareils découverts avec succès",
+    "discoverDevicesError": "Impossible de découvrir les appareils",
+    "providerConnectedSuccess": "Fournisseur {{title}} connecté avec succès",
+    "providerUpdatedSuccess": "Fournisseur {{title}} mis à jour avec succès",
+    "providerSaveError": "Impossible d'enregistrer le fournisseur {{title}}",
+    "providerDisconnectedSuccess": "Fournisseur {{title}} déconnecté",
+    "providerDisconnectError": "Impossible de déconnecter le fournisseur {{title}}"
+  },
+  "TrackProviderFilter": {
+    "filterBy": "Filtrer par :",
+    "all": "Tous"
+  },
+  "RegisterPage": {
+    "title": "Créer un compte",
+    "description": "Commencez avec Melody Manager"
+  },
+  "RegisterForm": {
+    "name": {
+      "label": "Nom",
+      "placeholder": "Votre nom"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "Votre email"
+    },
+    "password": {
+      "label": "Mot de passe",
+      "placeholder": "••••••••"
+    },
+    "confirmPassword": {
+      "label": "Confirmer le mot de passe",
+      "placeholder": "••••••••"
+    },
+    "submit": {
+      "label": "Créer un compte"
+    },
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "signIn": {
+      "label": "Se connecter"
+    },
+    "errors": {
+      "passwordsMismatch": "Les mots de passe ne correspondent pas",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "createFailed": "Impossible de créer le compte"
+    },
+    "success": "Compte créé avec succès !"
+  },
+  "SignInForm": {
+    "email": {
+      "label": "Email",
+      "placeholder": "Votre email"
+    },
+    "password": {
+      "label": "Mot de passe",
+      "placeholder": "••••••••"
+    },
+    "forgotPassword": {
+      "label": "Mot de passe oublié ?"
+    },
+    "submit": {
+      "label": "Se connecter"
+    },
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "signUp": {
+      "label": "Créer un compte"
+    }
+  },
+  "ResetPasswordForm": {
+    "email": {
+      "label": "Email",
+      "placeholder": "Votre email"
+    },
+    "enterEmail": "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "rememberPassword": "Vous avez oublié votre mot de passe ?",
+    "signIn": "Se connecter",
+    "success": "Email de réinitialisation de mot de passe envoyé ! Vérifiez votre boîte de réception.",
+    "backToLogin": "Retour à la connexion"
+  },
+  "ResetPasswordPage": {
+    "title": "Réinitialiser le mot de passe",
+    "description": "Entrez votre email pour recevoir un lien de réinitialisation de mot de passe"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@melody-manager/plugin-bandcamp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@melody-manager/plugin-sdk": "workspace:*",
+    "@melody-manager/shared": "workspace:*",
+    "bandcamp-fetch": "^3.0.0",
+    "hono": "^4.7.11"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "spotify",
+  "name": "Spotify",
+  "description": "Search and import music from Spotify",
+  "version": "1.0.0",
+  "icon": "spotify",
+  "entry": "./src/index.ts",
+  "features": ["search", "import"],
+  "searchTypes": ["track"],
+  "importTypes": ["track"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "soundcloud",
+  "name": "SoundCloud",
+  "description": "Search, stream and import music from SoundCloud",
+  "version": "1.0.0",
+  "icon": "soundcloud",
+  "entry": "./src/index.ts",
+  "features": ["search", "stream", "import"],
+  "searchTypes": ["track"],
+  "importTypes": ["track"]
+}

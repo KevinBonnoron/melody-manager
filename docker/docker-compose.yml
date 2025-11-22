@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  melody-manager:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        POCKETBASE_VERSION: 0.26.2
+    image: melody-manager:latest
+    container_name: melody-manager
+    ports:
+      - "80:80"
+    volumes:
+      # Persist PocketBase data
+      - melody-manager-db:/app/db/pb_data
+
+      # Mount your audio files here (optional)
+      # - /path/to/your/music:/app/music:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PB_URL=http://localhost:8090
+      - CACHE_DIR=/tmp/melody-manager-cache
+      - CACHE_MAX_FILES=500
+      - CACHE_MAX_SIZE=5GB
+      - VITE_PB_URL=http://localhost:8090
+      - VITE_SERVER_URL=http://localhost:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  melody-manager-db:
+    driver: local

@@ -1,0 +1,350 @@
+{
+  "forms": {
+    "errors": {
+      "email": "Please enter a valid email address",
+      "minLength": "Please enter at least {{length}} characters",
+      "required": "This field is required"
+    }
+  },
+  "AlbumPage": {
+    "tracks_one": "track",
+    "tracks_other": "tracks",
+    "albumLabel": "Album",
+    "noTracksInAlbum": "No tracks in this album",
+    "unknownArtist": "Unknown Artist"
+  },
+  "AlbumTable": {
+    "title": "Title",
+    "artist": "Artist",
+    "provider": "Provider",
+    "actions": "Actions"
+  },
+  "TrackPage": {
+    "title": "Tracks",
+    "description": "Browse your music collection by track"
+  },
+  "AlbumsPage": {
+    "title": "Albums",
+    "description": "Browse your music collection by album"
+  },
+  "ArtistsPage": {
+    "title": "Artists",
+    "description": "Browse your music collection by artist"
+  },
+  "FavoritesPage": {
+    "title": "Favorites",
+    "description": "Your liked tracks, albums, and artists",
+    "tabTracks": "Tracks",
+    "tabAlbums": "Albums",
+    "tabArtists": "Artists",
+    "noLikedTracks": "No liked tracks yet",
+    "startLikingTracks": "Start liking tracks to see them here",
+    "noLikedAlbums": "No liked albums yet",
+    "startLikingAlbums": "Start liking albums to see them here",
+    "noLikedArtists": "No liked artists yet",
+    "startLikingArtists": "Start liking artists to see them here"
+  },
+  "TrackGrid": {
+    "noTracksFound": "No tracks found",
+    "addMusicToGetStarted": "Add some music to get started",
+    "noTracksFromProvider": "No tracks from {{provider}}"
+  },
+  "AlbumGrid": {
+    "noAlbumsFound": "No albums found",
+    "addMusicToSeeAlbums": "Add some music to see your albums here",
+    "noAlbumsFromProvider": "No albums with tracks from {{provider}}"
+  },
+  "ArtistGrid": {
+    "noArtistsFound": "No artists found",
+    "addMusicToSeeArtists": "Add some music to see your artists here",
+    "noArtistsFromProvider": "No artists with tracks from {{provider}}"
+  },
+  "AlbumActionsMenu": {
+    "syncChapters": "Sync album chapters",
+    "syncing": "Syncing...",
+    "syncNoTracks": "No tracks found in this album",
+    "syncSuccess": "Successfully synced {{count}} chapters",
+    "syncError": "Failed to sync album chapters",
+    "delete": "Delete album",
+    "deleting": "Deleting...",
+    "deleteConfirmTitle": "Delete album",
+    "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "deleteSuccess": "\"{{name}}\" has been deleted",
+    "deleteError": "Failed to delete album",
+    "cancel": "Cancel"
+  },
+  "AppLayout": {
+    "search": "Add Music"
+  },
+  "BackButton": {
+    "label": "Back"
+  },
+  "SignOutDropdownMenuItem": {
+    "label": "Log out"
+  },
+  "AppSidebar": {
+    "tagline": "Your music, everywhere, all at once",
+    "userFallback": "User",
+    "noEmail": "No email",
+    "tracks": "Tracks",
+    "favorites": "Favorites",
+    "albums": "Albums",
+    "artists": "Artists",
+    "admin": "Admin"
+  },
+  "Admin": {
+    "title": "Admin",
+    "description": "Manage your music providers and devices",
+    "providersTitle": "Providers",
+    "providersDescription": "Configure your music sources and playback devices",
+    "tabMusicSources": "Music Sources",
+    "tabPlaybackDevices": "Playback Devices",
+    "addProvider": "Add provider",
+    "addProviderDialogTitleTrack": "Add a music source",
+    "addProviderDialogTitleDevice": "Add a playback device",
+    "addProviderDialogDescription": "Choose the type of provider to add from the list below.",
+    "addProviderSelectPlaceholder": "Select a provider",
+    "addProviderCancel": "Cancel",
+    "addProviderConfirm": "Add",
+    "noProvidersInCategory": "No providers added yet. Use the button above to add one.",
+    "providersCount": "{{count}} provider(s) configured",
+    "allProviderTypesAdded": "All provider types already added",
+    "providerActions": "Provider actions"
+  },
+  "ArtistPage": {
+    "playAll": "Play all",
+    "artistLabel": "Artist",
+    "albumsSectionTitle": "Albums",
+    "artistNotFound": "Artist not found",
+    "albums_one": "album",
+    "albums_other": "albums",
+    "tracks_one": "track",
+    "tracks_other": "tracks"
+  },
+  "AuthLayout": {
+    "description": "Your personal music library manager. Stream, organize, and enjoy your music collection across all your devices.",
+    "multiSourceStreaming": "Multi-source streaming (Spotify, YouTube, Local files)",
+    "sonosIntegration": "Sonos integration for seamless playback",
+    "smartSearch": "Smart search across all your music sources"
+  },
+  "GlobalSearch": {
+    "noProvidersConfigured": "No providers configured",
+    "configureOneProvider": "Configure at least one music provider to search",
+    "configureProviders": "Configure Providers",
+    "searchingTypes": "Searching {{type}}...",
+    "noTypesFound": "No {{type}} found",
+    "searchResults": "Search Results",
+    "addedTracks": "Added {{count}} tracks from \"{{title}}\"",
+    "addedSuccessfully": "\"{{title}}\" added successfully",
+    "failedToAdd": "Failed to add",
+    "searchFor": "Add",
+    "tracks": "Tracks",
+    "albums": "Albums",
+    "artists": "Artists",
+    "playlists": "Playlists",
+    "searchForMusic": "Search for music to add"
+  },
+  "LoginPage": {
+    "title": "Welcome back",
+    "description": "Sign in to your account to continue"
+  },
+  "LoginForm": {
+    "success": "Welcome back!"
+  },
+  "MusicPlayer": {
+    "playbackError": "Failed to play \"{{title}}\"",
+    "playbackErrorGeneric": "Playback failed",
+    "deviceError": "Failed to communicate with device"
+  },
+  "DeviceSelector": {
+    "selectDevice": "Select playback device",
+    "playbackDevices": "Playback Devices",
+    "thisBrowser": "This Browser",
+    "sonosSpeakers": "Sonos Speakers"
+  },
+  "FormatSelector": {
+    "selectFormat": "Select audio format",
+    "audioFormat": "Audio Format",
+    "source": "Source (original)",
+    "mp3": "MP3 320kbps",
+    "aac": "AAC 256kbps",
+    "flac": "FLAC (lossless)",
+    "wav": "WAV (uncompressed)"
+  },
+  "QueueSheet": {
+    "title": "Playback queue",
+    "tracksCount_one": "{{count}} track",
+    "tracksCount_other": "{{count}} tracks",
+    "clearAll": "Clear all",
+    "emptyTitle": "No tracks in queue",
+    "emptyDescription": "Play an album or track to get started"
+  },
+  "ProviderCard": {
+    "local": {
+      "title": "Local",
+      "description": "Scan your local music files",
+      "fields": {
+        "path": {
+          "label": "Path",
+          "placeholder": "/home/user/Music",
+          "help": "The path to your music folder"
+        }
+      }
+    },
+    "youtube": {
+      "title": "YouTube",
+      "description": "Search and add tracks from YouTube",
+      "fields": {
+        "splitChapters": {
+          "label": "Split videos into chapters",
+          "help": "When enabled, YouTube videos with chapters will be split into separate tracks and grouped as an album"
+        }
+      }
+    },
+    "soundcloud": {
+      "title": "SoundCloud",
+      "description": "Search and add tracks from SoundCloud"
+    },
+    "spotify": {
+      "title": "Spotify",
+      "description": "Sync your playlists and liked tracks",
+      "fields": {
+        "clientId": {
+          "label": "Client ID",
+          "placeholder": "Your Spotify Client ID",
+          "help": "Find it in your Spotify developer dashboard"
+        },
+        "clientSecret": {
+          "label": "Client Secret",
+          "placeholder": "Your Spotify Client Secret",
+          "help": "Find it in your Spotify developer dashboard"
+        }
+      }
+    },
+    "bandcamp": {
+      "title": "Bandcamp",
+      "description": "Sync your liked tracks and followed artists",
+      "fields": {
+        "cookies": {
+          "label": "Cookies (Netscape format)",
+          "placeholder": "# Netscape HTTP Cookie File\n.bandcamp.com\tTRUE\t/\tTRUE\t...",
+          "help": "Install \"Get cookies.txt LOCALLY\" extension, go to bandcamp.com, click the extension, and paste the entire cookies.txt content here"
+        }
+      }
+    },
+    "sonos": {
+      "title": "Sonos",
+      "description": "Discover and play music on Sonos speakers",
+      "discoveryHelp": "Sonos devices will be automatically discovered on your local network. Make sure your Sonos speakers are connected to the same network as this server."
+    }
+  },
+  "ProviderCardStatus": {
+    "configured": "Configured",
+    "connected": "Connected",
+    "notConfigured": "Not configured",
+    "notConnected": "Not connected"
+  },
+  "ProviderCardActions": {
+    "networkRequirements": "Network Requirements:",
+    "sonosRequirement1": "Sonos speakers must be on the same local network",
+    "sonosRequirement2": "UPnP/SSDP must be enabled on your network",
+    "sonosRequirement3": "Server must have network discovery permissions",
+    "discovering": "Discovering...",
+    "saving": "Saving...",
+    "discoverDevices": "Discover Devices",
+    "update": "Update",
+    "connect": "Connect",
+    "edit": "Edit",
+    "add": "Add",
+    "disconnect": "Disconnect",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "deleteConfirmTitle": "Delete provider",
+    "deleteConfirmDescription": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+    "providerDeletedSuccess": "\"{{title}}\" has been deleted",
+    "providerDeleteError": "Failed to delete \"{{title}}\"",
+    "validationError": "Please fill in the required fields",
+    "devicesDiscoveredSuccess": "Devices discovered successfully",
+    "discoverDevicesError": "Failed to discover devices",
+    "providerConnectedSuccess": "{{title}} provider connected successfully",
+    "providerUpdatedSuccess": "{{title}} provider updated successfully",
+    "providerSaveError": "Failed to save {{title}} provider",
+    "providerDisconnectedSuccess": "{{title}} provider disconnected",
+    "providerDisconnectError": "Failed to disconnect {{title}} provider"
+  },
+  "TrackProviderFilter": {
+    "filterBy": "Filter by:",
+    "all": "All"
+  },
+  "RegisterPage": {
+    "title": "Create an account",
+    "description": "Get started with Melody Manager"
+  },
+  "RegisterForm": {
+    "name": {
+      "label": "Name",
+      "placeholder": "Your name"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "Your email"
+    },
+    "password": {
+      "label": "Password",
+      "placeholder": "••••••••"
+    },
+    "confirmPassword": {
+      "label": "Confirm Password",
+      "placeholder": "••••••••"
+    },
+    "submit": {
+      "label": "Create account"
+    },
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": {
+      "label": "Sign in"
+    },
+    "errors": {
+      "passwordsMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "createFailed": "Failed to create account"
+    },
+    "success": "Account created successfully!"
+  },
+  "SignInForm": {
+    "email": {
+      "label": "Email",
+      "placeholder": "Your email"
+    },
+    "password": {
+      "label": "Password",
+      "placeholder": "••••••••"
+    },
+    "forgotPassword": {
+      "label": "Forgot password?"
+    },
+    "submit": {
+      "label": "Sign in"
+    },
+    "dontHaveAccount": "Don't have an account?",
+    "signUp": {
+      "label": "Sign up"
+    }
+  },
+  "ResetPasswordForm": {
+    "email": {
+      "label": "Email",
+      "placeholder": "Your email"
+    },
+    "enterEmail": "Enter your email address and we'll send you a link to reset your password.",
+    "sendResetLink": "Send reset link",
+    "rememberPassword": "Remember your password?",
+    "signIn": "Sign in",
+    "success": "Password reset email sent! Check your inbox.",
+    "backToLogin": "Back to login"
+  },
+  "ResetPasswordPage": {
+    "title": "Reset password",
+    "description": "Enter your email to receive a password reset link"
+  }
+}

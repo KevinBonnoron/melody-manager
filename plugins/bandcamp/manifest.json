@@ -1,0 +1,9 @@
+{
+  "id": "bandcamp",
+  "name": "Bandcamp",
+  "description": "Stream music from Bandcamp (requires cookies)",
+  "version": "1.0.0",
+  "icon": "bandcamp",
+  "entry": "./src/index.ts",
+  "features": ["stream"]
+}

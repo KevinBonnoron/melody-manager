@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run build:*)",
+      "Bash(bun run type-check:*)",
+      "Bash(yt-dlp:*)",
+      "Bash(bun pm:*)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(bunx shadcn@latest add dialog:*)",
+      "Bash(bunx tsc:*)",
+      "WebFetch(domain:tanstack.com)",
+      "Bash(bunx biome check:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
