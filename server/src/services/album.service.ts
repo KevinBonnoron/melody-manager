@@ -74,9 +74,6 @@ export const albumService = databaseServiceFactory(albumRepository, {
             await trackRepository.update(track.id, {
               metadata: { ...track.metadata, localPath: result.localPath },
             });
-            logger.info(`Saved localPath for "${track.title}": ${result.localPath}`);
-          } else {
-            logger.warn(`Could not match downloaded track: sourceUrl=${result.sourceUrl}, startTime=${result.startTime}`);
           }
         }
 

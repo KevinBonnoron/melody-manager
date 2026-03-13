@@ -1,16 +1,15 @@
-import { AddMusicDialog } from '@/components/atoms/add-music-dialog';
-import { MusicPlayer } from '@/components/atoms/music-player';
-import { Button } from '@/components/ui/button';
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { BottomNav } from './bottom-nav';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useLocation } from '@tanstack/react-router';
-import { Plus } from 'lucide-react';
-import { TaskNotifications } from '../atoms/task-notifications';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AddMusicButton } from '@/components/atoms/add-music-button';
+import { GlobalSearchButton } from '@/components/atoms/global-search-button';
+import { MusicPlayer } from '@/components/atoms/music-player';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { BackButton } from '../atoms/back-button';
+import { TaskNotifications } from '../atoms/task-notifications';
 import { AppSidebar } from './app-sidebar';
+import { BottomNav } from './bottom-nav';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -32,15 +31,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const routeInfo = routeTitles[location.pathname] || routeTitles[location.pathname.replace(/\/$/, '')];
   const isRootPath = !!routeInfo;
 
-  const handleSearchClick = () => {
-    const event = new KeyboardEvent('keydown', {
-      key: 'k',
-      metaKey: true,
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
-  };
-
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -57,13 +47,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSearchClick}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('AppLayout.search')}
-              <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </Button>
+            <GlobalSearchButton />
+            <AddMusicButton />
             <TaskNotifications />
             <ThemeToggle />
           </div>
@@ -72,7 +57,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       </SidebarInset>
       <BottomNav />
       <MusicPlayer />
-      <AddMusicDialog />
     </SidebarProvider>
   );
 }
