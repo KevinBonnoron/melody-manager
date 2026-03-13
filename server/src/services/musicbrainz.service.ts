@@ -21,7 +21,7 @@ class MusicBrainzClient {
     }
   }
 
-  async searchRelease(albumName: string, artistName: string): Promise<{ mbid: string; year?: number } | null> {
+  public async searchRelease(albumName: string, artistName: string): Promise<{ mbid: string; year?: number } | null> {
     const query = encodeURIComponent(`release:"${albumName}" AND artist:"${artistName}"`);
     const res = await this.rateLimitedFetch(`${MB_BASE}/release/?query=${query}&fmt=json&limit=1`);
     if (!res?.ok) {
@@ -41,7 +41,7 @@ class MusicBrainzClient {
     }
   }
 
-  async getCoverArtUrl(releaseMbid: string): Promise<string | null> {
+  public async getCoverArtUrl(releaseMbid: string): Promise<string | null> {
     // Cover Art Archive redirects to the actual image URL
     const res = await this.rateLimitedFetch(`https://coverartarchive.org/release/${releaseMbid}/front-250`);
     if (!res?.ok) {
@@ -50,7 +50,7 @@ class MusicBrainzClient {
     return res.url;
   }
 
-  async searchArtist(artistName: string): Promise<{ mbid: string; wikidataId?: string } | null> {
+  public async searchArtist(artistName: string): Promise<{ mbid: string; wikidataId?: string } | null> {
     // Try exact match first, then fall back to loose search (handles aliases, accents, etc.)
     const exactQuery = encodeURIComponent(`artist:"${artistName}"`);
     let res = await this.rateLimitedFetch(`${MB_BASE}/artist/?query=${exactQuery}&fmt=json&limit=1`);
@@ -100,7 +100,7 @@ class MusicBrainzClient {
     }
   }
 
-  async getArtistImageUrl(wikidataId: string): Promise<string | null> {
+  public async getArtistImageUrl(wikidataId: string): Promise<string | null> {
     try {
       const res = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${wikidataId}.json`, {
         headers: { 'User-Agent': USER_AGENT },

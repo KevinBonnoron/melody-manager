@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { useAuthUser } from '@/hooks/use-auth-user';
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import { Link, useLocation } from '@tanstack/react-router';
 import { Disc3, Heart, Link2, List, Settings, User, UserCircle } from 'lucide-react';
@@ -53,7 +53,7 @@ export function AppSidebar() {
       .slice(0, 2);
   };
 
-  const avatarUrl = user?.avatar ? `${config.pocketbase.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
+  const avatarUrl = user?.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">

@@ -24,8 +24,7 @@ function isYoutubePlaylistUrl(query: string): boolean {
 }
 
 function sanitizeFilename(name: string): string {
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: need to strip control chars from filenames
-  return name
+  return name // biome-ignore lint/suspicious/noControlCharactersInRegex: need to strip control chars from filenames
     .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
     .replace(/\s+/g, ' ')
     .trim();

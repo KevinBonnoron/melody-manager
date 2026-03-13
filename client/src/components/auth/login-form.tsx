@@ -1,4 +1,4 @@
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import { useAppForm } from '@/lib/forms';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth } from 'pocketbase-react-hooks';

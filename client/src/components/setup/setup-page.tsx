@@ -49,7 +49,11 @@ export function SetupPage() {
               <p className="text-sm text-muted-foreground">Example: music.example.com or https://192.168.1.100:8090</p>
             </div>
 
-            {error && <div role="alert" aria-live="polite" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+            {error && (
+              <div role="alert" aria-live="polite" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Connecting...' : 'Continue'}

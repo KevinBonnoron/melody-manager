@@ -1,16 +1,16 @@
 {
-	"name": "@melody-manager/plugin-local",
-	"version": "1.0.0",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
-	},
-	"dependencies": {
-		"@melody-manager/plugin-sdk": "workspace:*",
-		"@melody-manager/shared": "workspace:*",
-		"chokidar": "^5.0.0",
-		"hono": "^4.7.11",
-		"music-metadata": "^10.6.4"
-	}
+  "name": "@melody-manager/plugin-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
+  },
+  "dependencies": {
+    "@melody-manager/plugin-sdk": "workspace:*",
+    "@melody-manager/shared": "workspace:*",
+    "chokidar": "^5.0.0",
+    "hono": "^4.7.11",
+    "music-metadata": "^10.6.4"
+  }
 }

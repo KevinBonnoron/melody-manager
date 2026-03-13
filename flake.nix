@@ -19,12 +19,14 @@
           nodejs
           jdk21
           gradle
+          lefthook
         ];
 
         shellHook = ''
           if [ ! -d "$PWD/node_modules" ]; then
             echo "→ Dependencies missing. Run: bun install"
           fi
+          lefthook install
         '';
       };
     };

@@ -22,6 +22,7 @@ class NativeAudioService {
   private initPromise: Promise<void> | null = null;
 
   public async initialize(callbacks: NativeAudioCallbacks) {
+    this.callbacks = callbacks;
     if (this.initPromise) {
       await this.initPromise;
       return;
@@ -82,9 +83,9 @@ class NativeAudioService {
   }
 
   public async setPosition(position: number, duration: number, playbackRate = 1.0) {
-    if (!Number.isFinite(position) || position < 0) return;
-    if (!Number.isFinite(duration) || duration <= 0) return;
-    if (!Number.isFinite(playbackRate) || playbackRate <= 0) playbackRate = 1.0;
+    if (!Number.isFinite(position) || position < 0) { return; }
+    if (!Number.isFinite(duration) || duration <= 0) { return; }
+    if (!Number.isFinite(playbackRate) || playbackRate <= 0) { playbackRate = 1.0; }
 
     await MediaSession.setPositionState({
       position,

@@ -1,12 +1,12 @@
+import { trackPlayCollection } from '@/collections/track-play.collection';
+import i18n from '@/i18n';
+import { config } from '@/lib/config';
 import { Capacitor } from '@capacitor/core';
 import type { Device, PlayerState, Track, TrackPlay } from '@melody-manager/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useAuth } from 'pocketbase-react-hooks';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { trackPlayCollection } from '@/collections/track-play.collection';
-import i18n from '@/i18n';
-import { config } from '@/lib/env';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
 
@@ -172,6 +172,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           if (prev.repeatMode === 'one') {
             audio.currentTime = 0;
             audio.play();
+            return prev;
+          } else if (prev.shuffle && prev.queue.length > 1) {
+            const otherTracks = prev.queue.filter((t) => t.id !== prev.currentTrack?.id);
+            if (otherTracks.length > 0) {
+              setTimeout(() => playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]), 0);
+            }
+            return prev;
           } else if (prev.repeatMode === 'all') {
             const currentIndex = prev.queue.findIndex((t) => t.id === prev.currentTrack?.id);
             if (currentIndex >= 0 && currentIndex < prev.queue.length - 1) {
@@ -281,8 +288,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       audio.removeEventListener('stalled', handleStalled);
       audio.pause();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [playTrack, playerState.volume]);
 
   const pause = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {
@@ -347,6 +353,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       return;
     }
 
+    if (playerState.shuffle && playerState.queue.length > 1) {
+      const otherTracks = playerState.queue.filter((t) => t.id !== playerState.currentTrack?.id);
+      if (otherTracks.length > 0) {
+        playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]);
+      }
+      return;
+    }
+
     const currentIndex = playerState.queue.findIndex((t) => t.id === playerState.currentTrack?.id);
 
     if (currentIndex === -1 || currentIndex === playerState.queue.length - 1) {
@@ -357,7 +371,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     playTrack(playerState.queue[currentIndex + 1]);
-  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playTrack]);
+  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
 
   const playPrevious = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {
@@ -366,6 +380,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       } catch (error) {
         console.error('Sonos previous failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
+      }
+      return;
+    }
+
+    if (playerState.shuffle && playerState.queue.length > 1) {
+      const otherTracks = playerState.queue.filter((t) => t.id !== playerState.currentTrack?.id);
+      if (otherTracks.length > 0) {
+        playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]);
       }
       return;
     }
@@ -380,7 +402,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     playTrack(playerState.queue[currentIndex - 1]);
-  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playTrack]);
+  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
 
   const seek = useCallback(
     async (time: number) => {

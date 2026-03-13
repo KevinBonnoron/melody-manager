@@ -7,9 +7,7 @@ import { useAuthUser } from './use-auth-user';
 
 export function useTrackLikes() {
   const user = useAuthUser();
-  const { data: trackLikes = [] } = useLiveQuery((q) =>
-    q.from({ trackLikes: trackLikeCollection }).where(({ trackLikes }) => eq(trackLikes.user, user.id)),
-  );
+  const { data: trackLikes = [] } = useLiveQuery((q) => q.from({ trackLikes: trackLikeCollection }).where(({ trackLikes }) => eq(trackLikes.user, user.id)));
 
   const isLiked = useCallback(
     (trackId: string) => {

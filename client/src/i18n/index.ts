@@ -1,3 +1,4 @@
+import { config } from '@/lib/config';
 import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
@@ -19,7 +20,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: process.env.NODE_ENV === 'development',
+    debug: config.nodeEnv === 'development',
 
     interpolation: {
       escapeValue: false,

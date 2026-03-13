@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuthUser } from '@/hooks/use-auth-user';
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
 import { useNavigate } from '@tanstack/react-router';
 import { Camera, Loader2, LogOut } from 'lucide-react';
@@ -31,7 +31,7 @@ export function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const avatarUrl = user.avatar ? `${config.pocketbase.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
+  const avatarUrl = user.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
 
   const getInitials = (name: string) => {
     return name
@@ -44,7 +44,9 @@ export function ProfilePage() {
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
     setIsUpdatingName(true);
     try {
       await pb.collection('users').update(user.id, { name: name.trim() });
@@ -92,7 +94,9 @@ export function ProfilePage() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -103,7 +107,9 @@ export function ProfilePage() {
       toast.error(t('ProfilePage.avatarUpdateError'));
     } finally {
       setIsUploadingAvatar(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

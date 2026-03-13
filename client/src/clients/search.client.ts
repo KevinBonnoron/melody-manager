@@ -1,5 +1,5 @@
 import { withHttpDelegate } from '@/lib/client';
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import type { Album, Artist, SearchResult, SearchType, Track } from '@melody-manager/shared';
 import { universalClient, withMethods } from 'universal-client';
 

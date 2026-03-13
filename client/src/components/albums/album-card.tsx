@@ -48,7 +48,8 @@ export function AlbumCard({ album }: Props) {
           )}
         </div>
         <div className="absolute bottom-2 right-2 z-10 pointer-events-none hidden sm:block">
-          <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive */}
+          <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <LikeButton isLiked={isLiked(album.id)} toggleLike={() => toggleLike(album.id)} />
           </div>
         </div>
