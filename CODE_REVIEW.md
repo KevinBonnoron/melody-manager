@@ -7,7 +7,10 @@
 
 ## Summary
 
-Full codebase review covering the client, server, shared types, plugins, and configuration. Findings are organized by category with severity indicators.
+Full codebase review covering the client, server, shared types, plugins, and configuration.
+**Totals: 12 bugs, 18 dead code, 17 duplications, 13 inconsistencies, 13 code smells, 7 config issues, 5 type safety issues.**
+
+Findings are organized by category with severity indicators.
 
 - **BUG** = likely correctness issue
 - **DEAD** = unused code that can be removed
@@ -61,6 +64,14 @@ Full codebase review covering the client, server, shared types, plugins, and con
 ### BUG-10: Missing JSON parse error handling in SSE client
 - **File:** `client/src/clients/tasks.client.ts:15-18`
 - `JSON.parse(data)` is called without try-catch. If the server sends malformed data, the entire SSE handler will throw.
+
+### BUG-11: `getEnvOrDefault<T>` casts env strings to non-string types
+- **File:** `server/src/lib/config.ts:3-5`
+- `return (process.env[name] as T) || defaultValue` casts an env var string to `T`. For `CACHE_MAX_FILES` and `CACHE_MAX_SIZE` (which expect `number`), a set env var like `"500"` will be returned as a string despite being typed as `number`. The `||` fallback only works when the env var is unset.
+
+### BUG-12: `notifyListeners` is async but called without `await`
+- **File:** `server/src/services/device-source.service.ts:75,120,127,134,141`
+- `notifyListeners` is async (awaits `getKnownDevices` internally) but called without `await` in multiple places. Errors inside it are unhandled and device state notifications may fire out of order.
 
 ---
 
@@ -119,6 +130,24 @@ Full codebase review covering the client, server, shared types, plugins, and con
 ### DEAD-13: `pocketbase.type.ts` not re-exported from barrel
 - **File:** `shared/src/types/index.ts`
 - `PocketBaseRecord` and `Expand` are foundational types used by every domain entity, but consumers cannot access them from the shared package.
+
+### DEAD-14: `peaksService.invalidate()` never called
+- **File:** `server/src/services/peaks.service.ts:27-29`
+- The `invalidate` method exists but is never invoked anywhere.
+
+### DEAD-15: `TaskService.cleanup()` never called
+- **File:** `server/src/services/task.service.ts:53-59`
+- Defined but never scheduled or invoked. Tasks accumulate in memory indefinitely.
+
+### DEAD-16: `DeviceSourceService.stopAutoDiscovery()` never called
+- **File:** `server/src/services/device-source.service.ts:26-31`
+- No code path ever stops auto-discovery.
+
+### DEAD-17: Unused re-exports from `server/src/types/index.ts`
+- Re-exports `StreamInfo`, `YtDlpChapter`, `YtDlpComment`, `YtDlpTrackInfo` from `@melody-manager/plugin-sdk`. None are imported from `../types` anywhere in the server code.
+
+### DEAD-18: Unused re-exports from `server/src/plugins/index.ts`
+- Re-exports `ConfigSchemaItem`, `PluginManifest`, `ImportProvider`, `PluginCapabilities`, `SearchProvider`, `SourcePlugin`. None are imported from `../plugins` by any file outside the plugins directory.
 
 ---
 
@@ -188,6 +217,18 @@ Full codebase review covering the client, server, shared types, plugins, and con
 ### DUP-14: Range request handling duplicated
 - `server/src/services/stream.service.ts`: `serveFile` (lines 89-109) and `serveCached` (lines 208-228) contain near-identical range request parsing and response construction.
 
+### DUP-15: MIME type lookup maps duplicated
+- `server/src/services/stream.service.ts:15-23` (`MIME_TYPES`)
+- `server/src/utils/stream-url.util.ts:21-28` (`formatToMime`)
+- Both define the same mapping from audio format extensions to MIME types.
+
+### DUP-16: `PlayOptions` construction duplicated (with bug)
+- `server/src/services/device-source.service.ts`: `playTrack` (lines 109-116) and `addTrackToQueue` (lines 201-208) build the same `PlayOptions` object but `addTrackToQueue` uses raw IDs instead of expanded names (see BUG-9).
+
+### DUP-17: `discoverDevices` and `getKnownDevices` near-identical
+- `server/src/services/device-source.service.ts:62-78` vs `80-92`
+- Both fetch providers, map with `getDeviceProvider`, and flatten results. Only differ by which plugin method is called.
+
 ---
 
 ## 4. Inconsistent Patterns
@@ -243,6 +284,23 @@ Full codebase review covering the client, server, shared types, plugins, and con
 - `client/src/components/atoms/music-player/playback-controlts.tsx`
 - `controlts` should be `controls`.
 
+### INCONSISTENCY-11: Route response shapes inconsistent across API
+- `device.route.ts`: Returns `{ success: true/false, data/message }` wrapper
+- `album.route.ts`: Returns `{ taskId }` or `{ error }`
+- `track.route.ts`: Returns `{ tracks }`, `{ taskId }`, `{ error }`, `{ message }`, or `{ peaks }`
+- `task.route.ts`: Returns `{ tasks }` or `{ ok: true }`
+- `plugin.route.ts`: Returns raw array
+- No consistent API response envelope.
+
+### INCONSISTENCY-12: Request validation: Zod vs raw parsing
+- `album.route.ts`, `track.route.ts`, `artist.route.ts`, `playlist.route.ts`, `search.route.ts`, `share.route.ts`: Use `zValidator` with Zod schemas.
+- `device.route.ts`: Uses raw `c.req.param()` and `c.req.json()` with no validation.
+
+### INCONSISTENCY-13: `DatabaseService.getAllBy` vs `DatabaseRepository.getAllBy` filter parameter
+- `server/src/types/database-service.type.ts:5`: `filter: string` (required)
+- `server/src/types/database-repository.type.ts:7`: `filter?: string` (optional)
+- The factory delegates directly to the repository, so it works at runtime, but the types disagree.
+
 ---
 
 ## 5. Code Smells
@@ -277,6 +335,25 @@ Full codebase review covering the client, server, shared types, plugins, and con
 
 ### SMELL-8: `metadata` field is a loosely-typed bag
 - Throughout the codebase, `track.metadata?.localPath`, `track.metadata?.startTime`, `track.metadata?.endTime` are accessed with `as string | undefined` and `as number | undefined` casts. The `metadata` field has no typed schema, making every access unsafe.
+
+### SMELL-9: Silent error swallowing in `databaseRepositoryFactory`
+- **File:** `server/src/factories/database-repository.factory.ts:14,18,22`
+- `getOne`, `getOneBy`, `getAllBy` all catch **all** errors and return `null` or `[]`. A network failure or malformed query is indistinguishable from "not found" / "no results". PocketBase could be down and the app would silently act as if collections are empty.
+
+### SMELL-10: In-memory tasks with no automatic cleanup
+- **File:** `server/src/services/task.service.ts`
+- Tasks accumulate in memory indefinitely. `cleanup()` exists but is never scheduled. `clearCompleted` is only called via explicit API endpoint. On a long-running server, tasks grow unbounded.
+
+### SMELL-11: `device.route.ts` is 292 lines of repetitive try/catch boilerplate
+- **File:** `server/src/routes/device.route.ts`
+- Each of 10+ endpoints follows the exact same try/catch pattern with `success: true/false` wrapping. Could be a middleware or wrapper function.
+
+### SMELL-12: Fire-and-forget async IIFEs
+- `server/src/index.ts:12-27`: Startup IIFE with no `.catch()` on the IIFE itself.
+- `server/src/services/album.service.ts:43-88,114-153`: Async IIFEs with internal try/catch but no `.catch()` on the IIFE promise. If the IIFE rejects before entering the try block, it's an unhandled rejection.
+
+### SMELL-13: `console.error` mixed with `logger.error` in server code
+- `server/src/plugins/loader.ts:89`, `server/src/services/stream.service.ts:76,78,195,198,255,258,331`: Use `console.error` while the rest of the codebase uses the structured `logger`.
 
 ---
 
