@@ -88,7 +88,7 @@ export function GlobalSearchButton() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
+      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)} aria-label={t('AppLayout.search')}>
         <Search className="h-4 w-4 sm:mr-2" />
         <span className="hidden sm:inline">{t('AppLayout.search')}</span>
         <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('f')}</kbd>

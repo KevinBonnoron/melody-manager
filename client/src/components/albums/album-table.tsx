@@ -83,7 +83,12 @@ export function AlbumTable({ tracks }: Props) {
       },
       {
         accessorKey: 'duration',
-        header: () => <Clock className="h-4 w-4" />,
+        header: () => (
+          <>
+            <Clock className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only">{t('AlbumTable.duration')}</span>
+          </>
+        ),
         cell: ({ row }) => <TrackDurationCell track={row.original} />,
         meta: {
           className: 'justify-center',
@@ -93,7 +98,12 @@ export function AlbumTable({ tracks }: Props) {
       },
       {
         id: 'playCount',
-        header: () => <Headphones className="h-4 w-4" />,
+        header: () => (
+          <>
+            <Headphones className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only">{t('AlbumTable.playCount')}</span>
+          </>
+        ),
         cell: ({ row }) => {
           const count = getPlayCount(row.original.id);
           return <span className="text-muted-foreground text-sm">{count > 0 ? count : '—'}</span>;
@@ -121,7 +131,7 @@ export function AlbumTable({ tracks }: Props) {
         meta: {
           className: 'justify-center',
         },
-        size: 64,
+        size: 80,
         enableSorting: false,
       },
     ],
