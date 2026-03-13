@@ -19,10 +19,14 @@ function Avatar({
   )
 }
 
+type AvatarImageProps = React.ComponentProps<typeof AvatarPrimitive.Image> & {
+  alt: string
+}
+
 function AvatarImage({
   className,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+}: AvatarImageProps) {
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"

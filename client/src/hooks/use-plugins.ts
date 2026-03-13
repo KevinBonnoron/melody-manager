@@ -3,6 +3,7 @@ import type { PluginManifest } from '@melody-manager/shared';
 import { useEffect, useState } from 'react';
 
 let cachedManifests: PluginManifest[] | null = null;
+let cachedManifestsPromise: Promise<PluginManifest[]> | null = null;
 
 export function usePlugins() {
   const [manifests, setManifests] = useState<PluginManifest[]>(cachedManifests ?? []);
@@ -13,10 +14,23 @@ export function usePlugins() {
       return;
     }
 
-    fetch(`${config.server.url}/plugins`)
-      .then((res) => res.json())
-      .then((data: PluginManifest[]) => {
-        cachedManifests = data;
+    if (!cachedManifestsPromise) {
+      cachedManifestsPromise = fetch(`${config.server.url}/plugins`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch plugins');
+          return res.json();
+        })
+        .then((data: PluginManifest[]) => {
+          cachedManifests = data;
+          return data;
+        })
+        .finally(() => {
+          cachedManifestsPromise = null;
+        });
+    }
+
+    cachedManifestsPromise
+      .then((data) => {
         setManifests(data);
       })
       .catch((err) => {

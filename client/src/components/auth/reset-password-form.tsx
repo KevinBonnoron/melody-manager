@@ -22,9 +22,8 @@ export function ResetPasswordForm() {
       await pb.collection('users').requestPasswordReset(email);
       setIsSuccess(true);
       toast.success(t('ResetPasswordForm.success'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to send reset email';
-      toast.error(message);
+    } catch {
+      toast.error(t('ResetPasswordForm.error'));
     } finally {
       setIsLoading(false);
     }

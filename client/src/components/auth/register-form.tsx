@@ -40,7 +40,6 @@ export function RegisterForm() {
         password,
         passwordConfirm: password,
         name,
-        role: 'user',
       });
 
       await signIn.email(email, password);

@@ -27,8 +27,6 @@ Then open [http://localhost](http://localhost) in your browser.
 For a more configurable setup, use Docker Compose. Create a `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   melody-manager:
     image: ghcr.io/kevinbonnoron/melody-manager:latest

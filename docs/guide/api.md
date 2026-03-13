@@ -22,7 +22,7 @@ Stream an audio track.
 
 **Example:**
 
-```
+```http
 GET /api/tracks/stream/abc123?transcode=mp3
 ```
 

@@ -89,9 +89,12 @@ export function ProgressBar() {
   const chapters = currentTrack.metadata?.chapters ?? [];
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return hours > 0
+      ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      : `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const progressPercent = currentTrack.duration > 0 ? (currentTime / currentTrack.duration) * 100 : 0;

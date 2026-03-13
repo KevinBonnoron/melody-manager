@@ -15,7 +15,7 @@ export function TaskNotifications() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label={t('Tasks.title')}>
           <Bell className="h-4 w-4" />
           {hasActiveTasks && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />}
         </Button>
@@ -46,7 +46,7 @@ export function TaskNotifications() {
                 </p>
                 {task.status === 'running' && task.progress !== undefined && (
                   <div className="mt-1 h-1 w-full bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${task.progress}%` }} />
+                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} />
                   </div>
                 )}
               </div>
