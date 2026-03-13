@@ -1,6 +1,7 @@
 import type { PluginImportTrack } from '@melody-manager/plugin-sdk';
 import type { Track, TrackProvider } from '@melody-manager/shared';
 import { normalizeTrackTitle } from '@melody-manager/shared';
+import { pbFilter } from '../lib/pocketbase';
 import { albumRepository, artistRepository, genreRepository, trackRepository } from '../repositories';
 
 export const importPersistService = {
@@ -8,7 +9,7 @@ export const importPersistService = {
     const tracks: Track[] = [];
 
     for (const t of importTracks) {
-      const { id: artistId } = await artistRepository.getOrCreate({ name: t.artistName }, `name = "${t.artistName.replace(/"/g, '\\"')}"`);
+      const { id: artistId } = await artistRepository.getOrCreate({ name: t.artistName }, pbFilter('name = {:name}', { name: t.artistName }));
 
       const albumData: { name: string; artists: string[]; coverUrl?: string; year?: number } = {
         name: t.albumName,
@@ -21,7 +22,7 @@ export const importPersistService = {
         albumData.year = t.metadata.year;
       }
 
-      const album = await albumRepository.getOrCreate(albumData, `name = "${t.albumName.replace(/"/g, '\\"')}"`);
+      const album = await albumRepository.getOrCreate(albumData, pbFilter('name = {:name}', { name: t.albumName }));
       const albumUpdate: { coverUrl?: string; year?: number } = {};
       if (!album.coverUrl && t.coverUrl) {
         albumUpdate.coverUrl = t.coverUrl;
@@ -43,7 +44,7 @@ export const importPersistService = {
             .split(/\s+/)
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
-          const { id: genreId } = await genreRepository.getOrCreate({ name: normalizedName }, `name = "${normalizedName.replace(/"/g, '\\"')}"`);
+          const { id: genreId } = await genreRepository.getOrCreate({ name: normalizedName }, pbFilter('name = {:name}', { name: normalizedName }));
           genreIds.push(genreId);
         }
       }
@@ -61,7 +62,7 @@ export const importPersistService = {
           genres: genreIds,
           metadata,
         },
-        `sourceUrl = "${t.sourceUrl.replace(/"/g, '\\"')}"${metadata?.startTime != null ? ` && metadata.startTime = ${metadata.startTime}` : ''}`,
+        metadata?.startTime != null ? pbFilter('sourceUrl = {:sourceUrl} && metadata.startTime = {:startTime}', { sourceUrl: t.sourceUrl, startTime: metadata.startTime }) : pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl: t.sourceUrl }),
       );
       tracks.push(track);
     }

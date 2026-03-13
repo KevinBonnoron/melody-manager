@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { AlbumError } from '../errors';
 import { databaseServiceFactory } from '../factories';
 import { logger } from '../lib/logger';
+import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { albumRepository, providerRepository, trackRepository } from '../repositories';
 import { detectAllSilenceRegions } from '../utils';
@@ -12,7 +13,7 @@ import { taskService } from './task.service';
 
 export const albumService = databaseServiceFactory(albumRepository, {
   async download(albumId: string) {
-    const tracks = await trackRepository.getAllBy(`album = "${albumId}"`);
+    const tracks = await trackRepository.getAllBy(pbFilter('album = {:albumId}', { albumId }));
     if (tracks.length === 0) {
       throw new AlbumError('No tracks found for this album', 404);
     }
@@ -88,7 +89,7 @@ export const albumService = databaseServiceFactory(albumRepository, {
   },
 
   async resync(albumId: string) {
-    const tracks = await trackRepository.getAllBy(`album = "${albumId}"`);
+    const tracks = await trackRepository.getAllBy(pbFilter('album = {:albumId}', { albumId }));
     if (tracks.length === 0) {
       throw new AlbumError('No tracks found for this album', 404);
     }

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { config } from '../lib/config';
 import { logger } from '../lib/logger';
-import { pb } from '../lib/pocketbase';
+import { pb, pbFilter } from '../lib/pocketbase';
 import { albumRepository, artistRepository, providerRepository, trackRepository } from '../repositories';
 import { importPersistService, metadataEnrichmentService, taskService } from '../services';
 import { pluginRegistry } from './registry';
@@ -97,14 +97,14 @@ async function deleteTrackAndCleanup(track: { id: string; album: string; artists
   await trackRepository.delete(track.id);
 
   if (albumId) {
-    const remaining = await trackRepository.getOneBy(`album = "${albumId}"`);
+    const remaining = await trackRepository.getOneBy(pbFilter('album = {:albumId}', { albumId }));
     if (!remaining) {
       await albumRepository.delete(albumId);
     }
   }
 
   for (const artistId of artistIds) {
-    const remaining = await trackRepository.getOneBy(`artists ~ "${artistId}"`);
+    const remaining = await trackRepository.getOneBy(pbFilter('artists ~ {:artistId}', { artistId }));
     if (!remaining) {
       await artistRepository.delete(artistId);
     }
@@ -121,7 +121,7 @@ async function handleWatchEvent(provider: TrackProvider, event: WatchEvent): Pro
         const diskUrls = new Set(event.tracks.map((t) => t.sourceUrl));
         taskService.update(task.id, { progress: 30 });
 
-        const dbTracks = await trackRepository.getAllBy(`provider = "${provider.id}"`);
+        const dbTracks = await trackRepository.getAllBy(pbFilter('provider = {:providerId}', { providerId: provider.id }));
         const dbUrls = dbTracks.map((t) => t.sourceUrl);
         taskService.update(task.id, { progress: 50 });
 
@@ -163,7 +163,7 @@ async function handleWatchEvent(provider: TrackProvider, event: WatchEvent): Pro
     case 'removed': {
       try {
         for (const sourceUrl of event.sourceUrls) {
-          const track = await trackRepository.getOneBy(`sourceUrl = "${sourceUrl.replace(/"/g, '\\"')}"`);
+          const track = await trackRepository.getOneBy(pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl }));
           if (track) {
             await deleteTrackAndCleanup(track);
           }
@@ -182,7 +182,7 @@ export async function initializeWatchProviders(): Promise<void> {
     if (!watcher) {
       return;
     }
-    const provider = (await providerRepository.getOneBy(`type = "${pluginId}" && enabled = true && category = "track"`)) as TrackProvider | null;
+    const provider = (await providerRepository.getOneBy(pbFilter('type = {:pluginId} && enabled = true && category = "track"', { pluginId }))) as TrackProvider | null;
     if (provider) {
       watcher.watch(provider, (event) => {
         handleWatchEvent(provider, event).catch((err) => logger.error(`[watch] Event handler failed for ${pluginId}`, err));

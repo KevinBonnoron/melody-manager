@@ -4,8 +4,8 @@ import { logger } from '../lib/logger';
 import { deviceSourceService } from '../services';
 
 export const deviceRoute = new Hono()
-  .get('/', (c) => {
-    const devices = deviceSourceService.getKnownDevices();
+  .get('/', async (c) => {
+    const devices = await deviceSourceService.getKnownDevices();
     return c.json({
       success: true,
       data: devices,

@@ -22,6 +22,7 @@ class NativeAudioService {
   private initPromise: Promise<void> | null = null;
 
   public async initialize(callbacks: NativeAudioCallbacks) {
+    this.callbacks = callbacks;
     if (this.initPromise) {
       await this.initPromise;
       return;

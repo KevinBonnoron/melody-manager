@@ -1,6 +1,7 @@
 import type { ImportProvider, PluginImportTrack } from '@melody-manager/plugin-sdk';
 import type { SearchResult, SearchType, Task, TrackProvider } from '@melody-manager/shared';
 import { logger } from '../lib/logger';
+import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { providerRepository } from '../repositories';
 import { importPersistService } from './import-persist.service';
@@ -58,7 +59,7 @@ class SourceService {
       throw new Error('Could not detect provider from URL');
     }
 
-    const provider = (await providerRepository.getOneBy(`type = "${providerType}" && enabled = true && category = "track"`)) as TrackProvider;
+    const provider = (await providerRepository.getOneBy(pbFilter('type = {:providerType} && enabled = true && category = "track"', { providerType }))) as TrackProvider;
     if (!provider) {
       throw new Error(`Provider ${providerType} is not enabled`);
     }

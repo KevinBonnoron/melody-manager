@@ -16,6 +16,9 @@ interface Props {
 
 export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
   const { isLiked, toggleLike } = useTrackLikes();
+  if (!track.expand) {
+    return null;
+  }
   const { album, artists, provider, genres } = track.expand;
 
   return (

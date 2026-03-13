@@ -72,7 +72,7 @@ class DeviceSourceService {
     );
     const allDevices = devices.flat();
 
-    this.notifyListeners();
+    await this.notifyListeners();
 
     return allDevices;
   }
@@ -117,28 +117,28 @@ class DeviceSourceService {
 
     const plugin = this.getDevicePlugin(device);
     await plugin.play(device, playOptions);
-    this.notifyListeners();
+    await this.notifyListeners();
   }
 
   public async resume(deviceId: string): Promise<void> {
     const device = await this.getDeviceById(deviceId);
     const plugin = this.getDevicePlugin(device);
     await plugin.play(device);
-    this.notifyListeners();
+    await this.notifyListeners();
   }
 
   public async pause(deviceId: string): Promise<void> {
     const device = await this.getDeviceById(deviceId);
     const plugin = this.getDevicePlugin(device);
     await plugin.pause(device);
-    this.notifyListeners();
+    await this.notifyListeners();
   }
 
   public async stop(deviceId: string): Promise<void> {
     const device = await this.getDeviceById(deviceId);
     const plugin = this.getDevicePlugin(device);
     await plugin.stop(device);
-    this.notifyListeners();
+    await this.notifyListeners();
   }
 
   public async next(deviceId: string): Promise<void> {
@@ -202,8 +202,8 @@ class DeviceSourceService {
       trackUrl: streamUrl,
       mimeType,
       title: track.title,
-      artist: track.artists.join(', ') ?? 'Unknown Artist',
-      album: track.album,
+      artist: track.expand.artists.map((artist) => artist.name).join(', ') ?? 'Unknown Artist',
+      album: track.expand.album.name ?? 'Unknown Album',
       duration: track.duration,
     };
 

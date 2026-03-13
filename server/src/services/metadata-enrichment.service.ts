@@ -1,6 +1,7 @@
 import type { Track } from '@melody-manager/shared';
 
 import { logger } from '../lib/logger';
+import { pbFilter } from '../lib/pocketbase';
 import { albumRepository, artistRepository, trackRepository } from '../repositories';
 import { musicBrainzClient } from './musicbrainz.service';
 import { taskService } from './task.service';
@@ -107,7 +108,7 @@ class MetadataEnrichmentService {
 
     // Check if another artist already has this MBID — if so, merge into it
     if (!knownMbid) {
-      const existing = await artistRepository.getOneBy(`metadata.mbid = "${mbArtist.mbid}" && id != "${artist.id}"`);
+      const existing = await artistRepository.getOneBy(pbFilter('metadata.mbid = {:mbid} && id != {:artistId}', { mbid: mbArtist.mbid, artistId: artist.id }));
       if (existing) {
         await this.mergeArtists(existing.id, artist.id);
         return;
@@ -137,14 +138,14 @@ class MetadataEnrichmentService {
     logger.info(`[enrichment] Merging artist ${sourceArtistId} into ${targetArtistId}`);
 
     // Reassign tracks
-    const tracks = await trackRepository.getAllBy(`artists ?~ "${sourceArtistId}"`);
+    const tracks = await trackRepository.getAllBy(pbFilter('artists ?~ {:sourceArtistId}', { sourceArtistId }));
     for (const track of tracks) {
       const updatedArtists = track.artists.map((id) => (id === sourceArtistId ? targetArtistId : id));
       await trackRepository.update(track.id, { artists: [...new Set(updatedArtists)] });
     }
 
     // Reassign albums
-    const albums = await albumRepository.getAllBy(`artists ?~ "${sourceArtistId}"`);
+    const albums = await albumRepository.getAllBy(pbFilter('artists ?~ {:sourceArtistId}', { sourceArtistId }));
     for (const album of albums) {
       const updatedArtists = album.artists.map((id) => (id === sourceArtistId ? targetArtistId : id));
       await albumRepository.update(album.id, { artists: [...new Set(updatedArtists)] });

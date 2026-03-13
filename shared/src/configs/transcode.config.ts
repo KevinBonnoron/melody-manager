@@ -17,4 +17,4 @@ export const transcodeConfigs = {
   },
 } as const;
 
-export const transcodeFormats = Object.keys(transcodeConfigs) as [keyof typeof transcodeConfigs];
+export const transcodeFormats = Object.keys(transcodeConfigs) as (keyof typeof transcodeConfigs)[];

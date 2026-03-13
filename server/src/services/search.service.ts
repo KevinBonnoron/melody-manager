@@ -1,5 +1,6 @@
 import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { logger } from '../lib/logger';
+import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { albumRepository, artistRepository, providerRepository, trackRepository } from '../repositories';
 import { trackSourceService } from './track-source.service';
@@ -53,7 +54,7 @@ class SearchService {
 
   private async addAlbumLibraryStatus(result: AlbumSearchResult): Promise<AlbumSearchResult> {
     try {
-      const album = await albumRepository.getOneBy(`name = "${result.name}"`);
+      const album = await albumRepository.getOneBy(pbFilter('name = {:name}', { name: result.name }));
       if (!album) {
         return {
           ...result,
@@ -64,7 +65,7 @@ class SearchService {
           },
         };
       }
-      const tracks = await trackRepository.getAllBy(`album = "${album.id}"`);
+      const tracks = await trackRepository.getAllBy(pbFilter('album = {:albumId}', { albumId: album.id }));
       const libraryStatus: LibraryStatus = {
         isInLibrary: result.trackCount ? tracks.length >= result.trackCount : tracks.length > 0,
         tracksInLibrary: tracks.length,
@@ -85,7 +86,7 @@ class SearchService {
 
   private async addArtistLibraryStatus(result: ArtistSearchResult): Promise<ArtistSearchResult> {
     try {
-      const artist = await artistRepository.getOneBy(`name = "${result.name}"`);
+      const artist = await artistRepository.getOneBy(pbFilter('name = {:name}', { name: result.name }));
       if (!artist) {
         return {
           ...result,
@@ -96,7 +97,7 @@ class SearchService {
           },
         };
       }
-      const tracks = await trackRepository.getAllBy(`artists ~ "${artist.id}"`);
+      const tracks = await trackRepository.getAllBy(pbFilter('artists ~ {:artistId}', { artistId: artist.id }));
       const libraryStatus: LibraryStatus = {
         isInLibrary: false,
         tracksInLibrary: tracks.length,
@@ -117,7 +118,7 @@ class SearchService {
 
   public async searchLibrary(query: string): Promise<{ tracks: any[]; albums: any[]; artists: any[] }> {
     const normalizedQuery = query.toLowerCase().trim();
-    const [tracks, albums, artists] = await Promise.all([trackRepository.getAllBy(`title ~ "${normalizedQuery}"`), albumRepository.getAllBy(`name ~ "${normalizedQuery}"`), artistRepository.getAllBy(`name ~ "${normalizedQuery}"`)]);
+    const [tracks, albums, artists] = await Promise.all([trackRepository.getAllBy(pbFilter('title ~ {:query}', { query: normalizedQuery })), albumRepository.getAllBy(pbFilter('name ~ {:query}', { query: normalizedQuery })), artistRepository.getAllBy(pbFilter('name ~ {:query}', { query: normalizedQuery }))]);
     return { tracks, albums, artists };
   }
 }

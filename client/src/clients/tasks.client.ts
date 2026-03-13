@@ -14,7 +14,11 @@ export const tasksClient = universalClient(
       events: (onTask: (task: Task) => void) => {
         const unsub = sse.subscribe('task', (data) => {
           if (typeof data === 'string') {
-            onTask(JSON.parse(data));
+            try {
+              onTask(JSON.parse(data));
+            } catch {
+              // Ignore malformed SSE data
+            }
           }
         });
         sse.open({ url: '/tasks/events' });
