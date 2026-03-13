@@ -21,7 +21,7 @@ export const searchRoute = new Hono().post('/', zValidator('json', searchSchema)
     }
 
     const results = await searchService.search(query, type as SearchType);
-    return c.json({ results });
+    return c.json(results);
   } catch (error) {
     logger.error(`Error searching ${source === 'library' ? 'library' : type}: ${error}`);
     return c.json({ error: `Failed to search ${source === 'library' ? 'library' : type}` }, 500);
