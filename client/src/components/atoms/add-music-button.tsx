@@ -17,7 +17,7 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProviders } from '@/hooks/use-providers';
-import { formatDuration, getProviderColor } from '@/lib/utils';
+import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
 import { Input } from '../ui/input';
 
 export function AddMusicButton() {
@@ -73,7 +73,7 @@ export function AddMusicButton() {
       } catch (error) {
         if (!cancelled) {
           console.error('Search error:', error);
-          toast.error('Failed to search');
+          toast.error(t('GlobalSearch.failedToSearch'));
         }
       } finally {
         if (!cancelled) {
@@ -86,7 +86,7 @@ export function AddMusicButton() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [query, selectedType]);
+  }, [query, selectedType, t]);
 
   const handleAdd = async (result: SearchResult) => {
     setAddingUrls((prev) => new Set(prev).add(result.externalUrl));
@@ -272,7 +272,7 @@ export function AddMusicButton() {
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
         {t('AppLayout.addMusic')}
-        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">Ctrl+K</kbd>
+        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <div className="flex border-b px-3 py-2">

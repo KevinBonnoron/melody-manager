@@ -211,7 +211,8 @@
     "libraryAlbums": "Albums",
     "libraryArtists": "Artistes",
     "openExternal": "Ouvrir chez le fournisseur",
-    "addToLibrary": "Ajouter à la bibliothèque"
+    "addToLibrary": "Ajouter à la bibliothèque",
+    "failedToSearch": "Échec de la recherche"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",

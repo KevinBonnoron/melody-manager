@@ -12,7 +12,7 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
 import { useTracks } from '@/hooks/use-tracks';
-import { formatDuration, getProviderColor } from '@/lib/utils';
+import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
 import { Input } from '../ui/input';
 
 const trackFuseOptions: IFuseOptions<Track> = {
@@ -103,7 +103,7 @@ export function GlobalSearchButton() {
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Search className="h-4 w-4 mr-2" />
         {t('AppLayout.search')}
-        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">Ctrl+F</kbd>
+        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('f')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <div className="flex border-b px-3 py-2">

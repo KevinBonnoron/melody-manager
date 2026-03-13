@@ -211,7 +211,8 @@
     "libraryAlbums": "Albums",
     "libraryArtists": "Artists",
     "openExternal": "Open in provider",
-    "addToLibrary": "Add to library"
+    "addToLibrary": "Add to library",
+    "failedToSearch": "Failed to search"
   },
   "LoginPage": {
     "title": "Welcome back",
