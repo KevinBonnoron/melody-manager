@@ -64,8 +64,19 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Home" || e.key === "End") {
+        e.stopPropagation()
+      }
+      onKeyDown?.(e)
+    },
+    [onKeyDown]
+  )
+
   return (
     <div
       data-slot="command-input-wrapper"
@@ -78,6 +89,7 @@ function CommandInput({
           "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
+        onKeyDown={handleKeyDown}
         {...props}
       />
     </div>
