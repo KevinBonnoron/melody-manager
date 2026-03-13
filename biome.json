@@ -10,6 +10,7 @@
     "includes": [
       "client/**/*.ts*",
       "!client/src/routeTree.gen.ts",
+      "!!client/src/components/ui",
       "server/**/*.ts",
       "shared/**/*.ts",
       "plugins/**/*.ts",

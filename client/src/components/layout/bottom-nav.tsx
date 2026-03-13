@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthUser } from '@/hooks/use-auth-user';
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import { Link, useLocation } from '@tanstack/react-router';
 import { Disc3, Heart, List } from 'lucide-react';
@@ -11,7 +11,7 @@ export function BottomNav() {
   const location = useLocation();
   const user = useAuthUser();
 
-  const avatarUrl = user?.avatar ? `${config.pocketbase.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
+  const avatarUrl = user?.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
 
   const getInitials = (name: string) => {
     return name

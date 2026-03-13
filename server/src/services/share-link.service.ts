@@ -1,9 +1,10 @@
 import { databaseServiceFactory } from '../factories';
+import { pbFilter } from '../lib/pocketbase';
 import { shareLinkRepository } from '../repositories';
 
 export const shareLinkService = databaseServiceFactory(shareLinkRepository, {
   async resolveToken(token: string) {
-    const shareLink = await shareLinkRepository.getOneBy(`token = "${token}"`);
+    const shareLink = await shareLinkRepository.getOneBy(pbFilter('token = {:token}', { token }));
     if (!shareLink) {
       return null;
     }

@@ -18,7 +18,7 @@ export function ResyncAlbumMenuItem({ album }: Props) {
   const hasChapters = tracks.some((track) => track.metadata?.startTime !== undefined);
 
   const handleResync = async () => {
-    if (isSyncing) return;
+    if (isSyncing) { return; }
     setIsSyncing(true);
     try {
       await albumsClient.resync(album.id);

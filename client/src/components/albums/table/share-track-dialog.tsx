@@ -5,6 +5,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthUser } from '@/hooks/use-auth-user';
+import { config } from '@/lib/config';
 import type { ShareLink, Track } from '@melody-manager/shared';
 import { Check, Copy, Link, Share2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
@@ -29,14 +30,14 @@ export function ShareTrackDialog({ track }: Props) {
     setIsCreating(true);
     try {
       const token = nanoid(12);
-      await shareLinkCollection.insert({
+      shareLinkCollection.insert({
         id: 'tmp',
         token,
         track: track.id,
         createdBy: user.id,
         expiresAt: expiresAt || '',
       } as ShareLink);
-      setShareUrl(`${window.location.origin}/api/share/stream/${token}`);
+      setShareUrl(`${config.server.url}/share/stream/${token}`);
     } catch {
       toast.error(t('TrackActionsMenu.shareError'));
     } finally {

@@ -55,11 +55,8 @@ class PluginRegistry {
 
   public supportsSearchType(id: string, type: SearchType): boolean {
     const cap = this.getCapabilities(id);
-    if (!cap) {
-      return true;
-    }
-    if (!cap.search) {
-      return true;
+    if (!cap?.search) {
+      return false;
     }
     return cap.search.includes(type);
   }

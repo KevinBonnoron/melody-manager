@@ -3,6 +3,7 @@ import { transcodeFormats } from '@melody-manager/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { logger } from '../lib/logger';
+import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { trackService, trackSourceService } from '../services';
 
@@ -23,7 +24,7 @@ export const trackRoute = new Hono()
     const { url } = c.req.valid('json');
 
     try {
-      const existingTrack = await trackService.getOneBy(`sourceUrl = "${url}"`);
+      const existingTrack = await trackService.getOneBy(pbFilter('sourceUrl = {:url}', { url }));
       if (existingTrack) {
         return c.json({ tracks: [existingTrack], message: 'Track already exists' });
       }
