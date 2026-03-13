@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 # ── Bun binary ──────────────────────────────────────────────────────────────
 
-FROM oven/bun:1.2.4 AS bun-bin
+FROM oven/bun:1.3.10 AS bun-bin
 
 # ── Final image ──────────────────────────────────────────────────────────────
 # Expects pre-built artifacts in the Docker context (CI runs bun run build)
