@@ -92,9 +92,7 @@ export function ProgressBar() {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    return hours > 0
-      ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-      : `${mins}:${secs.toString().padStart(2, '0')}`;
+    return hours > 0 ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}` : `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const progressPercent = currentTrack.duration > 0 ? (currentTime / currentTrack.duration) * 100 : 0;
@@ -114,7 +112,24 @@ export function ProgressBar() {
           </div>
         </button>
       ) : (
-        <div ref={containerRef} className="cursor-pointer mx-10 [&_canvas]:!bg-transparent" aria-label="Waveform seek bar" role="slider" tabIndex={0} />
+        <div
+          ref={containerRef}
+          className="cursor-pointer mx-10 [&_canvas]:!bg-transparent"
+          aria-label="Waveform seek bar"
+          role="slider"
+          tabIndex={0}
+          aria-valuenow={currentTime}
+          aria-valuemin={0}
+          aria-valuemax={currentTrack.duration || 0}
+          onKeyDown={(e) => {
+            const step = e.shiftKey ? 10 : 5;
+            if (e.key === 'ArrowRight') {
+              seek(Math.min(currentTime + step, currentTrack.duration));
+            } else if (e.key === 'ArrowLeft') {
+              seek(Math.max(currentTime - step, 0));
+            }
+          }}
+        />
       )}
       <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-foreground/60 pointer-events-none tabular-nums">{formatTime(currentTime)}</span>
       <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-foreground/40 pointer-events-none tabular-nums">{formatTime(currentTrack.duration)}</span>

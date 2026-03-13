@@ -40,7 +40,7 @@ export function SharesPage() {
   };
 
   const isExpired = (expiresAt: string) => {
-    if (!expiresAt) return false;
+    if (!expiresAt) { return false; }
     return new Date(expiresAt) < new Date();
   };
 

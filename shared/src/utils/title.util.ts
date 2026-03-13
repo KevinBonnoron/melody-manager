@@ -7,5 +7,11 @@ export function normalizeTrackTitle(title: string): string {
     .replace(/^[\s\u3000\u00A0\u200B\uFEFF]*[-–—‐‑]\s*/u, '')
     .replace(/^[\s\u3000\u00A0\u200B\uFEFF]+/u, '')
     .trim();
-  return normalized || title;
+  if (normalized.length > 0) { return normalized; }
+
+  const fallback = title
+    .trim()
+    .replace(/^[-–—‐‑]+\s*/u, '')
+    .trim();
+  return fallback || title;
 }

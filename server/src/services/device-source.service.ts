@@ -38,7 +38,11 @@ class DeviceSourceService {
   private async notifyListeners() {
     const devices = await this.getKnownDevices();
     for (const listener of this.listeners) {
-      listener(devices);
+      try {
+        listener(devices);
+      } catch (error) {
+        console.error('Device change listener failed', error);
+      }
     }
   }
 
@@ -110,8 +114,8 @@ class DeviceSourceService {
       trackUrl: streamUrl,
       mimeType,
       title: track.title,
-      artist: track.expand.artists.map((artist) => artist.name).join(', ') ?? 'Unknown Artist',
-      album: track.expand.album.name ?? 'Unknown Album',
+      artist: track.expand?.artists?.map((artist) => artist.name).join(', ') || 'Unknown Artist',
+      album: track.expand?.album?.name || 'Unknown Album',
       duration: track.duration,
     };
 
@@ -202,8 +206,8 @@ class DeviceSourceService {
       trackUrl: streamUrl,
       mimeType,
       title: track.title,
-      artist: track.expand.artists.map((artist) => artist.name).join(', ') ?? 'Unknown Artist',
-      album: track.expand.album.name ?? 'Unknown Album',
+      artist: track.expand?.artists?.map((artist) => artist.name).join(', ') || 'Unknown Artist',
+      album: track.expand?.album?.name || 'Unknown Album',
       duration: track.duration,
     };
 

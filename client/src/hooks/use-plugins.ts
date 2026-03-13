@@ -1,4 +1,4 @@
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import type { PluginManifest } from '@melody-manager/shared';
 import { useEffect, useState } from 'react';
 
@@ -17,7 +17,9 @@ export function usePlugins() {
     if (!cachedManifestsPromise) {
       cachedManifestsPromise = fetch(`${config.server.url}/plugins`)
         .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch plugins');
+          if (!res.ok) {
+            throw new Error('Failed to fetch plugins');
+          }
           return res.json();
         })
         .then((data: PluginManifest[]) => {

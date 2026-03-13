@@ -1,5 +1,5 @@
 import { withHttpDelegate, withSseDelegate } from '@/lib/client';
-import { config } from '@/lib/env';
+import { config } from '@/lib/config';
 import type { Task } from '@melody-manager/shared';
 import { universalClient, withMethods } from 'universal-client';
 
@@ -17,7 +17,7 @@ export const tasksClient = universalClient(
             try {
               onTask(JSON.parse(data));
             } catch {
-              // Ignore malformed SSE data
+              console.warn('Received malformed SSE data:', data);
             }
           }
         });

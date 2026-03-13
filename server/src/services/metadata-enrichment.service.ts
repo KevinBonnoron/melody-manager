@@ -138,14 +138,14 @@ class MetadataEnrichmentService {
     logger.info(`[enrichment] Merging artist ${sourceArtistId} into ${targetArtistId}`);
 
     // Reassign tracks
-    const tracks = await trackRepository.getAllBy(pbFilter('artists ?~ {:sourceArtistId}', { sourceArtistId }));
+    const tracks = await trackRepository.getAllBy(pbFilter('artists ?= {:sourceArtistId}', { sourceArtistId }));
     for (const track of tracks) {
       const updatedArtists = track.artists.map((id) => (id === sourceArtistId ? targetArtistId : id));
       await trackRepository.update(track.id, { artists: [...new Set(updatedArtists)] });
     }
 
     // Reassign albums
-    const albums = await albumRepository.getAllBy(pbFilter('artists ?~ {:sourceArtistId}', { sourceArtistId }));
+    const albums = await albumRepository.getAllBy(pbFilter('artists ?= {:sourceArtistId}', { sourceArtistId }));
     for (const album of albums) {
       const updatedArtists = album.artists.map((id) => (id === sourceArtistId ? targetArtistId : id));
       await albumRepository.update(album.id, { artists: [...new Set(updatedArtists)] });

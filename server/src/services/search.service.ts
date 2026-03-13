@@ -97,7 +97,7 @@ class SearchService {
           },
         };
       }
-      const tracks = await trackRepository.getAllBy(pbFilter('artists ~ {:artistId}', { artistId: artist.id }));
+      const tracks = await trackRepository.getAllBy(pbFilter('artists ?= {:artistId}', { artistId: artist.id }));
       const libraryStatus: LibraryStatus = {
         isInLibrary: false,
         tracksInLibrary: tracks.length,
@@ -116,7 +116,7 @@ class SearchService {
     }
   }
 
-  public async searchLibrary(query: string): Promise<{ tracks: any[]; albums: any[]; artists: any[] }> {
+  public async searchLibrary(query: string): Promise<{ tracks: unknown[]; albums: unknown[]; artists: unknown[] }> {
     const normalizedQuery = query.toLowerCase().trim();
     const [tracks, albums, artists] = await Promise.all([trackRepository.getAllBy(pbFilter('title ~ {:query}', { query: normalizedQuery })), albumRepository.getAllBy(pbFilter('name ~ {:query}', { query: normalizedQuery })), artistRepository.getAllBy(pbFilter('name ~ {:query}', { query: normalizedQuery }))]);
     return { tracks, albums, artists };

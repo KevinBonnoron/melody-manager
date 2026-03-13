@@ -1,5 +1,5 @@
 import Pocketbase, { LocalAuthStore } from 'pocketbase';
-import { config } from './env';
+import { config } from './config';
 
 const APP_NAME = 'melody-manager';
 
@@ -17,4 +17,4 @@ export function createPocketBase(url: string) {
   return instance;
 }
 
-export const pb = createPocketBase(config.pocketbase.url);
+export const pb = createPocketBase(config.pb.url);

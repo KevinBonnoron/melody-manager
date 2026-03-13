@@ -5,11 +5,22 @@ import { deviceSourceService } from '../services';
 
 export const deviceRoute = new Hono()
   .get('/', async (c) => {
-    const devices = await deviceSourceService.getKnownDevices();
-    return c.json({
-      success: true,
-      data: devices,
-    });
+    try {
+      const devices = await deviceSourceService.getKnownDevices();
+      return c.json({
+        success: true,
+        data: devices,
+      });
+    } catch (error) {
+      logger.error(`Devices error: ${error}`);
+      return c.json(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to fetch devices',
+        },
+        500,
+      );
+    }
   })
 
   .get('/events', (c) => {

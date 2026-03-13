@@ -1,27 +1,22 @@
 import { join } from 'node:path';
+import { createEnv } from '@melody-manager/shared';
 
-function getEnvOrDefault<T>(name: string, defaultValue: T, parse?: (value: string) => T): T {
-  const raw = process.env[name];
-  if (!raw) {
-    return defaultValue;
-  }
-  return parse ? parse(raw) : (raw as T);
-}
+const env = createEnv((name) => process.env[name]);
 
 export const config = {
-  nodeEnv: getEnvOrDefault('ENV', 'development'),
+  nodeEnv: env('ENV').string('development'),
   pb: {
-    url: getEnvOrDefault('PB_URL', 'http://localhost:8090'),
+    url: env('PB_URL').string('http://localhost:8090'),
   },
   server: {
-    url: getEnvOrDefault('SERVER_URL', 'http://localhost:3000'),
+    url: env('SERVER_URL').string('http://localhost:3000'),
   },
   cache: {
-    dir: getEnvOrDefault('CACHE_DIR', '/tmp/melody-manager-cache'),
-    maxFiles: getEnvOrDefault('CACHE_MAX_FILES', 500, Number),
-    maxSize: getEnvOrDefault('CACHE_MAX_SIZE', 5 * 1024 * 1024 * 1024, Number),
+    dir: env('CACHE_DIR').string('/tmp/melody-manager-cache'),
+    maxFiles: env('CACHE_MAX_FILES').number(500),
+    maxSize: env('CACHE_MAX_SIZE').number(5 * 1024 * 1024 * 1024),
   },
   plugins: {
-    dir: getEnvOrDefault('PLUGINS_DIR', join(process.cwd(), '..', 'plugins')),
+    dir: env('PLUGINS_DIR').string(join(process.cwd(), '..', 'plugins')),
   },
 };

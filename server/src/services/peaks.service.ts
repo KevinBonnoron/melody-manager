@@ -81,7 +81,8 @@ class PeaksService {
             const start = i * blockSize;
             const end = Math.min(start + blockSize, samples.length);
             for (let j = start; j < end; j++) {
-              const val = Math.abs(samples[j]!) / 32768;
+              const sample = samples[j];
+              const val = Math.abs(sample ?? 0) / 32768;
               if (val > max) {
                 max = val;
               }
