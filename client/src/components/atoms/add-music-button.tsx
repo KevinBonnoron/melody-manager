@@ -1,6 +1,7 @@
 import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
 import { Link } from '@tanstack/react-router';
+import { Command as CommandPrimitive } from 'cmdk';
 import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,13 +17,13 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
 import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
-import { Input } from '../ui/input';
 
 export function AddMusicButton() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, handleOpenChange } = useCommandDialog('k');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -33,18 +34,6 @@ export function AddMusicButton() {
   const { data: providers } = useProviders({ category: 'track', enabled: true });
 
   const hasEnabledProviders = providers && providers.length > 0;
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
-
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -269,12 +258,12 @@ export function AddMusicButton() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
         <Plus className="h-4 w-4 mr-2" />
         {t('AppLayout.addMusic')}
         <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
+      <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
         <div className="flex border-b px-3 py-2">
           <ButtonGroup className="flex-1">
             <Select value={selectedType} onValueChange={(value: string) => setSelectedType(value as SearchType)}>
@@ -311,7 +300,7 @@ export function AddMusicButton() {
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <Input placeholder={t('GlobalSearch.searchForMusic')} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 rounded-l-none border-0 shadow-none focus-visible:ring-0" autoFocus />
+            <CommandPrimitive.Input placeholder={t('GlobalSearch.searchForMusic')} value={query} onValueChange={setQuery} className="placeholder:text-muted-foreground flex h-10 w-full flex-1 rounded-l-none rounded-md bg-transparent py-3 text-sm outline-hidden border-0 shadow-none" autoFocus />
           </ButtonGroup>
         </div>
         <CommandList className="max-h-[500px] scrollbar-dialog-content">

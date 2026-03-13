@@ -7,13 +7,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
+import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useTracks } from '@/hooks/use-tracks';
 import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
-import { Input } from '../ui/input';
 
 const trackFuseOptions: IFuseOptions<Track> = {
   keys: [
@@ -44,28 +44,16 @@ export function GlobalSearchButton() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { playTrackWithContext } = useMusicPlayer();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, handleOpenChange } = useCommandDialog('f');
   const [query, setQuery] = useState('');
 
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
   const { data: artists = [] } = useArtists();
 
-  const trackFuse = useMemo(() => new Fuse(tracks, trackFuseOptions), [tracks]);
-  const albumFuse = useMemo(() => new Fuse(albums, albumFuseOptions), [albums]);
-  const artistFuse = useMemo(() => new Fuse(artists, artistFuseOptions), [artists]);
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
-
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
+  const trackFuse = useMemo(() => (open ? new Fuse(tracks, trackFuseOptions) : null), [tracks, open]);
+  const albumFuse = useMemo(() => (open ? new Fuse(albums, albumFuseOptions) : null), [albums, open]);
+  const artistFuse = useMemo(() => (open ? new Fuse(artists, artistFuseOptions) : null), [artists, open]);
 
   useEffect(() => {
     if (!open) {
@@ -76,21 +64,21 @@ export function GlobalSearchButton() {
   const trimmedQuery = query.trim();
 
   const filteredTracks = useMemo(() => {
-    if (!trimmedQuery) {
+    if (!trimmedQuery || !trackFuse) {
       return [];
     }
     return trackFuse.search(trimmedQuery, { limit: 10 }).map((r) => r.item);
   }, [trackFuse, trimmedQuery]);
 
   const filteredAlbums = useMemo(() => {
-    if (!trimmedQuery) {
+    if (!trimmedQuery || !albumFuse) {
       return [];
     }
     return albumFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
   }, [albumFuse, trimmedQuery]);
 
   const filteredArtists = useMemo(() => {
-    if (!trimmedQuery) {
+    if (!trimmedQuery || !artistFuse) {
       return [];
     }
     return artistFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
@@ -100,15 +88,13 @@ export function GlobalSearchButton() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
         <Search className="h-4 w-4 mr-2" />
         {t('AppLayout.search')}
         <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('f')}</kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
-        <div className="flex border-b px-3 py-2">
-          <Input placeholder={t('GlobalSearch.typeToSearch')} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 border-0 shadow-none focus-visible:ring-0" autoFocus />
-        </div>
+      <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
+        <CommandInput placeholder={t('GlobalSearch.typeToSearch')} value={query} onValueChange={setQuery} autoFocus />
         <CommandList className="max-h-[500px] scrollbar-dialog-content">
           {trimmedQuery && !hasResults && <CommandEmpty>{t('GlobalSearch.noResults')}</CommandEmpty>}
 
