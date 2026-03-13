@@ -195,6 +195,7 @@
     "noProvidersConfigured": "Aucun service configuré",
     "configureOneProvider": "Configurez au moins un service de musique pour rechercher",
     "configureProviders": "Configurer les services",
+    "searching": "Recherche en cours...",
     "searchingTypes": "Recherche de {{type}}...",
     "noTypesFound": "Aucun {{type}} trouvé",
     "searchResults": "Résultats de recherche",

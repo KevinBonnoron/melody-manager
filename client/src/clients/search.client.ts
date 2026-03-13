@@ -7,7 +7,7 @@ export const searchClient = universalClient(
   withHttpDelegate(config.server.url),
   withMethods(({ http }) => {
     return {
-      search: (query: string, type: SearchType) => http.post<SearchResult[]>('/search', { query, type }),
+      search: (query: string, type: SearchType, options?: { signal?: AbortSignal }) => http.post<SearchResult[]>('/search', { query, type }, options),
     };
   }),
 );

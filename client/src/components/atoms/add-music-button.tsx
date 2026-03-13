@@ -54,7 +54,7 @@ export function AddMusicButton() {
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const responses = await Promise.all(SEARCH_TYPES.map((type) => searchClient.search(query, type)));
+        const responses = await Promise.all(SEARCH_TYPES.map((type) => searchClient.search(query, type, { signal: controller.signal })));
         if (!cancelled) {
           setResults(responses.flat());
         }
@@ -290,7 +290,7 @@ export function AddMusicButton() {
           {hasEnabledProviders && isSearching && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-              <p className="text-sm text-muted-foreground">{t('GlobalSearch.searchForMusic')}</p>
+              <p className="text-sm text-muted-foreground">{t('GlobalSearch.searching')}</p>
             </div>
           )}
 
