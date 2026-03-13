@@ -89,9 +89,9 @@ export function GlobalSearchButton() {
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
-        <Search className="h-4 w-4 mr-2" />
-        {t('AppLayout.search')}
-        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('f')}</kbd>
+        <Search className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">{t('AppLayout.search')}</span>
+        <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('f')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
         <CommandInput placeholder={t('GlobalSearch.typeToSearch')} value={query} onValueChange={setQuery} autoFocus />

@@ -14,7 +14,7 @@ export function TrackPage() {
   const isLoading = isLoadingTracks;
 
   return (
-    <div className="pb-32">
+    <div>
       <div className="mb-6">
         <TrackProviderFilter selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} items={tracks} getItemProviderIds={getTrackProviderIds} />
       </div>

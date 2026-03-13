@@ -259,9 +259,9 @@ export function AddMusicButton() {
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
-        <Plus className="h-4 w-4 mr-2" />
-        {t('AppLayout.addMusic')}
-        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
+        <Plus className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">{t('AppLayout.addMusic')}</span>
+        <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
         <div className="flex border-b px-3 py-2">
