@@ -3,9 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Loader2, Music2, Pause, Play, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useTrackLikes } from '@/hooks/use-track-likes';
 import { formatDuration, getProviderColorContrast } from '@/lib/utils';
-import { LikeButton } from '../atoms/like-button';
 
 interface Props {
   track: Track;
@@ -15,7 +13,6 @@ interface Props {
 }
 
 export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
-  const { isLiked, toggleLike } = useTrackLikes();
   const { album, artists, provider, genres } = track.expand;
 
   return (
@@ -41,12 +38,6 @@ export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
           <div className="rounded-full bg-primary p-3 shadow-lg">
             {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary-foreground" /> : isPlaying ? <Pause className="h-6 w-6 text-primary-foreground" fill="currentColor" /> : <Play className="h-6 w-6 text-primary-foreground ml-0.5" fill="currentColor" />}
           </div>
-        </div>
-      </div>
-      <div className="absolute bottom-2 right-2 z-10 pointer-events-none hidden sm:block">
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive */}
-        <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-          <LikeButton isLiked={isLiked(track.id)} toggleLike={() => toggleLike(track.id)} />
         </div>
       </div>
       <CardContent className="px-2 py-1.5 sm:p-4">

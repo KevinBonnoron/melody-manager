@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { artistService, trackSourceService } from '../services';
 import { logger } from '../lib/logger';
+import { artistService, trackSourceService } from '../services';
 
 const id = z.object({
   id: z.string(),
@@ -15,9 +15,10 @@ const addArtistSchema = z.object({
 export const artistRoute = new Hono()
   .post('/add', zValidator('json', addArtistSchema), async (c) => {
     const { url } = c.req.valid('json');
+    const userId = c.get('userId') as string | null;
 
     try {
-      const task = await trackSourceService.addArtistFromUrl(url);
+      const task = await trackSourceService.addArtistFromUrl(url, userId);
       return c.json({ taskId: task.id });
     } catch (error) {
       logger.error(`Error adding artist: ${error}`);

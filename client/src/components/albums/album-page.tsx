@@ -1,11 +1,11 @@
 import type { Album, Artist, Track } from '@melody-manager/shared';
 import { Link } from '@tanstack/react-router';
-import { Disc3, Music2 } from 'lucide-react';
+import { Check, Disc3, ExternalLink, Library, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumLikes } from '@/hooks/use-album-likes';
 import { formatDuration } from '@/lib/utils';
-import { LikeButton } from '../atoms/like-button';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { AlbumActionsMenu } from './album-actions-menu';
 import { AlbumTable } from './album-table';
 import { PlayAlbumButton } from './play-album-button';
@@ -20,6 +20,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
   const { t } = useTranslation();
   const { isLiked, toggleLike } = useAlbumLikes();
   const totalDuration = tracks.reduce((sum, { duration }) => sum + duration, 0);
+  const sourceUrl = tracks[0]?.sourceUrl;
 
   return (
     <>
@@ -49,9 +50,17 @@ export function AlbumPage({ album, tracks, artists }: Props) {
 
         <div className="col-span-2 xl:col-span-1 flex flex-wrap items-center gap-3 xl:gap-4">
           <PlayAlbumButton tracks={tracks} />
-          <div className="shrink-0">
-            <LikeButton isLiked={isLiked(album.id)} toggleLike={() => toggleLike(album.id)} />
-          </div>
+          <Button variant={isLiked(album.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(album.id)}>
+            {isLiked(album.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <Library className="h-4 w-4 sm:mr-2" />}
+            <span className="hidden sm:inline">{isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}</span>
+          </Button>
+          {sourceUrl && (
+            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={t('AlbumPage.openExternal')}>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
           <p className="text-sm text-muted-foreground">
             {album.year && <>{album.year} · </>}
             {tracks.length} {t('AlbumPage.tracks', { count: tracks.length })} · {formatDuration(totalDuration, 'long')}

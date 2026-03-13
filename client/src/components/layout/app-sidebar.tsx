@@ -1,12 +1,12 @@
+import { Link, useLocation } from '@tanstack/react-router';
+import { Home, Library, Link2, Settings, User, UserCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Link, useLocation } from '@tanstack/react-router';
-import { Disc3, Heart, Link2, List, Settings, User, UserCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { SignOutDropdownMenuItem } from './sign-out-dropdown-menu-item';
 
 export function AppSidebar() {
@@ -16,24 +16,14 @@ export function AppSidebar() {
 
   const navItems = [
     {
-      title: t('AppSidebar.tracks'),
+      title: t('AppSidebar.home'),
       href: '/',
-      icon: List,
+      icon: Home,
     },
     {
-      title: t('AppSidebar.albums'),
-      href: '/albums',
-      icon: Disc3,
-    },
-    {
-      title: t('AppSidebar.artists'),
-      href: '/artists',
-      icon: User,
-    },
-    {
-      title: t('AppSidebar.favorites'),
-      href: '/favorites',
-      icon: Heart,
+      title: t('AppSidebar.library'),
+      href: '/library',
+      icon: Library,
     },
   ];
 

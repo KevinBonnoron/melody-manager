@@ -1,23 +1,23 @@
+import type { ShareLink, Track } from '@melody-manager/shared';
+import { Check, Copy, Link } from 'lucide-react';
+import { nanoid } from 'nanoid';
+import { type ReactNode, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { shareLinkCollection } from '@/collections/share-link.collection';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
-import type { ShareLink, Track } from '@melody-manager/shared';
-import { Check, Copy, Link, Share2 } from 'lucide-react';
-import { nanoid } from 'nanoid';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 interface Props {
   track: Track;
+  children: ReactNode;
 }
 
-export function ShareTrackDialog({ track }: Props) {
+export function ShareTrackDialog({ track, children }: Props) {
   const { t } = useTranslation();
   const user = useAuthUser();
   const [open, setOpen] = useState(false);
@@ -66,59 +66,47 @@ export function ShareTrackDialog({ track }: Props) {
   };
 
   return (
-    <>
-      <DropdownMenuItem
-        disabled={!track.metadata?.localPath && track.expand?.provider?.type !== 'local'}
-        onSelect={(e) => {
-          e.preventDefault();
-          setOpen(true);
-        }}
-      >
-        <Share2 className="h-4 w-4 mr-2" />
-        {t('TrackActionsMenu.share')}
-      </DropdownMenuItem>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('TrackActionsMenu.shareDialogTitle')}</DialogTitle>
+          <DialogDescription>{t('TrackActionsMenu.shareDialogDescription', { title: track.title })}</DialogDescription>
+        </DialogHeader>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('TrackActionsMenu.shareDialogTitle')}</DialogTitle>
-            <DialogDescription>{t('TrackActionsMenu.shareDialogDescription', { title: track.title })}</DialogDescription>
-          </DialogHeader>
-
-          {!shareUrl ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiresAt">{t('TrackActionsMenu.expiresAt')}</Label>
-                <Input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-                <p className="text-xs text-muted-foreground">{t('TrackActionsMenu.expiresAtHint')}</p>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => handleOpenChange(false)}>
-                  {t('TrackActionsMenu.cancel')}
-                </Button>
-                <Button onClick={handleCreate} disabled={isCreating}>
-                  <Link className="h-4 w-4 mr-2" />
-                  {isCreating ? t('TrackActionsMenu.creating') : t('TrackActionsMenu.createLink')}
-                </Button>
-              </DialogFooter>
+        {!shareUrl ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="expiresAt">{t('TrackActionsMenu.expiresAt')}</Label>
+              <Input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+              <p className="text-xs text-muted-foreground">{t('TrackActionsMenu.expiresAtHint')}</p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input readOnly value={shareUrl} className="font-mono text-sm" />
-                <Button size="icon" variant="outline" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => handleOpenChange(false)}>
-                  {t('TrackActionsMenu.close')}
-                </Button>
-              </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                {t('TrackActionsMenu.cancel')}
+              </Button>
+              <Button onClick={handleCreate} disabled={isCreating}>
+                <Link className="h-4 w-4 mr-2" />
+                {isCreating ? t('TrackActionsMenu.creating') : t('TrackActionsMenu.createLink')}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input readOnly value={shareUrl} className="font-mono text-sm" />
+              <Button size="icon" variant="outline" onClick={handleCopy}>
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                {t('TrackActionsMenu.close')}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

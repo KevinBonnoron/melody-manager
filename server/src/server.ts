@@ -1,6 +1,7 @@
 import { EventSource } from 'eventsource';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { authMiddleware } from './lib/auth';
 import { albumRoute, artistRoute, deviceRoute, metadataRoute, playlistRoute, pluginRoute, searchRoute, shareRoute, taskRoute, trackRoute } from './routes';
 
 // @ts-expect-error - EventSource is not typed
@@ -16,6 +17,7 @@ export const app = new Hono()
       allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     }),
   )
+  .use('*', authMiddleware)
   .route('/albums', albumRoute)
   .route('/artists', artistRoute)
   .route('/devices', deviceRoute)

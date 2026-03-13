@@ -11,7 +11,10 @@
     "tracks_other": "tracks",
     "albumLabel": "Album",
     "noTracksInAlbum": "No tracks in this album",
-    "unknownArtist": "Unknown Artist"
+    "unknownArtist": "Unknown Artist",
+    "addToLibrary": "Add to library",
+    "inLibrary": "In library",
+    "openExternal": "Open in provider"
   },
   "AlbumTable": {
     "title": "Title",
@@ -21,30 +24,30 @@
     "duration": "Duration",
     "playCount": "Play count"
   },
-  "TrackPage": {
-    "title": "Tracks",
-    "description": "Browse your music collection by track"
+  "HomePage": {
+    "title": "Home",
+    "description": "Latest additions to your server",
+    "recentArtists": "Recent Artists",
+    "recentAlbums": "Recent Albums",
+    "recentTracks": "Recent Tracks"
   },
-  "AlbumsPage": {
-    "title": "Albums",
-    "description": "Browse your music collection by album"
-  },
-  "ArtistsPage": {
-    "title": "Artists",
-    "description": "Browse your music collection by artist"
-  },
-  "FavoritesPage": {
-    "title": "Favorites",
-    "description": "Your liked tracks, albums, and artists",
-    "tabTracks": "Tracks",
-    "tabAlbums": "Albums",
-    "tabArtists": "Artists",
+  "LibraryPage": {
+    "title": "Library",
+    "description": "Your saved music collection",
+    "artists": "Artists",
+    "albums": "Albums",
+    "tracks": "Tracks",
+    "seeAll": "See all",
+    "showLess": "Show less",
     "noLikedTracks": "No liked tracks yet",
-    "startLikingTracks": "Start liking tracks to see them here",
+    "startLikingTracks": "Like tracks to add them to your library",
     "noLikedAlbums": "No liked albums yet",
-    "startLikingAlbums": "Start liking albums to see them here",
+    "startLikingAlbums": "Like albums to add them to your library",
     "noLikedArtists": "No liked artists yet",
-    "startLikingArtists": "Start liking artists to see them here"
+    "startLikingArtists": "Like artists to add them to your library",
+    "emptyTitle": "Your library is empty",
+    "emptyDescription": "Search for music and like artists, albums or tracks to build your personal library.",
+    "searchForMusic": "Search for music"
   },
   "TrackGrid": {
     "noTracksFound": "No tracks found",
@@ -80,8 +83,8 @@
     "resyncError": "Failed to start resync"
   },
   "TrackActionsMenu": {
-    "like": "Like",
-    "unlike": "Unlike",
+    "like": "Add to liked songs",
+    "unlike": "Remove from liked songs",
     "dislike": "Dislike",
     "undislike": "Remove dislike",
     "share": "Share link",
@@ -128,10 +131,8 @@
     "tagline": "Your music, everywhere, all at once",
     "userFallback": "User",
     "noEmail": "No email",
-    "tracks": "Tracks",
-    "favorites": "Favorites",
-    "albums": "Albums",
-    "artists": "Artists",
+    "home": "Home",
+    "library": "Library",
     "admin": "Admin",
     "shares": "Shares"
   },
@@ -177,6 +178,8 @@
   },
   "ArtistPage": {
     "playAll": "Play all",
+    "follow": "Follow",
+    "following": "Following",
     "artistLabel": "Artist",
     "albumsSectionTitle": "Albums",
     "artistNotFound": "Artist not found",

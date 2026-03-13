@@ -16,9 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SharesIndexRouteImport } from './routes/shares/index'
-import { Route as FavoritesIndexRouteImport } from './routes/favorites/index'
-import { Route as ArtistsIndexRouteImport } from './routes/artists/index'
-import { Route as AlbumsIndexRouteImport } from './routes/albums/index'
+import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists/$artistId'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums/$albumId'
@@ -59,19 +57,9 @@ const SharesIndexRoute = SharesIndexRouteImport.update({
   path: '/shares/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FavoritesIndexRoute = FavoritesIndexRouteImport.update({
-  id: '/favorites/',
-  path: '/favorites/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistsIndexRoute = ArtistsIndexRouteImport.update({
-  id: '/artists/',
-  path: '/artists/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlbumsIndexRoute = AlbumsIndexRouteImport.update({
-  id: '/albums/',
-  path: '/albums/',
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -106,9 +94,7 @@ export interface FileRoutesByFullPath {
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin': typeof AdminIndexRoute
-  '/albums': typeof AlbumsIndexRoute
-  '/artists': typeof ArtistsIndexRoute
-  '/favorites': typeof FavoritesIndexRoute
+  '/library': typeof LibraryIndexRoute
   '/shares': typeof SharesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -122,9 +108,7 @@ export interface FileRoutesByTo {
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin': typeof AdminIndexRoute
-  '/albums': typeof AlbumsIndexRoute
-  '/artists': typeof ArtistsIndexRoute
-  '/favorites': typeof FavoritesIndexRoute
+  '/library': typeof LibraryIndexRoute
   '/shares': typeof SharesIndexRoute
 }
 export interface FileRoutesById {
@@ -139,9 +123,7 @@ export interface FileRoutesById {
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin/': typeof AdminIndexRoute
-  '/albums/': typeof AlbumsIndexRoute
-  '/artists/': typeof ArtistsIndexRoute
-  '/favorites/': typeof FavoritesIndexRoute
+  '/library/': typeof LibraryIndexRoute
   '/shares/': typeof SharesIndexRoute
 }
 export interface FileRouteTypes {
@@ -157,9 +139,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin'
-    | '/albums'
-    | '/artists'
-    | '/favorites'
+    | '/library'
     | '/shares'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -173,9 +153,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin'
-    | '/albums'
-    | '/artists'
-    | '/favorites'
+    | '/library'
     | '/shares'
   id:
     | '__root__'
@@ -189,9 +167,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin/'
-    | '/albums/'
-    | '/artists/'
-    | '/favorites/'
+    | '/library/'
     | '/shares/'
   fileRoutesById: FileRoutesById
 }
@@ -206,9 +182,7 @@ export interface RootRouteChildren {
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
-  AlbumsIndexRoute: typeof AlbumsIndexRoute
-  ArtistsIndexRoute: typeof ArtistsIndexRoute
-  FavoritesIndexRoute: typeof FavoritesIndexRoute
+  LibraryIndexRoute: typeof LibraryIndexRoute
   SharesIndexRoute: typeof SharesIndexRoute
 }
 
@@ -263,25 +237,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SharesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/favorites/': {
-      id: '/favorites/'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof FavoritesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artists/': {
-      id: '/artists/'
-      path: '/artists'
-      fullPath: '/artists'
-      preLoaderRoute: typeof ArtistsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/albums/': {
-      id: '/albums/'
-      path: '/albums'
-      fullPath: '/albums'
-      preLoaderRoute: typeof AlbumsIndexRouteImport
+    '/library/': {
+      id: '/library/'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -326,9 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlbumsAlbumIdRoute: AlbumsAlbumIdRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   AdminIndexRoute: AdminIndexRoute,
-  AlbumsIndexRoute: AlbumsIndexRoute,
-  ArtistsIndexRoute: ArtistsIndexRoute,
-  FavoritesIndexRoute: FavoritesIndexRoute,
+  LibraryIndexRoute: LibraryIndexRoute,
   SharesIndexRoute: SharesIndexRoute,
 }
 export const routeTree = rootRouteImport

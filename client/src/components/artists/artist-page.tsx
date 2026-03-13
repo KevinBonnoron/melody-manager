@@ -1,4 +1,4 @@
-import { Loader2, Play, User } from 'lucide-react';
+import { Check, Loader2, Play, User, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
@@ -6,7 +6,6 @@ import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
 import { useArtistTracks } from '@/hooks/use-tracks';
 import { AlbumCard } from '../albums/album-card';
-import { LikeButton } from '../atoms/like-button';
 import { Button } from '../ui/button';
 
 interface Props {
@@ -52,9 +51,10 @@ export function ArtistPage({ artistId }: Props) {
                   <Play className="h-5 w-5 mr-2" fill="currentColor" />
                   {t('ArtistPage.playAll')}
                 </Button>
-                <div className="shrink-0">
-                  <LikeButton isLiked={isLiked(artist.id)} toggleLike={() => toggleLike(artist.id)} />
-                </div>
+                <Button variant={isLiked(artist.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(artist.id)}>
+                  {isLiked(artist.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <UserPlus className="h-4 w-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">{isLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}</span>
+                </Button>
                 <p className="text-sm text-muted-foreground">
                   {albums.length} {t('ArtistPage.albums', { count: albums.length })} · {tracks.length} {t('ArtistPage.tracks', { count: tracks.length })}
                 </p>

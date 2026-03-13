@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { AlbumsPage } from '@/components/albums/albums-page';
+import { LibraryPage } from '@/components/library/library-page';
 import { authGuard } from '@/lib/auth-guard';
 
-export const Route = createFileRoute('/albums/')({
+export const Route = createFileRoute('/library/')({
   beforeLoad: authGuard,
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <AlbumsPage />;
+  return <LibraryPage />;
 }

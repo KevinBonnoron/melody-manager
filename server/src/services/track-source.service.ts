@@ -5,39 +5,40 @@ import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { providerRepository } from '../repositories';
 import { importPersistService } from './import-persist.service';
+import { libraryService } from './library.service';
 import { taskService } from './task.service';
 
 class SourceService {
-  public async addFromUrl(url: string): Promise<Task> {
+  public async addFromUrl(url: string, userId?: string | null): Promise<Task> {
     const { provider, importPlugin } = await this.resolveImport(url);
-    return this.runImportTask(`Import track from ${provider.type}`, provider, () => importPlugin.getTracks(url, provider));
+    return this.runImportTask(`Import track from ${provider.type}`, provider, () => importPlugin.getTracks(url, provider), userId);
   }
 
-  public async addAlbumFromUrl(url: string): Promise<Task> {
+  public async addAlbumFromUrl(url: string, userId?: string | null): Promise<Task> {
     const { provider, importPlugin } = await this.resolveImport(url);
     const getAlbumTracks = importPlugin.getAlbumTracks?.bind(importPlugin);
     if (!getAlbumTracks) {
       throw new Error(`Provider ${provider.type} does not support album import`);
     }
-    return this.runImportTask(`Import album from ${provider.type}`, provider, () => getAlbumTracks(url, provider));
+    return this.runImportTask(`Import album from ${provider.type}`, provider, () => getAlbumTracks(url, provider), userId);
   }
 
-  public async addArtistFromUrl(url: string): Promise<Task> {
+  public async addArtistFromUrl(url: string, userId?: string | null): Promise<Task> {
     const { provider, importPlugin } = await this.resolveImport(url);
     const getArtistTracks = importPlugin.getArtistTracks?.bind(importPlugin);
     if (!getArtistTracks) {
       throw new Error(`Provider ${provider.type} does not support artist import`);
     }
-    return this.runImportTask(`Import artist from ${provider.type}`, provider, () => getArtistTracks(url, provider));
+    return this.runImportTask(`Import artist from ${provider.type}`, provider, () => getArtistTracks(url, provider), userId);
   }
 
-  public async addPlaylistFromUrl(url: string): Promise<Task> {
+  public async addPlaylistFromUrl(url: string, userId?: string | null): Promise<Task> {
     const { provider, importPlugin } = await this.resolveImport(url);
     const getPlaylistTracks = importPlugin.getPlaylistTracks?.bind(importPlugin);
     if (!getPlaylistTracks) {
       throw new Error(`Provider ${provider.type} does not support playlist import`);
     }
-    return this.runImportTask(`Import playlist from ${provider.type}`, provider, () => getPlaylistTracks(url, provider));
+    return this.runImportTask(`Import playlist from ${provider.type}`, provider, () => getPlaylistTracks(url, provider), userId);
   }
 
   public async search(query: string, type: SearchType, provider: TrackProvider): Promise<SearchResult[]> {
@@ -72,7 +73,7 @@ class SourceService {
     return { provider, importPlugin };
   }
 
-  private runImportTask(name: string, provider: TrackProvider, fetchTracks: () => Promise<PluginImportTrack[]>): Task {
+  private runImportTask(name: string, provider: TrackProvider, fetchTracks: () => Promise<PluginImportTrack[]>, userId?: string | null): Task {
     const task = taskService.create('import', name);
     taskService.update(task.id, { status: 'running', progress: 0 });
 
@@ -80,7 +81,10 @@ class SourceService {
       try {
         const importTracks = await fetchTracks();
         taskService.update(task.id, { progress: 50 });
-        await importPersistService.persistImportTracks(provider, importTracks);
+        const tracks = await importPersistService.persistImportTracks(provider, importTracks);
+        if (userId) {
+          await libraryService.autoLikeFromTracks(userId, tracks);
+        }
         taskService.update(task.id, { status: 'completed', progress: 100 });
       } catch (error) {
         logger.error(`Import task failed: ${error}`);
