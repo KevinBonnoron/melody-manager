@@ -8,7 +8,7 @@
 ## Summary
 
 Full codebase review covering the client, server, shared types, plugins, and configuration.
-**Totals: 12 bugs, 18 dead code, 17 duplications, 13 inconsistencies, 13 code smells, 7 config issues, 5 type safety issues.**
+**Totals: 13 bugs, 18 dead code, 17 duplications, 13 inconsistencies, 13 code smells, 7 config issues, 5 type safety issues.**
 
 Findings are organized by category with severity indicators.
 
@@ -72,6 +72,10 @@ Findings are organized by category with severity indicators.
 ### BUG-12: `notifyListeners` is async but called without `await`
 - **File:** `server/src/services/device-source.service.ts:75,120,127,134,141`
 - `notifyListeners` is async (awaits `getKnownDevices` internally) but called without `await` in multiple places. Errors inside it are unhandled and device state notifications may fire out of order.
+
+### BUG-13: `device.route.ts` GET `/` does not `await` async call
+- **File:** `server/src/routes/device.route.ts:7-12`
+- `const devices = deviceSourceService.getKnownDevices();` is called without `await` and the handler is not `async`. `getKnownDevices()` returns `Promise<Device[]>`, so the JSON response serializes a Promise object instead of the device array.
 
 ---
 
