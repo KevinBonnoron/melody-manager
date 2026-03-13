@@ -15,7 +15,7 @@ export function LikeButton({ isLiked, toggleLike }: Props) {
   }
 
   return (
-    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleClick}>
+    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleClick} aria-label={isLiked ? 'Unlike track' : 'Like track'} aria-pressed={isLiked}>
       <Heart className={cn('h-4 w-4', isLiked ? 'fill-primary text-primary' : 'text-muted-foreground hover:text-primary')} />
     </Button>
   );

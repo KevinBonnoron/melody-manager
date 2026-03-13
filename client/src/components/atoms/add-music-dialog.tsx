@@ -62,20 +62,30 @@ export function AddMusicDialog() {
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       try {
         const response = await searchClient.search(query, selectedType);
-        setResults((response as { results: SearchResult[] }).results);
+        if (!cancelled) {
+          setResults((response as { results: SearchResult[] }).results);
+        }
       } catch (error) {
-        console.error('Search error:', error);
-        toast.error('Failed to search');
+        if (!cancelled) {
+          console.error('Search error:', error);
+          toast.error('Failed to search');
+        }
       } finally {
-        setIsSearching(false);
+        if (!cancelled) {
+          setIsSearching(false);
+        }
       }
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [query, selectedType]);
 
   const handleAdd = async (result: SearchResult) => {
@@ -120,10 +130,11 @@ export function AddMusicDialog() {
   };
 
   const getLibraryStatus = (result: SearchResult) => {
+    const status = result.libraryStatus || { isInLibrary: false };
     if (addedUrls.has(result.externalUrl)) {
-      return { isInLibrary: true };
+      return { ...status, isInLibrary: true };
     }
-    return result.libraryStatus || { isInLibrary: false };
+    return status;
   };
 
   const getItemProviderIds = useCallback(
@@ -144,6 +155,12 @@ export function AddMusicDialog() {
     const providerTypes = new Set(results.map((r) => r.provider));
     return Array.from(providerTypes);
   }, [results]);
+
+  useEffect(() => {
+    if (selectedProvider !== 'all' && providersWithResults.length > 0 && !providersWithResults.includes(selectedProvider.type)) {
+      setSelectedProvider('all');
+    }
+  }, [providersWithResults, selectedProvider]);
 
   const filteredResults = useMemo(() => {
     if (selectedProvider === 'all') {
@@ -211,6 +228,8 @@ export function AddMusicDialog() {
           <Button
             size="sm"
             variant="ghost"
+            aria-label={t('GlobalSearch.openExternal')}
+            title={t('GlobalSearch.openExternal')}
             onClick={(e) => {
               e.stopPropagation();
               window.open(result.externalUrl, '_blank');
@@ -221,6 +240,8 @@ export function AddMusicDialog() {
           </Button>
           <Button
             size="sm"
+            aria-label={t('GlobalSearch.addToLibrary')}
+            title={t('GlobalSearch.addToLibrary')}
             onClick={(e) => {
               e.stopPropagation();
               handleAdd(result);

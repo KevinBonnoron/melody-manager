@@ -7,12 +7,14 @@ export const withHttpDelegate = (baseURL: string) =>
     withInterceptor({
       onBeforeRequest: (context) => {
         const token = pb.authStore.token;
-        const { 'Content-Type': _, ...restHeaders } = context.headers || {};
+        const headers = { ...(context.headers || {}) };
+        if (!headers['Content-Type']) {
+          headers['Content-Type'] = 'application/json';
+        }
         return {
           ...context,
           headers: {
-            ...restHeaders,
-            'Content-Type': 'application/json',
+            ...headers,
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         };

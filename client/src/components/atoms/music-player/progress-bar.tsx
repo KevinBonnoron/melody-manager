@@ -105,25 +105,26 @@ export function ProgressBar() {
   return (
     <div className="relative w-full min-h-[28px]">
       {peaks === null || peaks.length === 0 ? (
-        <button type="button" className="mx-10 h-[28px] w-[calc(100%-5rem)] flex items-center cursor-pointer" onClick={handleSimpleBarClick}>
+        <button type="button" className="mx-10 h-[28px] w-[calc(100%-5rem)] flex items-center cursor-pointer" onClick={handleSimpleBarClick} aria-label="Seek playback position">
           <div className="relative w-full h-1 bg-muted-foreground/30 rounded-full overflow-hidden">
             <div className="absolute inset-y-0 left-0 bg-primary rounded-full transition-none" style={{ width: `${progressPercent}%` }} />
           </div>
         </button>
       ) : (
-        <div ref={containerRef} className="cursor-pointer mx-10 [&_canvas]:!bg-transparent" />
+        <div ref={containerRef} className="cursor-pointer mx-10 [&_canvas]:!bg-transparent" aria-label="Waveform seek bar" role="slider" tabIndex={0} />
       )}
       <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-foreground/60 pointer-events-none tabular-nums">{formatTime(currentTime)}</span>
       <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-foreground/40 pointer-events-none tabular-nums">{formatTime(currentTrack.duration)}</span>
       {chapters.length > 0 && (
         <div className="absolute top-0 left-0 right-0 h-full pointer-events-none">
           {chapters.map((chapter) => {
-            const position = (chapter.startTime / currentTrack.duration) * 100;
+            const position = currentTrack.duration > 0 ? (chapter.startTime / currentTrack.duration) * 100 : 0;
             return (
               <Tooltip key={chapter.startTime}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    aria-label={`Jump to chapter ${chapter.title} at ${formatTime(chapter.startTime)}`}
                     className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-foreground/40 pointer-events-auto cursor-pointer hover:bg-foreground/60"
                     style={{ left: `${position}%` }}
                     onClick={(e) => {

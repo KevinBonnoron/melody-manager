@@ -12,8 +12,12 @@ export const deviceClient = universalClient(
 
       events: (onDevices: (devices: Device[]) => void) => {
         const unsub = sse.subscribe('devices', (data) => {
-          if (typeof data === 'string') {
-            onDevices(JSON.parse(data));
+          try {
+            if (typeof data === 'string') {
+              onDevices(JSON.parse(data));
+            }
+          } catch (error) {
+            console.error('Failed to parse SSE device data:', error);
           }
         });
         sse.open({ url: '/devices/events' });

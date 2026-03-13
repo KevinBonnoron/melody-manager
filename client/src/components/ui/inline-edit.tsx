@@ -16,6 +16,7 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 	const [editValue, setEditValue] = useState(value);
 	const [isSaving, setIsSaving] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const actionsRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
@@ -29,7 +30,10 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 	}, [value]);
 
 	const handleSave = async () => {
-		if (editValue.trim() === '' || editValue === value) {
+		if (isSaving) return;
+
+		const nextValue = editValue.trim();
+		if (nextValue === '' || nextValue === value.trim()) {
 			setIsEditing(false);
 			setEditValue(value);
 			return;
@@ -37,7 +41,7 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 
 		setIsSaving(true);
 		try {
-			await onSave(editValue.trim());
+			await onSave(nextValue);
 			setIsEditing(false);
 		} catch (error) {
 			setEditValue(value);
@@ -57,6 +61,12 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 		} else if (e.key === 'Escape') {
 			handleCancel();
 		}
+	};
+
+	const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+		const nextTarget = e.relatedTarget as Node | null;
+		if (nextTarget && actionsRef.current?.contains(nextTarget)) return;
+		void handleSave();
 	};
 
 	if (disabled) {
@@ -83,15 +93,15 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 				value={editValue}
 				onChange={(e) => setEditValue(e.target.value)}
 				onKeyDown={handleKeyDown}
-				onBlur={handleSave}
+				onBlur={handleInputBlur}
 				disabled={isSaving}
 				className={inputClassName}
 			/>
-			<div className="flex items-center gap-1">
-				<Button type="button" size="icon" variant="ghost" onClick={handleSave} disabled={isSaving} className="h-8 w-8">
+			<div ref={actionsRef} className="flex items-center gap-1">
+				<Button type="button" size="icon" variant="ghost" onClick={handleSave} disabled={isSaving} className="h-8 w-8" aria-label="Save changes">
 					<Check className="h-4 w-4" />
 				</Button>
-				<Button type="button" size="icon" variant="ghost" onClick={handleCancel} disabled={isSaving} className="h-8 w-8">
+				<Button type="button" size="icon" variant="ghost" onClick={handleCancel} disabled={isSaving} className="h-8 w-8" aria-label="Cancel editing">
 					<X className="h-4 w-4" />
 				</Button>
 			</div>

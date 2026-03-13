@@ -15,7 +15,7 @@ export function DislikeButton({ isDisliked, toggleDislike }: Props) {
   }
 
   return (
-    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleClick}>
+    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleClick} aria-label={isDisliked ? 'Remove dislike' : 'Dislike track'} aria-pressed={isDisliked}>
       <HeartOff className={cn('h-4 w-4', isDisliked ? 'text-destructive' : 'text-muted-foreground hover:text-destructive')} />
     </Button>
   );

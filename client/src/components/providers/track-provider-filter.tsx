@@ -58,19 +58,43 @@ export function TrackProviderFilter<T>({ selectedProvider, onProviderChange, ite
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-sm font-medium text-muted-foreground">{t('TrackProviderFilter.filterBy')}</span>
 
-      <Badge variant={selectedProvider === 'all' ? 'default' : 'outline'} className="cursor-pointer transition-all hover:scale-105" onClick={() => onProviderChange('all')}>
+      <Badge
+        variant={selectedProvider === 'all' ? 'default' : 'outline'}
+        className="cursor-pointer transition-all hover:scale-105"
+        role="button"
+        tabIndex={0}
+        aria-pressed={selectedProvider === 'all'}
+        onClick={() => onProviderChange('all')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onProviderChange('all');
+          }
+        }}
+      >
         <Music className="h-3 w-3" />
         {t('TrackProviderFilter.all')} ({items.length})
       </Badge>
 
       {trackProviders.map((trackProvider) => (
         <Badge
-          key={trackProvider.type}
+          key={trackProvider.id}
           variant="outline"
-          className={getProviderStyles(trackProvider, selectedProvider === trackProvider)}
+          className={getProviderStyles(trackProvider, selectedProvider !== 'all' && selectedProvider.id === trackProvider.id)}
+          role="button"
+          tabIndex={0}
+          aria-pressed={selectedProvider !== 'all' && selectedProvider.id === trackProvider.id}
           onClick={() => {
             if (trackProvider.enabled) {
               onProviderChange(trackProvider);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (trackProvider.enabled) {
+                onProviderChange(trackProvider);
+              }
             }
           }}
         >

@@ -1,5 +1,6 @@
 import type { Album } from '@melody-manager/shared';
 import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
@@ -13,14 +14,19 @@ interface Props {
 export function ResyncAlbumMenuItem({ album }: Props) {
   const { t } = useTranslation();
   const { data: tracks = [] } = useAlbumTracks(album.id);
+  const [isSyncing, setIsSyncing] = useState(false);
   const hasChapters = tracks.some((track) => track.metadata?.startTime !== undefined);
 
   const handleResync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
     try {
       await albumsClient.resync(album.id);
       toast.success(t('AlbumActionsMenu.resyncStarted', 'Resync started'));
     } catch {
       toast.error(t('AlbumActionsMenu.resyncError', 'Failed to start resync'));
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -29,7 +35,7 @@ export function ResyncAlbumMenuItem({ album }: Props) {
   }
 
   return (
-    <DropdownMenuItem onSelect={handleResync}>
+    <DropdownMenuItem onSelect={handleResync} disabled={isSyncing}>
       <RefreshCw className="h-4 w-4 mr-2" />
       {t('AlbumActionsMenu.resync', 'Resync chapters')}
     </DropdownMenuItem>

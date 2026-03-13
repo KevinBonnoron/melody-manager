@@ -7,7 +7,7 @@ export const tracksClient = universalClient(
   withMethods(({ http }) => {
     return {
       addFromUrl: (url: string) => http.post('/tracks/add', { url }),
-      getPeaks: (trackId: string) => http.get<{ peaks: number[] }>(`/tracks/peaks/${trackId}`),
+      getPeaks: (trackId: string) => http.get<{ peaks: number[] }>(`/tracks/peaks/${encodeURIComponent(trackId)}`),
     };
   }),
 );

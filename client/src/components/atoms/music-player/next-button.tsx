@@ -8,7 +8,7 @@ interface NextButtonProps {
 
 export function NextButton({ disabled, onNext }: NextButtonProps) {
   return (
-    <Button variant="ghost" size="icon" onClick={onNext} disabled={disabled}>
+    <Button variant="ghost" size="icon" onClick={onNext} disabled={disabled} aria-label="Next track">
       <SkipForward className="h-5 w-5" />
     </Button>
   );

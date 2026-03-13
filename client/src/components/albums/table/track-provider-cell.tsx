@@ -7,9 +7,19 @@ interface Props {
 }
 
 export function TrackProviderCell({ track }: Props) {
+  const providerType = track.expand?.provider?.type;
+
+  if (!providerType) {
+    return (
+      <Badge variant="outline" className={getProviderColor('unknown')}>
+        Unknown
+      </Badge>
+    );
+  }
+
   return (
-    <Badge variant="outline" className={getProviderColor(track.expand.provider.type)}>
-      {track.expand.provider.type}
+    <Badge variant="outline" className={getProviderColor(providerType)}>
+      {providerType}
     </Badge>
   );
 }

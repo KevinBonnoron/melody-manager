@@ -63,7 +63,8 @@ This starts:
 - Server on `http://localhost:3000`
 - PocketBase on `http://localhost:8090` (admin UI at `http://localhost:8090/_/`)
 
-Default admin credentials: `admin@melody-manager.local` / `changeme123`
+Default admin credentials (local development only): `admin@melody-manager.local` / `changeme123`
+⚠️ Change the admin password immediately before exposing the service on any shared or public network.
 
 ### Building
 

@@ -19,37 +19,43 @@ export interface NativeAudioCallbacks {
 class NativeAudioService {
   private callbacks: NativeAudioCallbacks = {};
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   public async initialize(callbacks: NativeAudioCallbacks) {
-    if (this.initialized) {
+    if (this.initPromise) {
+      await this.initPromise;
       return;
     }
 
-    this.callbacks = callbacks;
+    this.initPromise = (async () => {
+      this.callbacks = callbacks;
 
-    await MediaSession.setActionHandler({ action: 'play' }, () => {
-      this.callbacks.onPlay?.();
-    });
+      await MediaSession.setActionHandler({ action: 'play' }, () => {
+        this.callbacks.onPlay?.();
+      });
 
-    await MediaSession.setActionHandler({ action: 'pause' }, () => {
-      this.callbacks.onPause?.();
-    });
+      await MediaSession.setActionHandler({ action: 'pause' }, () => {
+        this.callbacks.onPause?.();
+      });
 
-    await MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
-      this.callbacks.onNext?.();
-    });
+      await MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
+        this.callbacks.onNext?.();
+      });
 
-    await MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
-      this.callbacks.onPrevious?.();
-    });
+      await MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
+        this.callbacks.onPrevious?.();
+      });
 
-    await MediaSession.setActionHandler({ action: 'seekto' }, (details) => {
-      if (details.seekTime !== undefined && details.seekTime !== null) {
-        this.callbacks.onSeek?.(details.seekTime);
-      }
-    });
+      await MediaSession.setActionHandler({ action: 'seekto' }, (details) => {
+        if (details.seekTime !== undefined && details.seekTime !== null) {
+          this.callbacks.onSeek?.(details.seekTime);
+        }
+      });
 
-    this.initialized = true;
+      this.initialized = true;
+    })();
+
+    await this.initPromise;
   }
 
   public async setMetadata(metadata: NativeAudioMetadata) {
@@ -76,6 +82,10 @@ class NativeAudioService {
   }
 
   public async setPosition(position: number, duration: number, playbackRate = 1.0) {
+    if (!Number.isFinite(position) || position < 0) return;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    if (!Number.isFinite(playbackRate) || playbackRate <= 0) playbackRate = 1.0;
+
     await MediaSession.setPositionState({
       position,
       duration,
@@ -95,6 +105,7 @@ class NativeAudioService {
     await MediaSession.setActionHandler({ action: 'seekto' }, null);
 
     this.initialized = false;
+    this.initPromise = null;
     this.callbacks = {};
   }
 }

@@ -7,7 +7,9 @@ import { useAuthUser } from './use-auth-user';
 
 export function useTrackLikes() {
   const user = useAuthUser();
-  const { data: trackLikes = [] } = useLiveQuery((q) => q.from({ trackLikes: trackLikeCollection }));
+  const { data: trackLikes = [] } = useLiveQuery((q) =>
+    q.from({ trackLikes: trackLikeCollection }).where(({ trackLikes }) => eq(trackLikes.user, user.id)),
+  );
 
   const isLiked = useCallback(
     (trackId: string) => {
@@ -18,7 +20,7 @@ export function useTrackLikes() {
 
   const toggleLike = useCallback(
     (trackId: string) => {
-      const trackLike = trackLikes.find((like) => like.track === trackId);
+      const trackLike = trackLikes.find((like) => like.track === trackId && like.user === user.id);
       if (trackLike) {
         trackLikeCollection.delete(trackLike.id);
       } else {
@@ -36,9 +38,11 @@ export function useTrackLikes() {
 }
 
 export function useLikedTracks() {
+  const user = useAuthUser();
   const { data = [] } = useLiveQuery((q) =>
     q
       .from({ trackLikes: trackLikeCollection })
+      .where(({ trackLikes }) => eq(trackLikes.user, user.id))
       .innerJoin({ track: trackCollection }, ({ trackLikes, track }) => eq(trackLikes.track, track.id))
       .select(({ track }) => ({ ...track })),
   );

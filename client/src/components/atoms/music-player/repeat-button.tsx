@@ -24,7 +24,7 @@ export function RepeatButton({ repeatMode, onToggle }: RepeatButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={onToggle} className={repeatMode !== 'none' ? 'text-primary' : ''}>
+        <Button type="button" variant="ghost" size="icon" onClick={onToggle} className={repeatMode !== 'none' ? 'text-primary' : ''} aria-label={getTooltipText()}>
           {repeatMode === 'one' ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
         </Button>
       </TooltipTrigger>

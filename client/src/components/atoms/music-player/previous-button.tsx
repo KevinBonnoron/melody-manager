@@ -8,7 +8,7 @@ interface PreviousButtonProps {
 
 export function PreviousButton({ disabled, onPrevious }: PreviousButtonProps) {
   return (
-    <Button variant="ghost" size="icon" onClick={onPrevious} disabled={disabled}>
+    <Button variant="ghost" size="icon" onClick={onPrevious} disabled={disabled} aria-label="Previous track">
       <SkipBack className="h-4 w-4" />
     </Button>
   );

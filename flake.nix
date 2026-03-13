@@ -23,8 +23,7 @@
 
         shellHook = ''
           if [ ! -d "$PWD/node_modules" ]; then
-            echo "→ Installing dependencies..."
-            bun install
+            echo "→ Dependencies missing. Run: bun install"
           fi
         '';
       };

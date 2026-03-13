@@ -1,5 +1,4 @@
 import { type ClassValue, clsx } from 'clsx';
-import { intervalToDuration } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -7,31 +6,27 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDuration(seconds: number, format: 'short' | 'long' = 'short') {
-  const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
 
   if (format === 'short') {
-    const parts: string[] = [];
-    if (duration.hours) {
-      parts.push(String(duration.hours));
-      parts.push(String(duration.minutes ?? 0).padStart(2, '0'));
-    } else {
-      parts.push(String(duration.minutes ?? 0));
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
-    parts.push(String(duration.seconds ?? 0).padStart(2, '0'));
-    return parts.join(':');
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
   }
 
   const parts: string[] = [];
-  if (duration.hours) {
-    parts.push(`${duration.hours}h`);
+  if (hours) {
+    parts.push(`${hours}h`);
   }
-  if (duration.minutes) {
-    parts.push(`${duration.minutes}min`);
+  if (minutes) {
+    parts.push(`${minutes}min`);
   }
-  if (duration.seconds !== undefined) {
-    parts.push(`${duration.seconds}sec`);
-  }
-  return parts.length > 0 ? parts.join(' ') : '0sec';
+  parts.push(`${secs}sec`);
+  return parts.join(' ');
 }
 
 export function getProviderColor(provider: string) {

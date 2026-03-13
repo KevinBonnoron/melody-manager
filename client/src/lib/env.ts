@@ -4,17 +4,18 @@ import { Preferences } from '@capacitor/preferences';
 async function env(name: string): Promise<string> {
   if (Capacitor.isNativePlatform()) {
     const { value } = await Preferences.get({ key: 'serverUrl' });
+    const serverUrl = value?.replace(/\/+$/, '');
     if (name === 'VITE_PB_URL') {
-      return value ? `${value}/db` : '';
+      return serverUrl ? `${serverUrl}/db` : (import.meta.env[name] ?? '');
     }
     if (name === 'VITE_SERVER_URL') {
-      return value ? `${value}/api` : '';
+      return serverUrl ? `${serverUrl}/api` : (import.meta.env[name] ?? '');
     }
 
-    return '';
+    return import.meta.env[name] ?? '';
   }
 
-  return import.meta.env[name];
+  return import.meta.env[name] ?? '';
 }
 
 async function loadEnv() {

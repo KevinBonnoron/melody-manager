@@ -9,7 +9,6 @@
     "ignoreUnknown": false,
     "includes": [
       "client/**/*.ts*",
-      "!client/src/components/ui/**/*.ts*",
       "!client/src/routeTree.gen.ts",
       "server/**/*.ts",
       "shared/**/*.ts",

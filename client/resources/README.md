@@ -27,6 +27,7 @@ This will automatically generate:
 ## What Gets Generated
 
 ### Android Icons
+
 - mipmap-ldpi (36x36)
 - mipmap-mdpi (48x48)
 - mipmap-hdpi (72x72)
@@ -35,6 +36,7 @@ This will automatically generate:
 - mipmap-xxxhdpi (192x192)
 
 ### iOS Icons
+
 - 20x20 @2x, @3x
 - 29x29 @2x, @3x
 - 40x40 @2x, @3x
@@ -44,6 +46,7 @@ This will automatically generate:
 - 1024x1024 @1x
 
 ### Adaptive Icons (Android)
+
 The tool also generates adaptive icons with:
 - Foreground layer (the icon itself)
 - Background layer (solid purple color #7C3AED)

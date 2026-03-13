@@ -90,11 +90,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const playTrack = useCallback(
     async (track: Track) => {
+      endedHandledForTrackIdRef.current = null;
+      playCountIncrementedForTrackIdRef.current = null;
+
       setPlayerState((prev) => ({
         ...prev,
         currentTrack: track,
         isPlaying: true,
-        repeatMode: 'none',
         currentTime: 0,
       }));
 
@@ -133,6 +135,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     },
     [activeDevice, audioFormat],
   );
+
+  // Sync volume to audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = playerState.volume;
+    }
+  }, [playerState.volume]);
 
   // Initialize audio element
   useEffect(() => {
@@ -202,13 +211,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           return;
         }
         playCountIncrementedForTrackIdRef.current = trackId;
-        const existing = trackPlaysRef.current.find((p) => p.track === trackId);
+        const existing = trackPlaysRef.current.find((p) => p.track === trackId && p.user === userId);
         if (existing) {
           trackPlayCollection.update(existing.id, (draft) => {
             draft.count = existing.count + 1;
           });
         } else {
-          trackPlayCollection.insert({ id: 'tmp', user: userId, track: trackId, count: 1 } as TrackPlay);
+          trackPlayCollection.insert({ id: `tmp-${userId}-${trackId}-${Date.now()}`, user: userId, track: trackId, count: 1 } as TrackPlay);
         }
       }, 10_000);
     };
@@ -272,7 +281,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       audio.removeEventListener('stalled', handleStalled);
       audio.pause();
     };
-  }, [playTrack, playerState.volume]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pause = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {
@@ -445,8 +455,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         return;
       }
 
-      const queueFromCurrent = contextTracks.slice(trackIndex);
-      setQueue(queueFromCurrent);
+      setQueue(contextTracks);
       playTrack(track);
     },
     [playTrack, setQueue],

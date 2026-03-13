@@ -37,11 +37,9 @@ export function ResetPasswordForm() {
           <p className="text-sm text-green-800 dark:text-green-200">{t('ResetPasswordForm.success')}</p>
         </div>
 
-        <Link to="/login">
-          <Button variant="outline" className="w-full">
-            {t('ResetPasswordForm.backToLogin')}
-          </Button>
-        </Link>
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/login">{t('ResetPasswordForm.backToLogin')}</Link>
+        </Button>
       </div>
     );
   }

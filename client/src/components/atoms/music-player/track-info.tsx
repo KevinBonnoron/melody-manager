@@ -29,7 +29,7 @@ export function TrackInfo({ track }: Props) {
   return (
     <div className="flex items-center gap-3 min-w-0">
       <div className="h-14 w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
-        <Link to="/albums/$albumId" params={{ albumId: track.expand.album.id }}>
+        <Link to="/albums/$albumId" params={{ albumId: track.expand?.album?.id }}>
           {track.expand?.album?.coverUrl ? (
             <img src={track.expand.album.coverUrl} alt={track.title} className="h-full w-full object-cover" />
           ) : (
@@ -50,7 +50,7 @@ export function TrackInfo({ track }: Props) {
           </p>
         )}
         <div className="text-xs text-muted-foreground line-clamp-1">
-          {track.expand.artists.map((artist, index) => (
+          {track.expand?.artists?.map((artist, index) => (
             <span key={artist.id}>
               {index > 0 && ', '}
               <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="hover:underline hover:text-foreground transition-colors">
