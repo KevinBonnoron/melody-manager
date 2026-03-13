@@ -1,3 +1,10 @@
+import type { Album, Artist, Track } from '@melody-manager/shared';
+import { useNavigate } from '@tanstack/react-router';
+import type { IFuseOptions } from 'fuse.js';
+import Fuse from 'fuse.js';
+import { Disc, Music, Search, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -6,13 +13,6 @@ import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
 import { useTracks } from '@/hooks/use-tracks';
 import { formatDuration, getProviderColor } from '@/lib/utils';
-import type { Album, Artist, Track } from '@melody-manager/shared';
-import { useNavigate } from '@tanstack/react-router';
-import type { IFuseOptions } from 'fuse.js';
-import Fuse from 'fuse.js';
-import { Disc, Music, Search, User } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Input } from '../ui/input';
 
 const trackFuseOptions: IFuseOptions<Track> = {
@@ -57,7 +57,7 @@ export function GlobalSearchButton() {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'f' && e.ctrlKey) {
+      if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
@@ -165,7 +165,7 @@ export function GlobalSearchButton() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{album.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {album.expand.artists?.map((a) => a.name).join(', ')}
+                      {album.expand?.artists?.map((a) => a.name).join(', ')}
                       {album.year && ` — ${album.year}`}
                     </p>
                   </div>
@@ -204,9 +204,11 @@ export function GlobalSearchButton() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs text-muted-foreground">{formatDuration(track.duration)}</span>
-                    <Badge variant="outline" className={`text-xs ${getProviderColor(track.expand.provider?.type)}`}>
-                      {track.expand.provider?.type}
-                    </Badge>
+                    {track.expand?.provider?.type && (
+                      <Badge variant="outline" className={`text-xs ${getProviderColor(track.expand.provider.type)}`}>
+                        {track.expand.provider.type}
+                      </Badge>
+                    )}
                   </div>
                 </CommandItem>
               ))}

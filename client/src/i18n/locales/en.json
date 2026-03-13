@@ -209,7 +209,9 @@
     "noResults": "No results found",
     "libraryTracks": "Tracks",
     "libraryAlbums": "Albums",
-    "libraryArtists": "Artists"
+    "libraryArtists": "Artists",
+    "openExternal": "Open in provider",
+    "addToLibrary": "Add to library"
   },
   "LoginPage": {
     "title": "Welcome back",

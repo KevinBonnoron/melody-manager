@@ -209,7 +209,9 @@
     "noResults": "Aucun résultat",
     "libraryTracks": "Titres",
     "libraryAlbums": "Albums",
-    "libraryArtists": "Artistes"
+    "libraryArtists": "Artistes",
+    "openExternal": "Ouvrir chez le fournisseur",
+    "addToLibrary": "Ajouter à la bibliothèque"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",
