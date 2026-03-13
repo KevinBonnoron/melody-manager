@@ -16,7 +16,7 @@
   "AlbumTable": {
     "title": "Titre",
     "artist": "Artiste",
-    "provider": "Fournisseur",
+    "provider": "Service",
     "actions": "Actions",
     "duration": "Durée",
     "playCount": "Nombre d'écoutes"
@@ -49,17 +49,17 @@
   "TrackGrid": {
     "noTracksFound": "Aucun titre trouvé",
     "addMusicToGetStarted": "Ajoutez de la musique pour commencer",
-    "noTracksFromProvider": "Aucun titre du fournisseur {{provider}}"
+    "noTracksFromProvider": "Aucun titre de {{provider}}"
   },
   "AlbumGrid": {
     "noAlbumsFound": "Aucun album trouvé",
     "addMusicToSeeAlbums": "Ajoutez de la musique pour voir vos albums ici",
-    "noAlbumsFromProvider": "Aucun album avec des titres du fournisseur {{provider}}"
+    "noAlbumsFromProvider": "Aucun album avec des titres de {{provider}}"
   },
   "ArtistGrid": {
     "noArtistsFound": "Aucun artiste trouvé",
     "addMusicToSeeArtists": "Ajoutez de la musique pour voir vos artistes ici",
-    "noArtistsFromProvider": "Aucun artiste avec des titres du fournisseur {{provider}}"
+    "noArtistsFromProvider": "Aucun artiste avec des titres de {{provider}}"
   },
   "AlbumActionsMenu": {
     "delete": "Supprimer l'album",
@@ -158,22 +158,22 @@
   },
   "Admin": {
     "title": "Admin",
-    "description": "Gérer vos fournisseurs de musique et appareils",
-    "providersTitle": "Fournisseurs",
+    "description": "Gérer vos services de musique et appareils",
+    "providersTitle": "Services",
     "providersDescription": "Configurer vos sources musicales et appareils de lecture",
     "tabMusicSources": "Sources musicales",
     "tabPlaybackDevices": "Appareils de lecture",
-    "addProvider": "Ajouter un fournisseur",
+    "addProvider": "Ajouter un service",
     "addProviderDialogTitleTrack": "Ajouter une source musicale",
     "addProviderDialogTitleDevice": "Ajouter un appareil de lecture",
-    "addProviderDialogDescription": "Choisissez le type de fournisseur à ajouter dans la liste ci-dessous.",
-    "addProviderSelectPlaceholder": "Sélectionner un fournisseur",
+    "addProviderDialogDescription": "Choisissez le type de service à ajouter dans la liste ci-dessous.",
+    "addProviderSelectPlaceholder": "Sélectionner un service",
     "addProviderCancel": "Annuler",
     "addProviderConfirm": "Ajouter",
-    "noProvidersInCategory": "Aucun fournisseur ajouté. Utilisez le bouton ci-dessus pour en ajouter un.",
-    "providersCount": "{{count}} fournisseur(s) configuré(s)",
+    "noProvidersInCategory": "Aucun service ajouté. Utilisez le bouton ci-dessus pour en ajouter un.",
+    "providersCount": "{{count}} service(s) configuré(s)",
     "allProviderTypesAdded": "Tous les types sont déjà ajoutés",
-    "providerActions": "Actions du fournisseur"
+    "providerActions": "Actions du service"
   },
   "ArtistPage": {
     "playAll": "Lire tout",
@@ -192,9 +192,9 @@
     "smartSearch": "Recherche intelligente dans toutes vos sources musicales"
   },
   "GlobalSearch": {
-    "noProvidersConfigured": "Aucun fournisseur configuré",
-    "configureOneProvider": "Configurez au moins un fournisseur de musique pour rechercher",
-    "configureProviders": "Configurer les fournisseurs",
+    "noProvidersConfigured": "Aucun service configuré",
+    "configureOneProvider": "Configurez au moins un service de musique pour rechercher",
+    "configureProviders": "Configurer les services",
     "searchingTypes": "Recherche de {{type}}...",
     "noTypesFound": "Aucun {{type}} trouvé",
     "searchResults": "Résultats de recherche",
@@ -212,7 +212,7 @@
     "libraryTracks": "Titres",
     "libraryAlbums": "Albums",
     "libraryArtists": "Artistes",
-    "openExternal": "Ouvrir chez le fournisseur",
+    "openExternal": "Ouvrir sur le site",
     "addToLibrary": "Ajouter à la bibliothèque",
     "failedToSearch": "Échec de la recherche"
   },
@@ -337,18 +337,18 @@
     "disconnect": "Déconnecter",
     "delete": "Supprimer",
     "deleting": "Suppression...",
-    "deleteConfirmTitle": "Supprimer le fournisseur",
+    "deleteConfirmTitle": "Supprimer le service",
     "deleteConfirmDescription": "Êtes-vous sûr de vouloir supprimer « {{title}} » ? Cette action est irréversible.",
     "providerDeletedSuccess": "« {{title}} » a été supprimé",
     "providerDeleteError": "Impossible de supprimer « {{title}} »",
     "validationError": "Veuillez remplir les champs obligatoires",
     "devicesDiscoveredSuccess": "Appareils découverts avec succès",
     "discoverDevicesError": "Impossible de découvrir les appareils",
-    "providerConnectedSuccess": "Fournisseur {{title}} connecté avec succès",
-    "providerUpdatedSuccess": "Fournisseur {{title}} mis à jour avec succès",
-    "providerSaveError": "Impossible d'enregistrer le fournisseur {{title}}",
-    "providerDisconnectedSuccess": "Fournisseur {{title}} déconnecté",
-    "providerDisconnectError": "Impossible de déconnecter le fournisseur {{title}}"
+    "providerConnectedSuccess": "Service {{title}} connecté avec succès",
+    "providerUpdatedSuccess": "Service {{title}} mis à jour avec succès",
+    "providerSaveError": "Impossible d'enregistrer le service {{title}}",
+    "providerDisconnectedSuccess": "Service {{title}} déconnecté",
+    "providerDisconnectError": "Impossible de déconnecter le service {{title}}"
   },
   "TrackProviderFilter": {
     "filterBy": "Filtrer par :",

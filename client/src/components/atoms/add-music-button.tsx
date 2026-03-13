@@ -1,11 +1,3 @@
-import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
-import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
-import { Link } from '@tanstack/react-router';
-import { Command as CommandPrimitive } from 'cmdk';
-import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
 import { artistsClient } from '@/clients/artists.client';
 import { playlistsClient } from '@/clients/playlists.client';
@@ -14,12 +6,19 @@ import { tracksClient } from '@/clients/tracks.client';
 import { TrackProviderFilter } from '@/components/providers/track-provider-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
 import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
+import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
+import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
+import { Link } from '@tanstack/react-router';
+import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+
+const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 
 export function AddMusicButton() {
   const { t } = useTranslation();
@@ -30,7 +29,6 @@ export function AddMusicButton() {
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
   const [selectedProvider, setSelectedProvider] = useState<TrackProvider | 'all'>('all');
-  const [selectedType, setSelectedType] = useState<SearchType>('track');
   const { data: providers } = useProviders({ category: 'track', enabled: true });
 
   const hasEnabledProviders = providers && providers.length > 0;
@@ -41,23 +39,24 @@ export function AddMusicButton() {
       setResults([]);
       setAddedUrls(new Set());
       setSelectedProvider('all');
-      setSelectedType('track');
     }
   }, [open]);
 
   useEffect(() => {
     if (!query) {
       setResults([]);
-      return;
+      setIsSearching(false);
+      return undefined;
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const response = await searchClient.search(query, selectedType);
+        const responses = await Promise.all(SEARCH_TYPES.map((type) => searchClient.search(query, type)));
         if (!cancelled) {
-          setResults((response as { results: SearchResult[] }).results);
+          setResults(responses.flat());
         }
       } catch (error) {
         if (!cancelled) {
@@ -69,13 +68,14 @@ export function AddMusicButton() {
           setIsSearching(false);
         }
       }
-    }, 300);
+    }, 500);
 
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timeoutId);
     };
-  }, [query, selectedType, t]);
+  }, [query, t]);
 
   const handleAdd = async (result: SearchResult) => {
     setAddingUrls((prev) => new Set(prev).add(result.externalUrl));
@@ -158,6 +158,11 @@ export function AddMusicButton() {
     return results.filter((result) => result.provider === selectedProvider.type);
   }, [results, selectedProvider]);
 
+  const filteredArtists = useMemo(() => filteredResults.filter(isArtistResult), [filteredResults]);
+  const filteredAlbums = useMemo(() => filteredResults.filter(isAlbumResult), [filteredResults]);
+  const filteredTracks = useMemo(() => filteredResults.filter(isTrackResult), [filteredResults]);
+  const filteredPlaylists = useMemo(() => filteredResults.filter(isPlaylistResult), [filteredResults]);
+
   const renderSearchResult = (result: SearchResult, index: number) => {
     const status = getLibraryStatus(result);
     const isAdding = addingUrls.has(result.externalUrl);
@@ -223,7 +228,7 @@ export function AddMusicButton() {
               e.stopPropagation();
               window.open(result.externalUrl, '_blank');
             }}
-            className="transition-colors w-9 h-9 p-0"
+            className="transition-colors w-9 h-9 p-0 cursor-pointer"
           >
             <ExternalLink className="h-4 w-4" />
           </Button>
@@ -237,7 +242,7 @@ export function AddMusicButton() {
             }}
             disabled={isAdding || isComplete}
             variant={isComplete ? 'secondary' : 'default'}
-            className="transition-all w-9 h-9 p-0"
+            className="transition-all w-9 h-9 p-0 cursor-pointer hover:brightness-125"
           >
             {isAdding ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -264,45 +269,7 @@ export function AddMusicButton() {
         <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
-        <div className="flex border-b px-3 py-2">
-          <ButtonGroup className="flex-1">
-            <Select value={selectedType} onValueChange={(value: string) => setSelectedType(value as SearchType)}>
-              <SelectTrigger className="w-[130px] rounded-r-none border-0 shadow-none bg-transparent">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>{t('GlobalSearch.searchFor')}</SelectLabel>
-                  <SelectItem value="track">
-                    <div className="flex items-center gap-2 leading-none">
-                      <Music className="h-4 w-4" />
-                      <span className="leading-none">{t('GlobalSearch.tracks')}</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="album">
-                    <div className="flex items-center gap-2 leading-none">
-                      <Disc className="h-4 w-4" />
-                      <span className="leading-none">{t('GlobalSearch.albums')}</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="artist">
-                    <div className="flex items-center gap-2 leading-none">
-                      <User className="h-4 w-4" />
-                      <span className="leading-none">{t('GlobalSearch.artists')}</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="playlist">
-                    <div className="flex items-center gap-2 leading-none">
-                      <Library className="h-4 w-4" />
-                      <span className="leading-none">{t('GlobalSearch.playlists')}</span>
-                    </div>
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <CommandPrimitive.Input placeholder={t('GlobalSearch.searchForMusic')} value={query} onValueChange={setQuery} className="placeholder:text-muted-foreground flex h-10 w-full flex-1 rounded-l-none rounded-md bg-transparent py-3 text-sm outline-hidden border-0 shadow-none" autoFocus />
-          </ButtonGroup>
-        </div>
+        <CommandInput placeholder={t('GlobalSearch.searchForMusic')} value={query} onValueChange={setQuery} autoFocus />
         <CommandList className="max-h-[500px] scrollbar-dialog-content">
           {!hasEnabledProviders && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -323,11 +290,11 @@ export function AddMusicButton() {
           {hasEnabledProviders && isSearching && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-              <p className="text-sm text-muted-foreground">{t('GlobalSearch.searchingTypes', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</p>
+              <p className="text-sm text-muted-foreground">{t('GlobalSearch.searchForMusic')}</p>
             </div>
           )}
 
-          {hasEnabledProviders && !isSearching && query && filteredResults.length === 0 && <CommandEmpty>{t('GlobalSearch.noTypesFound', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</CommandEmpty>}
+          {hasEnabledProviders && !isSearching && query && filteredResults.length === 0 && <CommandEmpty>{t('GlobalSearch.noResults')}</CommandEmpty>}
 
           {hasEnabledProviders && !isSearching && results.length > 0 && (
             <>
@@ -336,7 +303,14 @@ export function AddMusicButton() {
                   <TrackProviderFilter selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} items={results} getItemProviderIds={getItemProviderIds} />
                 </div>
               )}
-              <CommandGroup heading={t('GlobalSearch.searchResults')}>{filteredResults.map(renderSearchResult)}</CommandGroup>
+
+              {filteredTracks.length > 0 && <CommandGroup heading={t('GlobalSearch.tracks')}>{filteredTracks.map(renderSearchResult)}</CommandGroup>}
+
+              {filteredAlbums.length > 0 && <CommandGroup heading={t('GlobalSearch.albums')}>{filteredAlbums.map(renderSearchResult)}</CommandGroup>}
+
+              {filteredPlaylists.length > 0 && <CommandGroup heading={t('GlobalSearch.playlists')}>{filteredPlaylists.map(renderSearchResult)}</CommandGroup>}
+
+              {filteredArtists.length > 0 && <CommandGroup heading={t('GlobalSearch.artists')}>{filteredArtists.map(renderSearchResult)}</CommandGroup>}
             </>
           )}
         </CommandList>
