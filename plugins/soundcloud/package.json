@@ -1,0 +1,14 @@
+{
+  "name": "@melody-manager/plugin-soundcloud",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
+  },
+  "dependencies": {
+    "@melody-manager/plugin-sdk": "workspace:*",
+    "@melody-manager/shared": "workspace:*",
+    "hono": "^4.7.11"
+  }
+}

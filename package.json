@@ -1,0 +1,42 @@
+{
+  "name": "@melody-manager/root",
+  "version": "0.0.1",
+  "description": "Melody Manager",
+  "author": "Kevin Bonnoron",
+  "license": "MIT",
+  "packageManager": "bun@1.3.10",
+  "workspaces": [
+    "client",
+    "db",
+    "docs",
+    "plugins/*",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build --filter='!@melody-manager/docs'",
+    "lint": "biome lint .",
+    "type-check": "turbo type-check",
+    "test": "turbo test",
+    "format": "biome format . --write"
+  },
+  "keywords": [
+    "bun",
+    "hono",
+    "react",
+    "vite",
+    "monorepo",
+    "turbo"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
+    "bun-types": "^1.3.10",
+    "typescript": "^5.9.3",
+    "turbo": "^2.8.15"
+  },
+  "peerDependencies": {},
+  "dependencies": {
+    "@svrooij/sonos": "^2.5.0"
+  }
+}

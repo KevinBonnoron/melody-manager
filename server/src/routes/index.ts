@@ -1,0 +1,10 @@
+export { albumRoute } from './album.route';
+export { artistRoute } from './artist.route';
+export { metadataRoute } from './metadata.route';
+export { deviceRoute } from './device.route';
+export { playlistRoute } from './playlist.route';
+export { pluginRoute } from './plugin.route';
+export { searchRoute } from './search.route';
+export { shareRoute } from './share.route';
+export { taskRoute } from './task.route';
+export { trackRoute } from './track.route';

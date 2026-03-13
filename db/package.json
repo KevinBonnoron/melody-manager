@@ -1,0 +1,14 @@
+{
+  "name": "@melody-manager/db",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "pocketbase serve --http 127.0.0.1:8090 --dir ./pb_data",
+    "migrate:collections": "pocketbase --dir ./pb_data migrate collections"
+  },
+  "dependencies": {
+    "pocketbase": "0.26.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.10"
+  }
+}
