@@ -1,0 +1,15 @@
+{
+	"name": "@melody-manager/plugin-sonos",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
+	},
+	"dependencies": {
+		"@melody-manager/plugin-sdk": "workspace:*",
+		"@melody-manager/shared": "workspace:*",
+		"@svrooij/sonos": "^2.6.0-beta.9",
+		"html-entities": "^2.5.2"
+	}
+}
