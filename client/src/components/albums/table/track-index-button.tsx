@@ -38,7 +38,15 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
       return null;
     }
     return (
-      <Button size="icon" variant="ghost" className="h-8 w-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity opacity-0 group-hover:opacity-100 text-primary hover:!bg-transparent hover:!text-primary" onClick={handleClick}>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity opacity-0 group-hover:opacity-100 text-primary hover:!bg-transparent hover:!text-primary"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleClick();
+        }}
+      >
         {isCurrentlyPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4" fill="currentColor" />}
       </Button>
     );

@@ -15,7 +15,7 @@ export function AdminPage() {
   ];
 
   return (
-    <div className="pb-32">
+    <div>
       <div className="grid gap-4 md:grid-cols-2">
         {adminLinks.map((link) => {
           const Icon = link.icon;

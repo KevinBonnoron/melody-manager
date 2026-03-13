@@ -17,7 +17,9 @@
     "title": "Titre",
     "artist": "Artiste",
     "provider": "Fournisseur",
-    "actions": "Actions"
+    "actions": "Actions",
+    "duration": "Durée",
+    "playCount": "Nombre d'écoutes"
   },
   "TrackPage": {
     "title": "Titres",
