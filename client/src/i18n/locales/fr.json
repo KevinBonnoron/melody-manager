@@ -113,7 +113,8 @@
     }
   },
   "AppLayout": {
-    "search": "Ajouter"
+    "search": "Rechercher",
+    "addMusic": "Ajouter"
   },
   "BackButton": {
     "label": "Retour"
@@ -203,7 +204,12 @@
     "albums": "Albums",
     "artists": "Artistes",
     "playlists": "Playlists",
-    "searchForMusic": "Rechercher de la musique à ajouter"
+    "searchForMusic": "Rechercher de la musique à ajouter",
+    "typeToSearch": "Rechercher dans votre bibliothèque...",
+    "noResults": "Aucun résultat",
+    "libraryTracks": "Titres",
+    "libraryAlbums": "Albums",
+    "libraryArtists": "Artistes"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",

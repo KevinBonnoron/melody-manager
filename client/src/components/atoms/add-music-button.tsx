@@ -1,3 +1,10 @@
+import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
+import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
+import { Link } from '@tanstack/react-router';
+import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
 import { artistsClient } from '@/clients/artists.client';
 import { playlistsClient } from '@/clients/playlists.client';
@@ -11,16 +18,9 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } f
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProviders } from '@/hooks/use-providers';
 import { formatDuration, getProviderColor } from '@/lib/utils';
-import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
-import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
-import { Link } from '@tanstack/react-router';
-import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Input } from '../ui/input';
 
-export function AddMusicDialog() {
+export function AddMusicButton() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -36,7 +36,7 @@ export function AddMusicDialog() {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'k' && e.ctrlKey) {
         e.preventDefault();
         setOpen((open) => !open);
       }
@@ -268,83 +268,90 @@ export function AddMusicDialog() {
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
-      <div className="flex border-b px-3 py-2">
-        <ButtonGroup className="flex-1">
-          <Select value={selectedType} onValueChange={(value: string) => setSelectedType(value as SearchType)}>
-            <SelectTrigger className="w-[130px] rounded-r-none border-0 shadow-none bg-transparent">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>{t('GlobalSearch.searchFor')}</SelectLabel>
-                <SelectItem value="track">
-                  <div className="flex items-center gap-2 leading-none">
-                    <Music className="h-4 w-4" />
-                    <span className="leading-none">{t('GlobalSearch.tracks')}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="album">
-                  <div className="flex items-center gap-2 leading-none">
-                    <Disc className="h-4 w-4" />
-                    <span className="leading-none">{t('GlobalSearch.albums')}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="artist">
-                  <div className="flex items-center gap-2 leading-none">
-                    <User className="h-4 w-4" />
-                    <span className="leading-none">{t('GlobalSearch.artists')}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="playlist">
-                  <div className="flex items-center gap-2 leading-none">
-                    <Library className="h-4 w-4" />
-                    <span className="leading-none">{t('GlobalSearch.playlists')}</span>
-                  </div>
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <Input placeholder={t('GlobalSearch.searchForMusic')} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 rounded-l-none border-0 shadow-none focus-visible:ring-0" autoFocus />
-        </ButtonGroup>
-      </div>
-      <CommandList className="max-h-[500px] scrollbar-dialog-content">
-        {!hasEnabledProviders && (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="rounded-full bg-muted/50 p-4 mb-4">
-              <Settings className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-base font-semibold text-card-foreground mb-1">{t('GlobalSearch.noProvidersConfigured')}</p>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm">{t('GlobalSearch.configureOneProvider')}</p>
-            <Link to="/admin/providers" onClick={() => setOpen(false)}>
-              <Button size="sm" variant="outline" className="transition-colors">
-                <Settings className="h-4 w-4 mr-2" />
-                {t('GlobalSearch.configureProviders')}
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        {hasEnabledProviders && isSearching && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-            <p className="text-sm text-muted-foreground">{t('GlobalSearch.searchingTypes', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</p>
-          </div>
-        )}
-
-        {hasEnabledProviders && !isSearching && query && filteredResults.length === 0 && <CommandEmpty>{t('GlobalSearch.noTypesFound', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</CommandEmpty>}
-
-        {hasEnabledProviders && !isSearching && results.length > 0 && (
-          <>
-            {providersWithResults.length > 1 && (
-              <div className="px-3 py-2 border-b">
-                <TrackProviderFilter selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} items={results} getItemProviderIds={getItemProviderIds} />
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-2" />
+        {t('AppLayout.addMusic')}
+        <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">Ctrl+K</kbd>
+      </Button>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
+        <div className="flex border-b px-3 py-2">
+          <ButtonGroup className="flex-1">
+            <Select value={selectedType} onValueChange={(value: string) => setSelectedType(value as SearchType)}>
+              <SelectTrigger className="w-[130px] rounded-r-none border-0 shadow-none bg-transparent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>{t('GlobalSearch.searchFor')}</SelectLabel>
+                  <SelectItem value="track">
+                    <div className="flex items-center gap-2 leading-none">
+                      <Music className="h-4 w-4" />
+                      <span className="leading-none">{t('GlobalSearch.tracks')}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="album">
+                    <div className="flex items-center gap-2 leading-none">
+                      <Disc className="h-4 w-4" />
+                      <span className="leading-none">{t('GlobalSearch.albums')}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="artist">
+                    <div className="flex items-center gap-2 leading-none">
+                      <User className="h-4 w-4" />
+                      <span className="leading-none">{t('GlobalSearch.artists')}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="playlist">
+                    <div className="flex items-center gap-2 leading-none">
+                      <Library className="h-4 w-4" />
+                      <span className="leading-none">{t('GlobalSearch.playlists')}</span>
+                    </div>
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Input placeholder={t('GlobalSearch.searchForMusic')} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 rounded-l-none border-0 shadow-none focus-visible:ring-0" autoFocus />
+          </ButtonGroup>
+        </div>
+        <CommandList className="max-h-[500px] scrollbar-dialog-content">
+          {!hasEnabledProviders && (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <div className="rounded-full bg-muted/50 p-4 mb-4">
+                <Settings className="h-8 w-8 text-muted-foreground" />
               </div>
-            )}
-            <CommandGroup heading={t('GlobalSearch.searchResults')}>{filteredResults.map(renderSearchResult)}</CommandGroup>
-          </>
-        )}
-      </CommandList>
-    </CommandDialog>
+              <p className="text-base font-semibold text-card-foreground mb-1">{t('GlobalSearch.noProvidersConfigured')}</p>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm">{t('GlobalSearch.configureOneProvider')}</p>
+              <Link to="/admin/providers" onClick={() => setOpen(false)}>
+                <Button size="sm" variant="outline" className="transition-colors">
+                  <Settings className="h-4 w-4 mr-2" />
+                  {t('GlobalSearch.configureProviders')}
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {hasEnabledProviders && isSearching && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+              <p className="text-sm text-muted-foreground">{t('GlobalSearch.searchingTypes', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</p>
+            </div>
+          )}
+
+          {hasEnabledProviders && !isSearching && query && filteredResults.length === 0 && <CommandEmpty>{t('GlobalSearch.noTypesFound', { type: t(`GlobalSearch.${selectedType === 'playlist' ? 'playlists' : `${selectedType}s`}`) })}</CommandEmpty>}
+
+          {hasEnabledProviders && !isSearching && results.length > 0 && (
+            <>
+              {providersWithResults.length > 1 && (
+                <div className="px-3 py-2 border-b">
+                  <TrackProviderFilter selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} items={results} getItemProviderIds={getItemProviderIds} />
+                </div>
+              )}
+              <CommandGroup heading={t('GlobalSearch.searchResults')}>{filteredResults.map(renderSearchResult)}</CommandGroup>
+            </>
+          )}
+        </CommandList>
+      </CommandDialog>
+    </>
   );
 }

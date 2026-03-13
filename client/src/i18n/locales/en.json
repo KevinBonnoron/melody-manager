@@ -113,7 +113,8 @@
     }
   },
   "AppLayout": {
-    "search": "Add Music"
+    "search": "Search",
+    "addMusic": "Add Music"
   },
   "BackButton": {
     "label": "Back"
@@ -203,7 +204,12 @@
     "albums": "Albums",
     "artists": "Artists",
     "playlists": "Playlists",
-    "searchForMusic": "Search for music to add"
+    "searchForMusic": "Search for music to add",
+    "typeToSearch": "Search your library...",
+    "noResults": "No results found",
+    "libraryTracks": "Tracks",
+    "libraryAlbums": "Albums",
+    "libraryArtists": "Artists"
   },
   "LoginPage": {
     "title": "Welcome back",
