@@ -44,6 +44,12 @@ export function getProviderColor(provider: string) {
   }
 }
 
+export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+
+export function getModifierKey(key: string) {
+  return isMac ? `⌘${key.toUpperCase()}` : `Ctrl+${key.toUpperCase()}`;
+}
+
 export function getProviderColorContrast(provider: string) {
   switch (provider) {
     case 'local':

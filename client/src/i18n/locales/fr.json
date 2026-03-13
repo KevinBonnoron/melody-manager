@@ -113,7 +113,8 @@
     }
   },
   "AppLayout": {
-    "search": "Ajouter"
+    "search": "Rechercher",
+    "addMusic": "Ajouter"
   },
   "BackButton": {
     "label": "Retour"
@@ -203,7 +204,15 @@
     "albums": "Albums",
     "artists": "Artistes",
     "playlists": "Playlists",
-    "searchForMusic": "Rechercher de la musique à ajouter"
+    "searchForMusic": "Rechercher de la musique à ajouter",
+    "typeToSearch": "Rechercher dans votre bibliothèque...",
+    "noResults": "Aucun résultat",
+    "libraryTracks": "Titres",
+    "libraryAlbums": "Albums",
+    "libraryArtists": "Artistes",
+    "openExternal": "Ouvrir chez le fournisseur",
+    "addToLibrary": "Ajouter à la bibliothèque",
+    "failedToSearch": "Échec de la recherche"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",
