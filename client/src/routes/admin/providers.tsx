@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router';
 import { ProviderList } from '@/components/providers/provider-list';
 import { adminGuard } from '@/lib/admin-guard';
+import { createFileRoute } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 
 export const Route = createFileRoute('/admin/providers')({
@@ -11,7 +11,7 @@ export const Route = createFileRoute('/admin/providers')({
 function RouteComponent() {
   const { t } = useTranslation();
   return (
-    <div className="pb-32">
+    <div>
       <ProviderList title={t('Admin.providersTitle')} description={t('Admin.providersDescription')} />
     </div>
   );

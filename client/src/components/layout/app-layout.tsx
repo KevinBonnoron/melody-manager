@@ -1,11 +1,12 @@
-import { useLocation } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { AddMusicButton } from '@/components/atoms/add-music-button';
 import { GlobalSearchButton } from '@/components/atoms/global-search-button';
 import { MusicPlayer } from '@/components/atoms/music-player';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useLocation } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BackButton } from '../atoms/back-button';
 import { TaskNotifications } from '../atoms/task-notifications';
 import { AppSidebar } from './app-sidebar';
@@ -27,6 +28,7 @@ const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> 
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { t } = useTranslation();
+  const { currentTrack } = useMusicPlayer();
   const location = useLocation();
   const routeInfo = routeTitles[location.pathname] || routeTitles[location.pathname.replace(/\/$/, '')];
   const isRootPath = !!routeInfo;
@@ -35,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 md:px-8 sticky top-0 bg-background z-20">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 md:px-8 sticky top-0 bg-background z-20 overflow-hidden">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="hidden md:inline-flex" />
             {!isRootPath && <BackButton />}
@@ -53,7 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 pb-32 md:pb-8">{children}</main>
+        <main className={`flex-1 px-4 pt-4 md:px-8 md:pt-8 ${currentTrack ? 'pb-56 md:pb-48' : 'pb-20 md:pb-8'}`}>{children}</main>
       </SidebarInset>
       <BottomNav />
       <MusicPlayer />

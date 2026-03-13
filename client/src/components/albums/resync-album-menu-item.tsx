@@ -1,11 +1,11 @@
+import { albumsClient } from '@/clients/albums.client';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { useAlbumTracks } from '@/hooks/use-tracks';
 import type { Album } from '@melody-manager/shared';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { albumsClient } from '@/clients/albums.client';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { useAlbumTracks } from '@/hooks/use-tracks';
 
 interface Props {
   album: Album;
@@ -18,7 +18,10 @@ export function ResyncAlbumMenuItem({ album }: Props) {
   const hasChapters = tracks.some((track) => track.metadata?.startTime !== undefined);
 
   const handleResync = async () => {
-    if (isSyncing) { return; }
+    if (isSyncing) {
+      return;
+    }
+
     setIsSyncing(true);
     try {
       await albumsClient.resync(album.id);

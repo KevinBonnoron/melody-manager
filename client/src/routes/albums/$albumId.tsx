@@ -21,7 +21,7 @@ function RouteComponent() {
   const isLoading = isAlbumLoading || isTracksLoading || isArtistsLoading;
 
   return (
-    <div className="pb-32">
+    <div>
       {isLoading ? (
         <AlbumPageSkeleton />
       ) : album ? (

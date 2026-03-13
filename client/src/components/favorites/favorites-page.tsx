@@ -73,7 +73,7 @@ export function FavoritesPage() {
   const showSection = (type: FavoriteFilter) => typeFilter === null || typeFilter === type;
 
   return (
-    <div className="pb-32">
+    <div>
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {typeChips.map(({ value, label, count, icon: Icon }) => {
           const isSelected = typeFilter === value;

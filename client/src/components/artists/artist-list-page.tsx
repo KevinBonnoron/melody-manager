@@ -30,7 +30,7 @@ export function ArtistListPage() {
   const filteredArtists = selectedProvider === 'all' ? artists : artists.filter((artist) => providerIdsByArtist.get(artist.id)?.includes(selectedProvider.id));
 
   return (
-    <div className="pb-32">
+    <div>
       <div className="mb-6">
         <TrackProviderFilter selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} items={artists} getItemProviderIds={getArtistProviderIds} />
       </div>
