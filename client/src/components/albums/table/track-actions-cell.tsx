@@ -32,6 +32,8 @@ export function TrackActionsCell({ track }: Props) {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
+              aria-label={liked ? t('TrackActionsMenu.unlike') : t('TrackActionsMenu.like')}
+              aria-pressed={liked}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleLike(track.id);
@@ -49,6 +51,8 @@ export function TrackActionsCell({ track }: Props) {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
+              aria-label={disliked ? t('TrackActionsMenu.undislike') : t('TrackActionsMenu.dislike')}
+              aria-pressed={disliked}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleDislike(track.id);
@@ -61,7 +65,7 @@ export function TrackActionsCell({ track }: Props) {
         </Tooltip>
 
         <ShareTrackDialog track={track}>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canShare} onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!canShare} onClick={(e) => e.stopPropagation()} aria-label={t('TrackActionsMenu.share')}>
             <Share2 className="h-4 w-4 text-muted-foreground" />
           </Button>
         </ShareTrackDialog>

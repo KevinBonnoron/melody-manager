@@ -33,10 +33,14 @@ export function SharesPage() {
 
   const handleCopy = async (token: string, id: string) => {
     const url = `${window.location.origin}/api/share/stream/${token}`;
-    await navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    toast.success(t('TrackActionsMenu.shareCopied'));
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      toast.success(t('TrackActionsMenu.shareCopied'));
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error(t('TrackActionsMenu.shareCopyError'));
+    }
   };
 
   const isExpired = (expiresAt: string) => {

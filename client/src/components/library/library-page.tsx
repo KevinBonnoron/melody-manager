@@ -20,7 +20,7 @@ export function LibraryPage() {
   const { t } = useTranslation();
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
 
-  const { data: likedTracks } = useLikedTracks();
+  const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);
   const likedAlbums = useMemo(() => likedAlbumIds.map((id) => albumsByIds.find((a) => a.id === id)).filter((a): a is Album => a != null), [likedAlbumIds, albumsByIds]);

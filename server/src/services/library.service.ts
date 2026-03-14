@@ -1,6 +1,6 @@
 import type { Track } from '@melody-manager/shared';
-import { pb } from '../lib/pocketbase';
 import { logger } from '../lib/logger';
+import { pb, pbFilter } from '../lib/pocketbase';
 
 export const libraryService = {
   /**
@@ -9,16 +9,21 @@ export const libraryService = {
   async autoLikeFromTracks(userId: string, tracks: Track[]): Promise<void> {
     const albumIds = [...new Set(tracks.map((t) => t.album).filter(Boolean))];
     const artistIds = [...new Set(tracks.flatMap((t) => t.artists).filter(Boolean))];
-    const trackIds = tracks.map((t) => t.id);
+    const trackIds = [...new Set(tracks.map((t) => t.id))];
 
-    await Promise.all([...albumIds.map((albumId) => this.likeAlbum(userId, albumId)), ...artistIds.map((artistId) => this.likeArtist(userId, artistId)), ...trackIds.map((trackId) => this.likeTrack(userId, trackId))]);
+    const ops = [...albumIds.map((albumId) => () => this.likeAlbum(userId, albumId)), ...artistIds.map((artistId) => () => this.likeArtist(userId, artistId)), ...trackIds.map((trackId) => () => this.likeTrack(userId, trackId))];
+
+    const BATCH_SIZE = 25;
+    for (let i = 0; i < ops.length; i += BATCH_SIZE) {
+      await Promise.all(ops.slice(i, i + BATCH_SIZE).map((run) => run()));
+    }
   },
 
   async likeAlbum(userId: string, albumId: string): Promise<void> {
     try {
       const existing = await pb
         .collection('album_likes')
-        .getFirstListItem(`user = "${userId}" && album = "${albumId}"`)
+        .getFirstListItem(pbFilter('user = {:userId} && album = {:albumId}', { userId, albumId }))
         .catch(() => null);
       if (!existing) {
         await pb.collection('album_likes').create({ user: userId, album: albumId });
@@ -32,7 +37,7 @@ export const libraryService = {
     try {
       const existing = await pb
         .collection('artist_likes')
-        .getFirstListItem(`user = "${userId}" && artist = "${artistId}"`)
+        .getFirstListItem(pbFilter('user = {:userId} && artist = {:artistId}', { userId, artistId }))
         .catch(() => null);
       if (!existing) {
         await pb.collection('artist_likes').create({ user: userId, artist: artistId });
@@ -46,7 +51,7 @@ export const libraryService = {
     try {
       const existing = await pb
         .collection('track_likes')
-        .getFirstListItem(`user = "${userId}" && track = "${trackId}"`)
+        .getFirstListItem(pbFilter('user = {:userId} && track = {:trackId}', { userId, trackId }))
         .catch(() => null);
       if (!existing) {
         await pb.collection('track_likes').create({ user: userId, track: trackId });

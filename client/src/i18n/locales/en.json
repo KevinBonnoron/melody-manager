@@ -9,12 +9,12 @@
   "AlbumPage": {
     "tracks_one": "track",
     "tracks_other": "tracks",
-    "albumLabel": "Album",
     "noTracksInAlbum": "No tracks in this album",
     "unknownArtist": "Unknown Artist",
     "addToLibrary": "Add to library",
     "inLibrary": "In library",
-    "openExternal": "Open in provider"
+    "openExternal": "Open in provider",
+    "playAlbum": "Play Album"
   },
   "AlbumTable": {
     "title": "Title",
@@ -28,8 +28,7 @@
     "title": "Home",
     "description": "Latest additions to your server",
     "recentArtists": "Recent Artists",
-    "recentAlbums": "Recent Albums",
-    "recentTracks": "Recent Tracks"
+    "recentAlbums": "Recent Albums"
   },
   "LibraryPage": {
     "title": "Library",
@@ -97,6 +96,7 @@
     "creating": "Creating...",
     "createLink": "Create link",
     "shareCopied": "Share link copied to clipboard",
+    "shareCopyError": "Failed to copy share link to clipboard",
     "shareError": "Failed to create share link"
   },
   "Tasks": {

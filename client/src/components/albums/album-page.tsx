@@ -20,7 +20,20 @@ export function AlbumPage({ album, tracks, artists }: Props) {
   const { t } = useTranslation();
   const { isLiked, toggleLike } = useAlbumLikes();
   const totalDuration = tracks.reduce((sum, { duration }) => sum + duration, 0);
-  const sourceUrl = tracks[0]?.sourceUrl;
+  const sourceUrl = (() => {
+    const raw = tracks.find((t) => {
+      return t.sourceUrl;
+    })?.sourceUrl;
+    if (!raw) {
+      return null;
+    }
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : null;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <>
@@ -32,9 +45,8 @@ export function AlbumPage({ album, tracks, artists }: Props) {
         </div>
 
         <div className="flex flex-col justify-end">
-          <p className="text-sm text-muted-foreground mb-2">{t('AlbumPage.albumLabel')}</p>
           <h1 className="text-2xl xl:text-4xl font-bold leading-tight">{album.name}</h1>
-          <p className="text-base xl:text-xl text-muted-foreground mt-2 xl:mt-4 flex items-center gap-2 flex-wrap">
+          <p className="text-base xl:text-xl text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
             {artists.slice(0, 1).map((artist) => (
               <Link key={artist.id} to="/artists/$artistId" params={{ artistId: artist.id }} className="hover:text-foreground hover:underline transition-colors">
                 {artist.name}
@@ -46,25 +58,26 @@ export function AlbumPage({ album, tracks, artists }: Props) {
               </Badge>
             )}
           </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {album.year && <>{album.year} · </>}
+            {tracks.length} {t('AlbumPage.tracks', { count: tracks.length })} · {formatDuration(totalDuration, 'long')}
+          </p>
         </div>
 
         <div className="col-span-2 xl:col-span-1 flex flex-wrap items-center gap-3 xl:gap-4">
           <PlayAlbumButton tracks={tracks} />
-          <Button variant={isLiked(album.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(album.id)}>
+          <Button variant={isLiked(album.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(album.id)} aria-label={isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}>
             {isLiked(album.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <Library className="h-4 w-4 sm:mr-2" />}
             <span className="hidden sm:inline">{isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}</span>
           </Button>
           {sourceUrl && (
-            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={t('AlbumPage.openExternal')}>
-                <ExternalLink className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="sm:w-auto sm:px-3 h-9 w-9" asChild>
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={t('AlbumPage.openExternal')} aria-label={t('AlbumPage.openExternal')}>
+                <ExternalLink className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('AlbumPage.openExternal')}</span>
               </a>
             </Button>
           )}
-          <p className="text-sm text-muted-foreground">
-            {album.year && <>{album.year} · </>}
-            {tracks.length} {t('AlbumPage.tracks', { count: tracks.length })} · {formatDuration(totalDuration, 'long')}
-          </p>
           <div className="ml-auto">
             <AlbumActionsMenu album={album} />
           </div>

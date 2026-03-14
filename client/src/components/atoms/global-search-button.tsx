@@ -2,7 +2,7 @@ import type { Album, Artist, Track } from '@melody-manager/shared';
 import { useNavigate } from '@tanstack/react-router';
 import type { IFuseOptions } from 'fuse.js';
 import Fuse from 'fuse.js';
-import { Disc, Music, Search, User } from 'lucide-react';
+import { Disc, Heart, Music, Search, User } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbums } from '@/hooks/use-album';
+import { useAlbumLikes } from '@/hooks/use-album-likes';
+import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtists } from '@/hooks/use-artists';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
+import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
-import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
+import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
 
 const trackFuseOptions: IFuseOptions<Track> = {
   keys: [
@@ -50,6 +53,9 @@ export function GlobalSearchButton() {
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
   const { data: artists = [] } = useArtists();
+  const { isLiked: isTrackLiked, toggleLike: toggleTrackLike } = useTrackLikes();
+  const { isLiked: isAlbumLiked, toggleLike: toggleAlbumLike } = useAlbumLikes();
+  const { isLiked: isArtistLiked, toggleLike: toggleArtistLike } = useArtistLikes();
 
   const trackFuse = useMemo(() => (open ? new Fuse(tracks, trackFuseOptions) : null), [tracks, open]);
   const albumFuse = useMemo(() => (open ? new Fuse(albums, albumFuseOptions) : null), [albums, open]);
@@ -122,6 +128,17 @@ export function GlobalSearchButton() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{artist.name}</p>
                   </div>
+                  <button
+                    type="button"
+                    className="flex-shrink-0 p-1.5 rounded-md hover:bg-muted transition-colors"
+                    aria-label={isArtistLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleArtistLike(artist.id);
+                    }}
+                  >
+                    <Heart className={cn('h-4 w-4', isArtistLiked(artist.id) ? 'fill-primary text-primary' : 'text-muted-foreground')} />
+                  </button>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -155,6 +172,17 @@ export function GlobalSearchButton() {
                       {album.year && ` — ${album.year}`}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    className="flex-shrink-0 p-1.5 rounded-md hover:bg-muted transition-colors"
+                    aria-label={isAlbumLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleAlbumLike(album.id);
+                    }}
+                  >
+                    <Heart className={cn('h-4 w-4', isAlbumLiked(album.id) ? 'fill-primary text-primary' : 'text-muted-foreground')} />
+                  </button>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -195,6 +223,17 @@ export function GlobalSearchButton() {
                         {track.expand.provider.type}
                       </Badge>
                     )}
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                      aria-label={isTrackLiked(track.id) ? t('TrackActionsMenu.unlike') : t('TrackActionsMenu.like')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTrackLike(track.id);
+                      }}
+                    >
+                      <Heart className={cn('h-4 w-4', isTrackLiked(track.id) ? 'fill-primary text-primary' : 'text-muted-foreground')} />
+                    </button>
                   </div>
                 </CommandItem>
               ))}

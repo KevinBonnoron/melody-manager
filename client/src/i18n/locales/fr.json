@@ -9,12 +9,12 @@
   "AlbumPage": {
     "tracks_one": "titre",
     "tracks_other": "titres",
-    "albumLabel": "Album",
     "noTracksInAlbum": "Aucun titre dans cet album",
     "unknownArtist": "Artiste inconnu",
     "addToLibrary": "Ajouter à la bibliothèque",
     "inLibrary": "Dans la bibliothèque",
-    "openExternal": "Ouvrir chez le fournisseur"
+    "openExternal": "Voir la source",
+    "playAlbum": "Lire l'album"
   },
   "AlbumTable": {
     "title": "Titre",
@@ -28,8 +28,7 @@
     "title": "Accueil",
     "description": "Derniers ajouts sur le serveur",
     "recentArtists": "Artistes récents",
-    "recentAlbums": "Albums récents",
-    "recentTracks": "Titres récents"
+    "recentAlbums": "Albums récents"
   },
   "LibraryPage": {
     "title": "Bibliothèque",
@@ -97,6 +96,7 @@
     "creating": "Création...",
     "createLink": "Créer le lien",
     "shareCopied": "Lien de partage copié dans le presse-papier",
+    "shareCopyError": "Impossible de copier le lien de partage dans le presse-papier",
     "shareError": "Impossible de créer le lien de partage"
   },
   "Tasks": {

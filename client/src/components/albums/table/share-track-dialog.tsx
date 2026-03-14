@@ -1,7 +1,7 @@
 import type { ShareLink, Track } from '@melody-manager/shared';
 import { Check, Copy, Link } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import { type ReactNode, useState } from 'react';
+import { type ReactElement, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { shareLinkCollection } from '@/collections/share-link.collection';
@@ -14,7 +14,7 @@ import { config } from '@/lib/config';
 
 interface Props {
   track: Track;
-  children: ReactNode;
+  children: ReactElement;
 }
 
 export function ShareTrackDialog({ track, children }: Props) {
@@ -35,7 +35,7 @@ export function ShareTrackDialog({ track, children }: Props) {
         token,
         track: track.id,
         createdBy: user.id,
-        expiresAt: expiresAt || '',
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : '',
       } as ShareLink);
       setShareUrl(`${config.server.url}/share/stream/${token}`);
     } catch {
@@ -94,8 +94,8 @@ export function ShareTrackDialog({ track, children }: Props) {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Input readOnly value={shareUrl} className="font-mono text-sm" />
-              <Button size="icon" variant="outline" onClick={handleCopy}>
+              <Input readOnly value={shareUrl} className="font-mono text-sm" aria-label={t('TrackActionsMenu.shareDialogTitle')} />
+              <Button size="icon" variant="outline" onClick={handleCopy} aria-label={t('TrackActionsMenu.shareCopied')}>
                 {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
