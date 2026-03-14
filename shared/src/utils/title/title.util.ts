@@ -1,9 +1,11 @@
 /**
- * Normalizes track titles by stripping a leading " - " (or similar dash/space pattern)
- * often found in YouTube chapter titles (e.g. "1.  - Song Name" → "Song Name").
+ * Normalizes track titles by stripping surrounding double quotes and
+ * leading " - " (or similar dash/space pattern) often found in YouTube
+ * chapter titles (e.g. '"Song Name"' → 'Song Name', " - Song Name" → "Song Name").
  */
 export function normalizeTrackTitle(title: string): string {
   const normalized = title
+    .replace(/^"(.+)"$/, '$1')
     .replace(/^[\s\u3000\u00A0\u200B\uFEFF]*[-–—‐‑]\s*/u, '')
     .replace(/^[\s\u3000\u00A0\u200B\uFEFF]+/u, '')
     .trim();
