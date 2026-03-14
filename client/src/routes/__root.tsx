@@ -18,22 +18,22 @@ function RootComponent() {
     <PocketBaseProvider pocketBase={pb}>
       <ThemeProvider defaultTheme="dark" storageKey="melody-manager-theme">
         <TooltipProvider>
-          {showAppLayout ? (
-            <TaskProvider>
-              <MusicPlayerProvider>
+          <TaskProvider>
+            <MusicPlayerProvider>
+              {showAppLayout ? (
                 <AppLayout>
                   <Outlet />
                 </AppLayout>
-              </MusicPlayerProvider>
-            </TaskProvider>
-          ) : (
-            <div className="relative min-h-screen">
-              <div className="absolute top-4 right-4 z-50">
-                <ThemeToggle />
-              </div>
-              <Outlet />
-            </div>
-          )}
+              ) : (
+                <div className="relative min-h-screen">
+                  <div className="absolute top-4 right-4 z-50">
+                    <ThemeToggle />
+                  </div>
+                  <Outlet />
+                </div>
+              )}
+            </MusicPlayerProvider>
+          </TaskProvider>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
