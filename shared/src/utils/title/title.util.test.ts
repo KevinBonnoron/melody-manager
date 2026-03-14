@@ -11,6 +11,15 @@ describe('normalizeTrackTitle', () => {
     ['-', '-'],
     ['""', '""'],
     ['"Song" - "Part 2"', 'Song" - "Part 2'],
+    // Single quotes
+    ["'Dark World - The Legend of Zelda'", 'Dark World - The Legend of Zelda'],
+    ["'Song Name'", 'Song Name'],
+    ["' - Song Name'", 'Song Name'],
+    ["The 'Legend' of Zelda", "The 'Legend' of Zelda"],
+    ["''", "''"],
+    // Nested quotes
+    [`'"Song Name"'`, 'Song Name'],
+    [`"'Song Name'"`, 'Song Name'],
   ])('should normalize "%s" to "%s"', (input, expected) => {
     expect(normalizeTrackTitle(input)).toBe(expected);
   });
