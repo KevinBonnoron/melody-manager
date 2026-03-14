@@ -7,4 +7,5 @@ export { pluginRoute } from './plugin.route';
 export { searchRoute } from './search.route';
 export { shareRoute } from './share.route';
 export { taskRoute } from './task.route';
+export { statsRoute } from './stats.route';
 export { trackRoute } from './track.route';

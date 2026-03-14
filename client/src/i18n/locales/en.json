@@ -134,7 +134,9 @@
     "home": "Home",
     "library": "Library",
     "admin": "Admin",
-    "shares": "Shares"
+    "shares": "Shares",
+    "history": "History",
+    "stats": "Stats"
   },
   "SharesPage": {
     "title": "Shares",
@@ -428,6 +430,36 @@
   "ResetPasswordPage": {
     "title": "Reset password",
     "description": "Enter your email to receive a password reset link"
+  },
+  "HistoryPage": {
+    "title": "History",
+    "description": "Your recently played tracks",
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "emptyTitle": "No listening history yet",
+    "emptyDescription": "Play some tracks to see your listening history here."
+  },
+  "StatsPage": {
+    "title": "Stats",
+    "description": "Your listening statistics",
+    "totalPlays": "Total plays",
+    "listeningTime": "Listening time",
+    "uniqueTracks": "Unique tracks",
+    "uniqueArtists": "Artists played",
+    "topTracks": "Top Tracks",
+    "topArtists": "Top Artists",
+    "topAlbums": "Top Albums",
+    "topGenres": "Genres",
+    "playsByMonth": "Plays per month",
+    "hourShort": "h",
+    "minuteShort": "m",
+    "emptyTitle": "No listening stats yet",
+    "emptyDescription": "Play some tracks to start building your listening stats."
   },
   "ProfilePage": {
     "title": "Profile",

@@ -134,7 +134,9 @@
     "home": "Accueil",
     "library": "Bibliothèque",
     "admin": "Admin",
-    "shares": "Partages"
+    "shares": "Partages",
+    "history": "Historique",
+    "stats": "Stats"
   },
   "SharesPage": {
     "title": "Partages",
@@ -428,6 +430,36 @@
   "ResetPasswordPage": {
     "title": "Réinitialiser le mot de passe",
     "description": "Entrez votre email pour recevoir un lien de réinitialisation de mot de passe"
+  },
+  "HistoryPage": {
+    "title": "Historique",
+    "description": "Vos titres écoutés récemment",
+    "justNow": "À l'instant",
+    "minutesAgo_one": "Il y a {{count}} min",
+    "minutesAgo_other": "Il y a {{count}} min",
+    "hoursAgo_one": "Il y a {{count}} heure",
+    "hoursAgo_other": "Il y a {{count}} heures",
+    "daysAgo_one": "Il y a {{count}} jour",
+    "daysAgo_other": "Il y a {{count}} jours",
+    "emptyTitle": "Aucun historique d'écoute",
+    "emptyDescription": "Écoutez des titres pour voir votre historique ici."
+  },
+  "StatsPage": {
+    "title": "Statistiques",
+    "description": "Vos statistiques d'écoute",
+    "totalPlays": "Écoutes totales",
+    "listeningTime": "Temps d'écoute",
+    "uniqueTracks": "Titres écoutés",
+    "uniqueArtists": "Artistes écoutés",
+    "topTracks": "Titres les plus écoutés",
+    "topArtists": "Artistes les plus écoutés",
+    "topAlbums": "Albums les plus écoutés",
+    "topGenres": "Genres",
+    "playsByMonth": "Écoutes par mois",
+    "hourShort": "h",
+    "minuteShort": "m",
+    "emptyTitle": "Aucune statistique d'écoute",
+    "emptyDescription": "Écoutez des titres pour commencer à construire vos statistiques."
   },
   "ProfilePage": {
     "title": "Profil",
