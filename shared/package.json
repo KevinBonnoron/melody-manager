@@ -10,7 +10,8 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outfile=dist/index.js --target=bun"
+    "build": "bun build src/index.ts --outfile=dist/index.js --target=bun",
+    "test": "bun test"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
