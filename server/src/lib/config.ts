@@ -1,5 +1,5 @@
-import { join } from 'node:path';
 import { createEnv } from '@melody-manager/shared';
+import { join } from 'node:path';
 
 const env = createEnv((name) => process.env[name]);
 
@@ -7,6 +7,8 @@ export const config = {
   nodeEnv: env('ENV').string('development'),
   pb: {
     url: env('PB_URL').string('http://localhost:8090'),
+    adminEmail: env('PB_SUPERUSER_EMAIL').string(''),
+    adminPassword: env('PB_SUPERUSER_PASSWORD').string(''),
   },
   server: {
     url: env('SERVER_URL').string('http://localhost:3000'),
