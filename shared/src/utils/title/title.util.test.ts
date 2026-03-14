@@ -20,6 +20,13 @@ describe('normalizeTrackTitle', () => {
     // Nested quotes
     [`'"Song Name"'`, 'Song Name'],
     [`"'Song Name'"`, 'Song Name'],
+    // Unmatched quotes
+    ['"Mario Paint - BGM1', 'Mario Paint - BGM1'],
+    ["'Mario Paint - BGM1", 'Mario Paint - BGM1'],
+    ['Mario Paint - BGM1"', 'Mario Paint - BGM1'],
+    ['Mario Paint - BGM1\'', 'Mario Paint - BGM1'],
+    // Full real-world case: after timecode/dash removal, leftover unmatched quote
+    ['- "Mario Paint - BGM1', 'Mario Paint - BGM1'],
   ])('should normalize "%s" to "%s"', (input, expected) => {
     expect(normalizeTrackTitle(input)).toBe(expected);
   });

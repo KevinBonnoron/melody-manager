@@ -21,6 +21,10 @@ export function normalizeTrackTitle(title: string): string {
     normalized = normalized
       .replace(/^"(.+)"$/, '$1')
       .replace(/^'(.+)'$/, '$1')
+      .replace(/^"([^"]+)$/, '$1')  // unmatched leading "
+      .replace(/^'([^']+)$/, '$1')  // unmatched leading '
+      .replace(/^([^"]+)"$/, '$1')  // unmatched trailing "
+      .replace(/^([^']+)'$/, '$1')  // unmatched trailing '
       .replace(/^[\s\u3000\u00A0\u200B\uFEFF]*[-–—‐‑]\s*/u, '')
       .replace(/^[\s\u3000\u00A0\u200B\uFEFF]+/u, '')
       .trim();
