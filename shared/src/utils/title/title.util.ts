@@ -13,5 +13,5 @@ export function normalizeTrackTitle(title: string): string {
     normalized = normalized.replace(CLEANUP, '$2$4$5').trim();
   } while (normalized !== prev);
 
-  return normalized || title.trim() || title;
+  return normalized || title.trim();
 }
