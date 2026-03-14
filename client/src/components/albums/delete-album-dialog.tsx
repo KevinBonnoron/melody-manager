@@ -23,7 +23,7 @@ export function DeleteAlbumDialog({ album, trigger }: Props) {
     try {
       albumCollection.delete(album.id);
       toast.success(t('AlbumActionsMenu.deleteSuccess', { name: album.name }));
-      navigate({ to: '/albums' });
+      navigate({ to: '/library' });
     } catch {
       toast.error(t('AlbumActionsMenu.deleteError'));
     } finally {
