@@ -1,19 +1,18 @@
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
-import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useTrackDislikes } from '@/hooks/use-track-dislikes';
-import { useTrackPlays } from '@/hooks/use-track-plays';
 import type { Track } from '@melody-manager/shared';
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Clock, Headphones } from 'lucide-react';
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useTrackDislikes } from '@/hooks/use-track-dislikes';
+import { useTrackPlays } from '@/hooks/use-track-plays';
+import { cn } from '@/lib/utils';
 import { TrackActionsCell } from './table/track-actions-cell';
 import { TrackArtistsCell } from './table/track-artists-cell';
 import { TrackDurationCell } from './table/track-duration-cell';
 import { TrackIndexButton } from './table/track-index-button';
-import { TrackProviderCell } from './table/track-provider-cell';
 import { TrackTitleCell } from './table/track-title-cell';
 
 type TrackColumnDef = ColumnDef<Track> & {
@@ -115,23 +114,13 @@ export function AlbumTable({ tracks }: Props) {
         enableSorting: false,
       },
       {
-        id: 'provider',
-        header: t('AlbumTable.provider'),
-        cell: ({ row }) => <TrackProviderCell track={row.original} />,
-        meta: {
-          className: 'justify-center hidden xl:flex',
-        },
-        size: 120,
-        enableSorting: false,
-      },
-      {
         id: 'actions',
         header: () => t('AlbumTable.actions'),
         cell: ({ row }) => <TrackActionsCell track={row.original} />,
         meta: {
           className: 'justify-center',
         },
-        size: 80,
+        size: 128,
         enableSorting: false,
       },
     ],

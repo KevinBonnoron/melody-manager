@@ -1,12 +1,12 @@
+import { useLocation } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AddMusicButton } from '@/components/atoms/add-music-button';
 import { GlobalSearchButton } from '@/components/atoms/global-search-button';
 import { MusicPlayer } from '@/components/atoms/music-player';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useLocation } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { BackButton } from '../atoms/back-button';
 import { TaskNotifications } from '../atoms/task-notifications';
 import { AppSidebar } from './app-sidebar';
@@ -17,10 +17,8 @@ interface AppLayoutProps {
 }
 
 const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> = {
-  '/': { titleKey: 'TrackPage.title', descriptionKey: 'TrackPage.description' },
-  '/albums': { titleKey: 'AlbumsPage.title', descriptionKey: 'AlbumsPage.description' },
-  '/artists': { titleKey: 'ArtistsPage.title', descriptionKey: 'ArtistsPage.description' },
-  '/favorites': { titleKey: 'FavoritesPage.title', descriptionKey: 'FavoritesPage.description' },
+  '/': { titleKey: 'HomePage.title', descriptionKey: 'HomePage.description' },
+  '/library': { titleKey: 'LibraryPage.title', descriptionKey: 'LibraryPage.description' },
   '/shares': { titleKey: 'SharesPage.title', descriptionKey: 'SharesPage.description' },
   '/admin': { titleKey: 'Admin.title', descriptionKey: 'Admin.description' },
   '/profile': { titleKey: 'ProfilePage.title', descriptionKey: 'ProfilePage.description' },

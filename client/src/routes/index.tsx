@@ -1,5 +1,5 @@
-import { TrackPage } from '@/components/tracks/track-page';
 import { createFileRoute } from '@tanstack/react-router';
+import { HomePage } from '@/components/home/home-page';
 import { authGuard } from '@/lib/auth-guard';
 
 export const Route = createFileRoute('/')({
@@ -8,5 +8,5 @@ export const Route = createFileRoute('/')({
 });
 
 function RouteComponent() {
-  return <TrackPage />;
+  return <HomePage />;
 }

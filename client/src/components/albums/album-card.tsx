@@ -5,11 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useAlbumLikes } from '@/hooks/use-album-likes';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { getAlbumDownloadStatus } from '@/lib/album-download-status';
 import { getProviderColorContrast } from '@/lib/utils';
-import { LikeButton } from '../atoms/like-button';
 
 interface Props {
   album: Album;
@@ -17,7 +15,6 @@ interface Props {
 
 export function AlbumCard({ album }: Props) {
   const { t } = useTranslation();
-  const { isLiked, toggleLike } = useAlbumLikes();
   const { data: tracks = [] } = useAlbumTracks(album.id);
   const trackCount = tracks.length;
   const provider = tracks[0]?.expand?.provider;
@@ -46,12 +43,6 @@ export function AlbumCard({ album }: Props) {
               <Volume2 className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
           )}
-        </div>
-        <div className="absolute bottom-2 right-2 z-10 pointer-events-none hidden sm:block">
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive */}
-          <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-            <LikeButton isLiked={isLiked(album.id)} toggleLike={() => toggleLike(album.id)} />
-          </div>
         </div>
         <CardContent className="px-2 py-1.5 sm:p-4">
           <div className="flex flex-col gap-0 sm:gap-1">

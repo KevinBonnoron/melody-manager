@@ -6,6 +6,7 @@ import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
 import { trackService, trackSourceService } from '../services';
+import { libraryService } from '../services/library.service';
 
 const id = z.object({
   id: z.string(),
@@ -22,14 +23,18 @@ const addSchema = z.object({
 export const trackRoute = new Hono()
   .post('/add', zValidator('json', addSchema), async (c) => {
     const { url } = c.req.valid('json');
+    const userId = c.get('userId') as string | null;
 
     try {
       const existingTrack = await trackService.getOneBy(pbFilter('sourceUrl = {:url}', { url }));
       if (existingTrack) {
+        if (userId) {
+          await libraryService.autoLikeFromTracks(userId, [existingTrack]);
+        }
         return c.json({ tracks: [existingTrack], message: 'Track already exists' });
       }
 
-      const task = await trackSourceService.addFromUrl(url);
+      const task = await trackSourceService.addFromUrl(url, userId);
       return c.json({ taskId: task.id });
     } catch (error) {
       logger.error(`Error adding track: ${error}`);
