@@ -1,3 +1,5 @@
+/// <reference path="../pb_data/types.d.ts" />
+
 onBootstrap((e) => {
   e.next();
 
@@ -10,6 +12,7 @@ onBootstrap((e) => {
     if (!email || !password) {
       throw new Error('PB_ADMIN_EMAIL and PB_ADMIN_PASSWORD must be set');
     }
+
     record.setEmail(email);
     record.setPassword(password);
     e.app.save(record);
@@ -17,10 +20,8 @@ onBootstrap((e) => {
   }
 });
 
-onRecordCreateRequest((e) => {
-  const count = e.app.countRecords('users');
-  const isFirstUser = count === 0;
-
+onRecordCreate((e) => {
+  const isFirstUser = e.app.countRecords('users') === 0;
   if (!isFirstUser && $os.getenv('REGISTRATION_DISABLED') === 'true') {
     throw new ForbiddenError('Registration is disabled');
   }
