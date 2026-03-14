@@ -288,7 +288,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       audio.removeEventListener('stalled', handleStalled);
       audio.pause();
     };
-  }, [playTrack, playerState.volume]);
+  }, [playTrack]);
 
   const pause = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {

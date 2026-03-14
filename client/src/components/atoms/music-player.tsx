@@ -17,16 +17,18 @@ import { TrackInfo } from './music-player/track-info';
 
 export function MusicPlayer() {
   const { currentTrack, volume, setVolume, activeDevice, switchDevice, audioFormat, setAudioFormat, queue } = useMusicPlayer();
-  const [isMuted, setIsMuted] = useState(false);
+  const isMuted = volume === 0;
+  const [previousVolume, setPreviousVolume] = useState(1.0);
   const [devices, setDevices] = useState<Device[]>([]);
   const [queueOpen, setQueueOpen] = useState(false);
 
   const handleVolumeToggle = () => {
     if (isMuted) {
-      setIsMuted(false);
-      setVolume(0.5);
+      setVolume(previousVolume > 0 ? previousVolume : 0.5);
     } else {
-      setIsMuted(true);
+      if (volume > 0) {
+        setPreviousVolume(volume);
+      }
       setVolume(0);
     }
   };
@@ -55,8 +57,11 @@ export function MusicPlayer() {
                   max={100}
                   step={1}
                   onValueChange={([value]) => {
-                    setVolume(value / 100);
-                    setIsMuted(value === 0);
+                    const nextVolume = value / 100;
+                    setVolume(nextVolume);
+                    if (nextVolume > 0) {
+                      setPreviousVolume(nextVolume);
+                    }
                   }}
                   className="flex-1"
                 />
