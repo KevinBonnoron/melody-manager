@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { artistService, trackSourceService } from '../services';
 
@@ -26,7 +27,7 @@ export const artistRoute = new Hono()
       return c.json({ error: message }, 500);
     }
   })
-  .delete('/:id', zValidator('param', id), async (c) => {
+  .delete('/:id', adminMiddleware, zValidator('param', id), async (c) => {
     const { id: artistId } = c.req.valid('param');
 
     try {

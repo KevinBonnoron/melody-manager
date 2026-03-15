@@ -98,7 +98,13 @@
     "createLink": "Créer le lien",
     "shareCopied": "Lien de partage copié dans le presse-papier",
     "shareCopyError": "Impossible de copier le lien de partage dans le presse-papier",
-    "shareError": "Impossible de créer le lien de partage"
+    "shareError": "Impossible de créer le lien de partage",
+    "delete": "Supprimer le titre",
+    "deleting": "Suppression...",
+    "deleteConfirmTitle": "Supprimer le titre",
+    "deleteConfirmDescription": "Êtes-vous sûr de vouloir supprimer \"{{title}}\" ? Cette action est irréversible.",
+    "deleteSuccess": "\"{{title}}\" a été supprimé",
+    "deleteError": "Échec de la suppression du titre"
   },
   "Tasks": {
     "title": "Tâches",
@@ -189,7 +195,14 @@
     "albums_one": "album",
     "albums_other": "albums",
     "tracks_one": "titre",
-    "tracks_other": "titres"
+    "tracks_other": "titres",
+    "delete": "Supprimer l'artiste",
+    "deleting": "Suppression...",
+    "deleteConfirmTitle": "Supprimer l'artiste",
+    "deleteConfirmDescription": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+    "deleteSuccess": "\"{{name}}\" a été supprimé",
+    "deleteError": "Échec de la suppression de l'artiste",
+    "cancel": "Annuler"
   },
   "AuthLayout": {
     "description": "Votre gestionnaire de bibliothèque musicale personnelle. Stream, organisez et profitez de votre collection musicale sur tous vos appareils.",

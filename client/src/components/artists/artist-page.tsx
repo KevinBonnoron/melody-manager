@@ -1,10 +1,16 @@
-import { Check, Loader2, Play, User, UserPlus } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { artistsClient } from '@/clients/artists.client';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
 import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
+import { useAuthUser } from '@/hooks/use-auth-user';
 import { useArtistTracks } from '@/hooks/use-tracks';
+import { useNavigate } from '@tanstack/react-router';
+import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { AlbumCard } from '../albums/album-card';
 import { Button } from '../ui/button';
 
@@ -14,16 +20,35 @@ interface Props {
 
 export function ArtistPage({ artistId }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: artist, isLoading } = useArtist(artistId);
   const { data: tracks = [] } = useArtistTracks(artistId);
   const { data: albums = [] } = useAlbumsForArtist(artistId);
   const { isLiked, toggleLike } = useArtistLikes();
   const { playTrack, setQueue } = useMusicPlayer();
+  const user = useAuthUser();
+  const isAdmin = user.role === 'admin';
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handlePlayAll = () => {
     if (tracks.length > 0) {
       setQueue(tracks);
       playTrack(tracks[0]);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await artistsClient.delete(artistId);
+      toast.success(t('ArtistPage.deleteSuccess', { name: artist?.name }));
+      navigate({ to: '/library' });
+    } catch {
+      toast.error(t('ArtistPage.deleteError'));
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -55,6 +80,11 @@ export function ArtistPage({ artistId }: Props) {
                   {isLiked(artist.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <UserPlus className="h-4 w-4 sm:mr-2" />}
                   <span className="hidden sm:inline">{isLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}</span>
                 </Button>
+                {isAdmin && (
+                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label={t('ArtistPage.delete')} onClick={() => setDeleteDialogOpen(true)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
                 <p className="text-sm text-muted-foreground">
                   {albums.length} {t('ArtistPage.albums', { count: albums.length })} · {tracks.length} {t('ArtistPage.tracks', { count: tracks.length })}
                 </p>
@@ -78,6 +108,23 @@ export function ArtistPage({ artistId }: Props) {
           <User className="h-16 w-16 mb-4 opacity-20" />
           <p className="text-lg">{t('ArtistPage.artistNotFound')}</p>
         </div>
+      )}
+
+      {isAdmin && (
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('ArtistPage.deleteConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('ArtistPage.deleteConfirmDescription', { name: artist?.name })}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>{t('ArtistPage.cancel')}</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? t('ArtistPage.deleting') : t('ArtistPage.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

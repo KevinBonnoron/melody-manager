@@ -98,7 +98,13 @@
     "createLink": "Create link",
     "shareCopied": "Share link copied to clipboard",
     "shareCopyError": "Failed to copy share link to clipboard",
-    "shareError": "Failed to create share link"
+    "shareError": "Failed to create share link",
+    "delete": "Delete track",
+    "deleting": "Deleting...",
+    "deleteConfirmTitle": "Delete track",
+    "deleteConfirmDescription": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+    "deleteSuccess": "\"{{title}}\" has been deleted",
+    "deleteError": "Failed to delete track"
   },
   "Tasks": {
     "title": "Tasks",
@@ -189,7 +195,14 @@
     "albums_one": "album",
     "albums_other": "albums",
     "tracks_one": "track",
-    "tracks_other": "tracks"
+    "tracks_other": "tracks",
+    "delete": "Delete artist",
+    "deleting": "Deleting...",
+    "deleteConfirmTitle": "Delete artist",
+    "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "deleteSuccess": "\"{{name}}\" has been deleted",
+    "deleteError": "Failed to delete artist",
+    "cancel": "Cancel"
   },
   "AuthLayout": {
     "description": "Your personal music library manager. Stream, organize, and enjoy your music collection across all your devices.",
