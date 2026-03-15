@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { AlbumError } from '../errors';
+import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { albumService, trackSourceService } from '../services';
 
@@ -53,5 +54,19 @@ export const albumRoute = new Hono()
       }
       logger.error(`Error resyncing album: ${error}`);
       return c.json({ error: 'Failed to resync album' }, 500);
+    }
+  })
+  .delete('/:id', adminMiddleware, zValidator('param', idParam), async (c) => {
+    const { id: albumId } = c.req.valid('param');
+
+    try {
+      const success = await albumService.delete(albumId);
+      if (!success) {
+        return c.json({ error: 'Album not found' }, 404);
+      }
+      return c.json({ message: 'Album deleted successfully' });
+    } catch (error) {
+      logger.error(`Error deleting album: ${error}`);
+      return c.json({ error: 'Failed to delete album' }, 500);
     }
   });

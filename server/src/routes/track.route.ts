@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { transcodeFormats } from '@melody-manager/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
@@ -62,7 +63,7 @@ export const trackRoute = new Hono()
       return c.json({ peaks: [] });
     }
   })
-  .delete('/:id', zValidator('param', id), async (c) => {
+  .delete('/:id', adminMiddleware, zValidator('param', id), async (c) => {
     const { id: trackId } = c.req.valid('param');
 
     try {
