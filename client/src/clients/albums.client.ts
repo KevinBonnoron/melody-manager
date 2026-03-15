@@ -9,6 +9,7 @@ export const albumsClient = universalClient(
       addFromUrl: (url: string) => http.post('/albums/add', { url }),
       download: (albumId: string) => http.post(`/albums/${albumId}/download`, {}),
       resync: (albumId: string) => http.post<{ taskId: string }>(`/albums/${albumId}/resync`, {}),
+      delete: (albumId: string) => http.delete(`/albums/${albumId}`),
     };
   }),
 );

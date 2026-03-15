@@ -1,5 +1,5 @@
-import { albumCollection } from '@/collections/album.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { albumsClient } from '@/clients/albums.client';
 import type { Album } from '@melody-manager/shared';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -21,7 +21,7 @@ export function DeleteAlbumDialog({ album, trigger }: Props) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      albumCollection.delete(album.id);
+      await albumsClient.delete(album.id);
       toast.success(t('AlbumActionsMenu.deleteSuccess', { name: album.name }));
       navigate({ to: '/library' });
     } catch {

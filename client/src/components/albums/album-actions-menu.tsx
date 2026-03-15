@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuthUser } from '@/hooks/use-auth-user';
 import type { Album } from '@melody-manager/shared';
 import { MoreVertical, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +14,8 @@ interface Props {
 
 export function AlbumActionsMenu({ album }: Props) {
   const { t } = useTranslation();
+  const user = useAuthUser();
+  const isAdmin = user.role === 'admin';
 
   return (
     <DeleteAlbumDialog
@@ -27,11 +30,15 @@ export function AlbumActionsMenu({ album }: Props) {
           <DropdownMenuContent align="end">
             <DownloadAlbumMenuItem album={album} />
             <ResyncAlbumMenuItem album={album} />
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={openDialog}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t('AlbumActionsMenu.delete')}
-            </DropdownMenuItem>
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={openDialog}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('AlbumActionsMenu.delete')}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
