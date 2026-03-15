@@ -1,3 +1,10 @@
+import type { Album, Artist, Track } from '@melody-manager/shared';
+import { useLiveQuery } from '@tanstack/react-db';
+import { Link } from '@tanstack/react-router';
+import { BarChart3, ChevronRight, Clock, Disc3, Headphones, Music2, TrendingUp, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { albumCollection } from '@/collections/album.collection';
 import { artistCollection } from '@/collections/artist.collection';
 import { genreCollection } from '@/collections/genre.collection';
@@ -8,13 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
-import type { Album, Artist, Track } from '@melody-manager/shared';
-import { useLiveQuery } from '@tanstack/react-db';
-import { Link } from '@tanstack/react-router';
-import { BarChart3, ChevronRight, Clock, Disc3, Headphones, Music2, TrendingUp, User } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { formatListeningTime, formatMonth } from '@/lib/utils';
 
 const CHART_COLORS = ['#7c3aed', '#c026d3', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f97316'];
 
@@ -31,7 +32,7 @@ interface StatsData {
 }
 
 export function StatsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedTracks, setExpandedTracks] = useState(false);
@@ -65,7 +66,7 @@ export function StatsPage() {
     };
     fetchStats();
 
-    const collections = ['track_plays', 'tracks', 'albums', 'artists'];
+    const collections = ['track_plays', 'tracks'];
     const unsubscribes = collections.map((col) => pb.collection(col).subscribe('*', () => fetchStats()));
 
     return () => {
@@ -83,12 +84,13 @@ export function StatsPage() {
     return <StatsEmptyState />;
   }
 
-  const formattedTime = formatListeningTime(stats.totalSeconds, t);
+  const { hours, minutes } = formatListeningTime(stats.totalSeconds);
+  const formattedTime = hours > 0 ? `${hours}${t('StatsPage.hourShort')} ${minutes}${t('StatsPage.minuteShort')}` : `${minutes}${t('StatsPage.minuteShort')}`;
 
   const genreData = stats.topGenres.map(({ genreId, count }) => ({ name: genreMap.get(genreId)?.name ?? genreId, value: count })).filter((d) => d.name);
 
   const monthlyData = stats.playsByMonth.map(({ month, count }) => ({
-    month: formatMonth(month),
+    month: formatMonth(month, i18n.language),
     count,
   }));
 
@@ -227,21 +229,6 @@ export function StatsPage() {
       </div>
     </div>
   );
-}
-
-function formatListeningTime(totalSeconds: number, t: (key: string) => string): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) {
-    return `${hours}${t('StatsPage.hourShort')} ${minutes}${t('StatsPage.minuteShort')}`;
-  }
-  return `${minutes}${t('StatsPage.minuteShort')}`;
-}
-
-function formatMonth(month: string): string {
-  const [year, m] = month.split('-');
-  const date = new Date(Number(year), Number(m) - 1);
-  return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
 }
 
 function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {

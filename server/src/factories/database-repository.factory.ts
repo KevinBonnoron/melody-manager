@@ -1,15 +1,14 @@
-import type { RecordModel } from 'pocketbase';
-import { pb } from '../lib/pocketbase';
+import type { RecordModel, RecordService } from 'pocketbase';
 import type { DatabaseRepository } from '../types';
 
-interface DatabaseRepositoryFactoryOptions {
+interface FactoryOptions extends Record<string, unknown> {
   expand?: string;
 }
 
-export function databaseRepositoryFactory<T extends RecordModel>(collectionName: string, { expand }: DatabaseRepositoryFactoryOptions = {}): DatabaseRepository<T> {
-  const recordService = pb.collection<T>(collectionName);
+export function databaseRepositoryFactory<T extends RecordModel, D>(recordService: RecordService<T>, options?: D & FactoryOptions): DatabaseRepository<T> & Omit<D, 'expand'> {
+  const { expand, ...definition } = (options ?? {}) as FactoryOptions & Record<string, unknown>;
 
-  return {
+  const base: DatabaseRepository<T> = {
     async getOne(id) {
       return recordService.getOne(id, { expand }).catch(() => null);
     },
@@ -23,12 +22,8 @@ export function databaseRepositoryFactory<T extends RecordModel>(collectionName:
     },
 
     async getOrCreate(record, filter) {
-      const existingRecord = await this.getOneBy(filter);
-      if (existingRecord) {
-        return existingRecord;
-      }
-
-      return this.create(record);
+      const existing = await base.getOneBy(filter);
+      return existing ? existing : base.create(record);
     },
 
     async create(record) {
@@ -43,4 +38,6 @@ export function databaseRepositoryFactory<T extends RecordModel>(collectionName:
       return recordService.delete(id);
     },
   };
+
+  return { ...base, ...definition } as DatabaseRepository<T> & Omit<D, 'expand'>;
 }

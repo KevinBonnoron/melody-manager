@@ -99,9 +99,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       lastTimeUpdateRef.current = 0;
 
       // Insert play record immediately (completed: false) for history
+      // Guard against double calls (React strict mode / setState double-invoke)
       const userId = userIdRef.current;
-      if (userId) {
-        const playId = `tmp-${userId}-${track.id}-${Date.now()}`;
+      const now = Date.now();
+      const lastPlayId = currentPlayIdRef.current;
+      const isDuplicate = lastPlayId?.includes(`-${track.id}-`) && now - Number(lastPlayId.split('-').pop()) < 1000;
+      if (userId && !isDuplicate) {
+        const playId = `tmp-${userId}-${track.id}-${now}`;
         currentPlayIdRef.current = playId;
         trackPlayCollection.insert({ id: playId, user: userId, track: track.id, completed: false } as TrackPlay);
       }

@@ -9,6 +9,7 @@ import { trackCollection } from '@/collections/track.collection';
 import { trackPlayCollection } from '@/collections/track-play.collection';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { formatTimeAgo } from '@/lib/utils';
 
 export function HistoryPage() {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export function HistoryPage() {
         <div className="flex justify-center pt-4">
           <Button variant="ghost" onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)} className="text-muted-foreground hover:text-foreground">
             <ChevronDown className="mr-1 h-4 w-4" />
-            {t('LibraryPage.seeAll')}
+            {t('LibraryPage.seeMore')}
           </Button>
         </div>
       )}
@@ -73,23 +74,8 @@ function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; tra
     .join(', ');
   const isCurrentTrack = currentTrack?.id === track.id;
 
-  const playedAt = new Date(play.created);
-  const now = new Date();
-  const diffMs = now.getTime() - playedAt.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  let timeAgo: string;
-  if (diffMinutes < 1) {
-    timeAgo = t('HistoryPage.justNow');
-  } else if (diffMinutes < 60) {
-    timeAgo = t('HistoryPage.minutesAgo', { count: diffMinutes });
-  } else if (diffHours < 24) {
-    timeAgo = t('HistoryPage.hoursAgo', { count: diffHours });
-  } else {
-    timeAgo = t('HistoryPage.daysAgo', { count: diffDays });
-  }
+  const { value, unit } = formatTimeAgo(new Date(play.created));
+  const timeAgo = unit === 'now' ? t('HistoryPage.justNow') : t(`HistoryPage.${unit}Ago`, { count: value });
 
   const handleClick = () => {
     if (isCurrentTrack) {

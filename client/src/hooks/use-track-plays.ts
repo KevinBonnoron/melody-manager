@@ -14,8 +14,8 @@ export function useTrackPlays() {
         if (response.ok) {
           setPlayCounts(await response.json());
         }
-      } catch {
-        // silently fail
+      } catch (error) {
+        console.warn('Failed to fetch play counts:', error);
       }
     };
 

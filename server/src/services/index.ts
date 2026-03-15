@@ -5,6 +5,7 @@ export { importPersistService } from './import-persist.service';
 export { metadataEnrichmentService } from './metadata-enrichment.service';
 export { searchService } from './search.service';
 export { shareLinkService } from './share-link.service';
+export { statsService } from './stats.service';
 export { streamService } from './stream.service';
 export { taskService } from './task.service';
 export { trackSourceService } from './track-source.service';
