@@ -6,6 +6,7 @@ import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { useArtistTracks } from '@/hooks/use-tracks';
+import { useNavigate } from '@tanstack/react-router';
 import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ interface Props {
 
 export function ArtistPage({ artistId }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: artist, isLoading } = useArtist(artistId);
   const { data: tracks = [] } = useArtistTracks(artistId);
   const { data: albums = [] } = useAlbumsForArtist(artistId);
@@ -41,6 +43,7 @@ export function ArtistPage({ artistId }: Props) {
     try {
       await artistsClient.delete(artistId);
       toast.success(t('ArtistPage.deleteSuccess', { name: artist?.name }));
+      navigate({ to: '/library' });
     } catch {
       toast.error(t('ArtistPage.deleteError'));
     } finally {
@@ -78,7 +81,7 @@ export function ArtistPage({ artistId }: Props) {
                   <span className="hidden sm:inline">{isLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}</span>
                 </Button>
                 {isAdmin && (
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setDeleteDialogOpen(true)}>
+                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label={t('ArtistPage.delete')} onClick={() => setDeleteDialogOpen(true)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
