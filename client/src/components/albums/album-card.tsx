@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { getAlbumDownloadStatus } from '@/lib/album-download-status';
-import { getProviderColorContrast } from '@/lib/utils';
+import { getProviderColor } from '@/lib/utils';
 
 interface Props {
   album: Album;
@@ -30,7 +30,7 @@ export function AlbumCard({ album }: Props) {
 
           {provider && (
             <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColorContrast(provider.type)}`}>
+              <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColor(provider.type, 'contrast')}`}>
                 {provider.type}
               </Badge>
             </div>

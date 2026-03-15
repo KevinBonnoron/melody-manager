@@ -2,7 +2,7 @@ import { EventSource } from 'eventsource';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { authMiddleware } from './lib/auth';
-import { albumRoute, artistRoute, deviceRoute, metadataRoute, playlistRoute, pluginRoute, searchRoute, shareRoute, taskRoute, trackRoute } from './routes';
+import { albumRoute, artistRoute, deviceRoute, metadataRoute, playlistRoute, pluginRoute, searchRoute, shareRoute, statsRoute, taskRoute, trackRoute } from './routes';
 
 // @ts-expect-error - EventSource is not typed
 global.EventSource = EventSource;
@@ -27,4 +27,5 @@ export const app = new Hono()
   .route('/metadata', metadataRoute)
   .route('/share', shareRoute)
   .route('/tasks', taskRoute)
+  .route('/stats', statsRoute)
   .route('/tracks', trackRoute);

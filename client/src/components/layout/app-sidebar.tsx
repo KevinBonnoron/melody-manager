@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { Home, Library, Link2, Settings, User, UserCircle } from 'lucide-react';
+import { ChartNoAxesColumn, History, Home, Library, Link2, Settings, User, UserCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -24,6 +24,16 @@ export function AppSidebar() {
       title: t('AppSidebar.library'),
       href: '/library',
       icon: Library,
+    },
+    {
+      title: t('AppSidebar.history'),
+      href: '/history',
+      icon: History,
+    },
+    {
+      title: t('AppSidebar.stats'),
+      href: '/stats',
+      icon: ChartNoAxesColumn,
     },
   ];
 

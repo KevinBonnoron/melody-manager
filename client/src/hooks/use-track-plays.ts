@@ -1,24 +1,43 @@
-import type { TrackPlay } from '@melody-manager/shared';
-import { useLiveQuery } from '@tanstack/react-db';
-import { useCallback, useMemo } from 'react';
-import { trackPlayCollection } from '@/collections/track-play.collection';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { config } from '@/lib/config';
+import { pb } from '@/lib/pocketbase';
 
 export function useTrackPlays() {
-  const { data: trackPlays = [] } = useLiveQuery((q) => q.from({ trackPlays: trackPlayCollection }));
+  const [playCounts, setPlayCounts] = useState<Record<string, number>>({});
 
-  const playCountByTrackId = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of trackPlays as TrackPlay[]) {
-      map.set(p.track, p.count);
-    }
-    return map;
-  }, [trackPlays]);
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const response = await fetch(`${config.server.url}/stats/play-counts`, {
+          headers: { Authorization: `Bearer ${pb.authStore.token}` },
+        });
+        if (response.ok) {
+          setPlayCounts(await response.json());
+        }
+      } catch (error) {
+        console.warn('Failed to fetch play counts:', error);
+      }
+    };
+
+    fetchCounts();
+
+    // Subscribe to track_plays changes to refresh counts
+    const unsubscribe = pb.collection('track_plays').subscribe('*', () => {
+      fetchCounts();
+    });
+
+    return () => {
+      unsubscribe.then((unsub) => unsub());
+    };
+  }, []);
+
+  const playCountMap = useMemo(() => new Map(Object.entries(playCounts)), [playCounts]);
 
   const getPlayCount = useCallback(
     (trackId: string) => {
-      return playCountByTrackId.get(trackId) ?? 0;
+      return playCountMap.get(trackId) ?? 0;
     },
-    [playCountByTrackId],
+    [playCountMap],
   );
 
   return { getPlayCount };

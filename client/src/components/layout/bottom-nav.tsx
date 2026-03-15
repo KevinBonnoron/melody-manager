@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { Home, Library, Settings } from 'lucide-react';
+import { History, Home, Library, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthUser } from '@/hooks/use-auth-user';
@@ -39,6 +39,10 @@ export function BottomNav() {
             <Home className="h-5 w-5" />
             <span>{t('AppSidebar.home')}</span>
           </Link>
+          <Link to="/library" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/library') && 'text-primary')}>
+            <Library className="h-5 w-5" />
+            <span>{t('AppSidebar.library')}</span>
+          </Link>
         </div>
         <Link to="/profile" className={cn('flex flex-col items-center justify-center -mt-5 px-3', profileActive && 'text-primary')}>
           <Avatar className={cn('h-10 w-10 border-2 ring-4 ring-background', profileActive ? 'border-primary' : 'border-muted-foreground/30')}>
@@ -48,9 +52,9 @@ export function BottomNav() {
           <span className={cn('text-[10px] mt-0.5', profileActive ? 'text-primary' : 'text-muted-foreground')}>{t('ProfilePage.title')}</span>
         </Link>
         <div className="flex flex-1 items-center justify-around">
-          <Link to="/library" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/library') && 'text-primary')}>
-            <Library className="h-5 w-5" />
-            <span>{t('AppSidebar.library')}</span>
+          <Link to="/history" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/history') && 'text-primary')}>
+            <History className="h-5 w-5" />
+            <span>{t('AppSidebar.history')}</span>
           </Link>
           {user?.role === 'admin' && (
             <Link to="/admin" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/admin') && 'text-primary')}>

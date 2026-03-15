@@ -154,6 +154,13 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  @media (max-width: 767px) {
+    html {
+      overflow-y: overlay;
+      scrollbar-gutter: auto;
+    }
+  }
 }
 
 @layer utilities {

@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Loader2, Music2, Pause, Play, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatDuration, getProviderColorContrast } from '@/lib/utils';
+import { formatDuration, getProviderColor } from '@/lib/utils';
 
 interface Props {
   track: Track;
@@ -21,7 +21,7 @@ export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
         {album.coverUrl ? <img src={album.coverUrl} alt={track.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
 
         <div className="absolute top-2 right-2 z-10">
-          <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColorContrast(provider.type)}`}>
+          <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColor(provider.type, 'contrast')}`}>
             {provider.type}
           </Badge>
         </div>

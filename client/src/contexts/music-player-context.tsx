@@ -64,8 +64,11 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
   const endedHandledForTrackIdRef = useRef<string | null>(null);
-  const playCountIncrementedForTrackIdRef = useRef<string | null>(null);
-  const playCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentPlayIdRef = useRef<string | null>(null);
+  const playCompletedForTrackIdRef = useRef<string | null>(null);
+  const listenedTimeRef = useRef(0);
+  const lastTimeUpdateRef = useRef(0);
+
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
   const [audioFormat, setAudioFormat] = useState<AudioFormat>('source');
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +94,21 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const playTrack = useCallback(
     async (track: Track) => {
       endedHandledForTrackIdRef.current = null;
-      playCountIncrementedForTrackIdRef.current = null;
+      playCompletedForTrackIdRef.current = null;
+      listenedTimeRef.current = 0;
+      lastTimeUpdateRef.current = 0;
+
+      // Insert play record immediately (completed: false) for history
+      // Guard against double calls (React strict mode / setState double-invoke)
+      const userId = userIdRef.current;
+      const now = Date.now();
+      const lastPlayId = currentPlayIdRef.current;
+      const isDuplicate = lastPlayId?.includes(`-${track.id}-`) && now - Number(lastPlayId.split('-').pop()) < 1000;
+      if (userId && !isDuplicate) {
+        const playId = `tmp-${userId}-${track.id}-${now}`;
+        currentPlayIdRef.current = playId;
+        trackPlayCollection.insert({ id: playId, user: userId, track: track.id, completed: false } as TrackPlay);
+      }
 
       setPlayerState((prev) => ({
         ...prev,
@@ -153,10 +170,27 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
     const handleTimeUpdate = () => {
       if (audio) {
+        const currentTime = audio.currentTime;
         setPlayerState((prev) => ({
           ...prev,
-          currentTime: audio.currentTime,
+          currentTime,
         }));
+
+        // Accumulate actual listened time (only small forward deltas from normal playback)
+        const delta = currentTime - lastTimeUpdateRef.current;
+        if (delta > 0 && delta < 2) {
+          listenedTimeRef.current += delta;
+        }
+        lastTimeUpdateRef.current = currentTime;
+
+        const trackId = currentTrackIdRef.current;
+        const playId = currentPlayIdRef.current;
+        if (trackId && playId && trackId !== playCompletedForTrackIdRef.current && audio.duration > 0 && listenedTimeRef.current >= audio.duration * 0.9) {
+          playCompletedForTrackIdRef.current = trackId;
+          trackPlayCollection.update(playId, (draft) => {
+            draft.completed = true;
+          });
+        }
       }
     };
 
@@ -209,43 +243,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       setIsLoading(true);
     };
 
-    const schedulePlayCount = (trackId: string, userId: string) => {
-      if (playCountTimerRef.current) {
-        clearTimeout(playCountTimerRef.current);
-      }
-      playCountTimerRef.current = setTimeout(() => {
-        if (currentTrackIdRef.current !== trackId) {
-          return;
-        }
-        playCountIncrementedForTrackIdRef.current = trackId;
-        const existing = trackPlaysRef.current.find((p) => p.track === trackId && p.user === userId);
-        if (existing) {
-          trackPlayCollection.update(existing.id, (draft) => {
-            draft.count = existing.count + 1;
-          });
-        } else {
-          trackPlayCollection.insert({ id: `tmp-${userId}-${trackId}-${Date.now()}`, user: userId, track: trackId, count: 1 } as TrackPlay);
-        }
-      }, 10_000);
-    };
-
     const handlePlaying = () => {
       setIsLoading(false);
       setPlayerState((prev) => ({ ...prev, isPlaying: true }));
-
-      const trackId = currentTrackIdRef.current;
-      const userId = userIdRef.current;
-      if (trackId && userId && trackId !== playCountIncrementedForTrackIdRef.current) {
-        schedulePlayCount(trackId, userId);
-      }
     };
 
     const handlePause = () => {
       setPlayerState((prev) => ({ ...prev, isPlaying: false }));
-      if (playCountTimerRef.current) {
-        clearTimeout(playCountTimerRef.current);
-        playCountTimerRef.current = null;
-      }
     };
 
     const handlePlay = () => {
