@@ -4,19 +4,20 @@ import { playlistsClient } from '@/clients/playlists.client';
 import { searchClient } from '@/clients/search.client';
 import { tracksClient } from '@/clients/tracks.client';
 import { TrackProviderFilter } from '@/components/providers/track-provider-filter';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList } from '@/components/ui/command';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
-import { formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
+import { getModifierKey } from '@/lib/utils';
 import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
 import { Link } from '@tanstack/react-router';
-import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, Settings, User } from 'lucide-react';
+import { Loader2, Plus, Settings } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem } from './search-result-item';
+import type { LibraryStatus } from './search-result-item';
 
 const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 
@@ -118,7 +119,7 @@ export function AddMusicButton() {
     }
   };
 
-  const getLibraryStatus = (result: SearchResult) => {
+  const getLibraryStatus = (result: SearchResult): LibraryStatus => {
     const status = result.libraryStatus || { isInLibrary: false };
     if (addedUrls.has(result.externalUrl)) {
       return { ...status, isInLibrary: true };
@@ -163,112 +164,6 @@ export function AddMusicButton() {
   const filteredTracks = useMemo(() => filteredResults.filter(isTrackResult), [filteredResults]);
   const filteredPlaylists = useMemo(() => filteredResults.filter(isPlaylistResult), [filteredResults]);
 
-  const renderSearchResult = (result: SearchResult, index: number) => {
-    const status = getLibraryStatus(result);
-    const isAdding = addingUrls.has(result.externalUrl);
-    const isComplete = status.isInLibrary && !status.tracksInLibrary;
-    const isPartial = status.tracksInLibrary && status.totalTracks && status.tracksInLibrary < status.totalTracks;
-
-    let IconComponent = Music;
-    let title = '';
-    let subtitleLeft = '';
-    let subtitleRight = '';
-    let image = '';
-
-    if (isTrackResult(result)) {
-      IconComponent = Music;
-      title = result.title;
-      subtitleLeft = [result.artist, result.album].filter(Boolean).join(' • ');
-      subtitleRight = result.duration ? formatDuration(result.duration) : '';
-      image = result.thumbnail || '';
-    } else if (isAlbumResult(result)) {
-      IconComponent = Disc;
-      title = result.name;
-      subtitleLeft = result.artist ?? '';
-      subtitleRight = [result.trackCount ? `${result.trackCount} tracks` : null, result.releaseYear].filter(Boolean).join(' • ');
-      image = result.coverUrl || '';
-    } else if (isArtistResult(result)) {
-      IconComponent = User;
-      title = result.name;
-      subtitleLeft = result.genres?.join(', ') ?? '';
-      subtitleRight = [result.albumCount ? `${result.albumCount} albums` : null, result.trackCount ? `${result.trackCount} tracks` : null].filter(Boolean).join(' • ');
-      image = result.imageUrl || '';
-    } else if (isPlaylistResult(result)) {
-      IconComponent = Library;
-      title = result.name;
-      subtitleLeft = result.owner ?? result.description ?? '';
-      subtitleRight = result.trackCount ? `${result.trackCount} tracks` : '';
-      image = result.coverUrl || '';
-    }
-
-    return (
-      <CommandItem key={`${result.provider}-${result.externalUrl}-${index}`} value={title} className="flex items-center gap-3 p-3 transition-colors hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-primary/50 data-[selected=true]:bg-secondary/60">
-        <div className="flex-shrink-0">
-          {image ? (
-            <img src={image} alt={title} className="h-12 w-12 rounded object-cover" />
-          ) : (
-            <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
-              <IconComponent className="h-6 w-6 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold text-card-foreground truncate flex-1">{title}</p>
-            <Badge variant="outline" className={`text-xs flex-shrink-0 ${getProviderColor(result.provider)}`}>
-              {result.provider}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm text-muted-foreground truncate">{subtitleLeft}</p>
-            {subtitleRight && <p className="text-sm text-muted-foreground flex-shrink-0">{subtitleRight}</p>}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={t('GlobalSearch.openExternal')}
-            title={t('GlobalSearch.openExternal')}
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(result.externalUrl, '_blank');
-            }}
-            className="transition-colors w-9 h-9 p-0 cursor-pointer"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            aria-label={t('GlobalSearch.addToLibrary')}
-            title={t('GlobalSearch.addToLibrary')}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAdd(result);
-            }}
-            disabled={isAdding || isComplete}
-            variant={isComplete ? 'secondary' : 'default'}
-            className="transition-all w-9 h-9 p-0 cursor-pointer hover:brightness-125"
-          >
-            {isAdding ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isComplete ? (
-              <Check className="h-4 w-4" />
-            ) : isPartial ? (
-              <span className="text-xs font-medium">
-                {status.tracksInLibrary}/{status.totalTracks}
-              </span>
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </CommandItem>
-    );
-  };
-
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)} aria-label={t('AppLayout.addMusic')}>
@@ -312,13 +207,37 @@ export function AddMusicButton() {
                 </div>
               )}
 
-              {filteredTracks.length > 0 && <CommandGroup heading={t('GlobalSearch.tracks')}>{filteredTracks.map(renderSearchResult)}</CommandGroup>}
+              {filteredTracks.length > 0 && (
+                <CommandGroup heading={t('GlobalSearch.tracks')}>
+                  {filteredTracks.map((result) => (
+                    <TrackResultItem key={`track-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                  ))}
+                </CommandGroup>
+              )}
 
-              {filteredAlbums.length > 0 && <CommandGroup heading={t('GlobalSearch.albums')}>{filteredAlbums.map(renderSearchResult)}</CommandGroup>}
+              {filteredAlbums.length > 0 && (
+                <CommandGroup heading={t('GlobalSearch.albums')}>
+                  {filteredAlbums.map((result) => (
+                    <AlbumResultItem key={`album-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                  ))}
+                </CommandGroup>
+              )}
 
-              {filteredPlaylists.length > 0 && <CommandGroup heading={t('GlobalSearch.playlists')}>{filteredPlaylists.map(renderSearchResult)}</CommandGroup>}
+              {filteredPlaylists.length > 0 && (
+                <CommandGroup heading={t('GlobalSearch.playlists')}>
+                  {filteredPlaylists.map((result) => (
+                    <PlaylistResultItem key={`playlist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                  ))}
+                </CommandGroup>
+              )}
 
-              {filteredArtists.length > 0 && <CommandGroup heading={t('GlobalSearch.artists')}>{filteredArtists.map(renderSearchResult)}</CommandGroup>}
+              {filteredArtists.length > 0 && (
+                <CommandGroup heading={t('GlobalSearch.artists')}>
+                  {filteredArtists.map((result) => (
+                    <ArtistResultItem key={`artist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                  ))}
+                </CommandGroup>
+              )}
             </>
           )}
         </CommandList>
