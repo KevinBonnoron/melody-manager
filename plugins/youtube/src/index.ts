@@ -20,7 +20,41 @@ function isYoutubeUrl(query: string): boolean {
 }
 
 function isYoutubePlaylistUrl(query: string): boolean {
-  return query.includes('youtube.com/playlist') || query.includes('list=');
+  return query.includes('youtube.com/playlist');
+}
+
+function normalizeYoutubeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'youtu.be') {
+      const videoId = parsed.pathname.slice(1).split('/')[0];
+      if (videoId) {
+        return `https://www.youtube.com/watch?v=${videoId}`;
+      }
+    }
+
+    if (parsed.hostname.endsWith('youtube.com')) {
+      if (parsed.pathname === '/playlist') {
+        const listId = parsed.searchParams.get('list');
+        if (listId) {
+          return `https://www.youtube.com/playlist?list=${listId}`;
+        }
+      }
+
+      const videoId = parsed.searchParams.get('v');
+      if (videoId) {
+        return `https://www.youtube.com/watch?v=${videoId}`;
+      }
+
+      const shortsMatch = parsed.pathname.match(/^\/shorts\/([^/?#]+)/);
+      if (shortsMatch?.[1]) {
+        return `https://www.youtube.com/shorts/${shortsMatch[1]}`;
+      }
+    }
+  } catch {
+    // Not a valid URL (plain search query) — return as-is
+  }
+  return url;
 }
 
 function sanitizeFilename(name: string): string {
@@ -38,6 +72,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
   }
 
   public async search(query: string, type: SearchType, provider: TrackProvider): Promise<SearchResult[]> {
+    query = normalizeYoutubeUrl(query);
     switch (type) {
       case 'track':
         return this.searchTracks(query, provider);
@@ -189,6 +224,8 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
             ];
           }
         }
+        // URL without chapters — not an album, skip text search
+        return [];
       }
       const results = await this.ytDlpService.searchYoutubeAlbums(query, 20);
       return results.map((info) => ({
@@ -208,6 +245,9 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
 
   private async searchArtists(query: string, _provider: TrackProvider): Promise<ArtistSearchResult[]> {
     try {
+      if (isYoutubeUrl(query) || isYoutubePlaylistUrl(query)) {
+        return [];
+      }
       const results = await this.ytDlpService.searchYoutubeArtists(query, 20);
       return results.map((info) => ({
         type: 'artist' as const,
@@ -224,6 +264,9 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
 
   private async searchPlaylists(query: string, _provider: TrackProvider): Promise<PlaylistSearchResult[]> {
     try {
+      if (isYoutubeUrl(query) || isYoutubePlaylistUrl(query)) {
+        return [];
+      }
       const results = await this.ytDlpService.searchYoutubePlaylists(query, 20);
       return results.map((info) => ({
         type: 'playlist' as const,
@@ -242,6 +285,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
   }
 
   public async getTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+    url = normalizeYoutubeUrl(url);
     try {
       const trackInfo = await this.ytDlpService.extractTrackInfo(url);
       if (!trackInfo) {
@@ -261,6 +305,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
   }
 
   public async getAlbumTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+    url = normalizeYoutubeUrl(url);
     try {
       if (url.includes('playlist') || url.includes('list=')) {
         return this.getPlaylistTracks(url, provider);
