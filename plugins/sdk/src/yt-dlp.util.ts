@@ -259,7 +259,7 @@ export class YtDlpService {
 
     try {
       // Fast path: extract metadata without downloading comments
-      const info: YtDlpTrackInfo = await $`yt-dlp -j --extractor-args "youtube:player_client=default" ${url}`.json();
+      const info: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist --extractor-args "youtube:player_client=default" ${url}`.json();
 
       const cleanTitle = (title: string): string => {
         const trim = (str: string) => str.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
@@ -297,7 +297,7 @@ export class YtDlpService {
         let commentChapters: YtDlpChapter[] = [];
         if (options?.withComments && info.duration) {
           try {
-            const infoWithComments: YtDlpTrackInfo = await $`yt-dlp -j --write-comments --extractor-args "youtube:player_client=default" ${url}`.json();
+            const infoWithComments: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist --write-comments --extractor-args "youtube:player_client=default" ${url}`.json();
             const totalComments = infoWithComments.comments?.length ?? 0;
             if (infoWithComments.comments && totalComments > 0) {
               const rootComments = infoWithComments.comments.filter((c) => c.parent === 'root');
