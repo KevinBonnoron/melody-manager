@@ -249,11 +249,11 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
       }
 
       // Delegate to album import when chapters are detected — it fetches comments for complete tracklists
-      if (trackInfo.chapters?.length && provider.config.splitChapters) {
+      if (trackInfo.chapters?.length) {
         return this.getAlbumTracks(url, provider);
       }
 
-      return this.buildImportTracksFromInfo(trackInfo, provider);
+      return this.buildImportTracksFromInfo(trackInfo);
     } catch (error) {
       console.error(`Error getting tracks from URL ${url}: ${error}`);
       throw error;
@@ -271,8 +271,8 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         throw new Error('Failed to extract album info from URL');
       }
 
-      if (trackInfo.chapters?.length && provider.config.splitChapters) {
-        return this.buildImportTracksFromInfo(trackInfo, provider);
+      if (trackInfo.chapters?.length) {
+        return this.buildImportTracksFromInfo(trackInfo);
       }
 
       throw new Error('URL is not an album (no playlist or chapters found)');
@@ -282,7 +282,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     }
   }
 
-  public async getArtistTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+  public async getArtistTracks(url: string, _provider: TrackProvider): Promise<PluginImportTrack[]> {
     try {
       const channelTracks = await this.ytDlpService.extractChannelTracks(url, 200);
       const all: PluginImportTrack[] = [];
@@ -290,7 +290,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         try {
           const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url);
           if (fullInfo) {
-            all.push(...this.buildImportTracksFromInfo(fullInfo, provider));
+            all.push(...this.buildImportTracksFromInfo(fullInfo));
           }
         } catch (error) {
           console.error(`Error processing track ${info.webpage_url}: ${error}`);
@@ -303,7 +303,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     }
   }
 
-  public async getPlaylistTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+  public async getPlaylistTracks(url: string, _provider: TrackProvider): Promise<PluginImportTrack[]> {
     try {
       const playlistTracks = await this.ytDlpService.extractPlaylistTracks(url);
       const all: PluginImportTrack[] = [];
@@ -311,7 +311,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         try {
           const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url);
           if (fullInfo) {
-            all.push(...this.buildImportTracksFromInfo(fullInfo, provider));
+            all.push(...this.buildImportTracksFromInfo(fullInfo));
           }
         } catch (error) {
           console.error(`Error processing track ${info.webpage_url}: ${error}`);
@@ -324,7 +324,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     }
   }
 
-  private buildImportTracksFromInfo(trackInfo: YtDlpTrackInfo, provider: TrackProvider): PluginImportTrack[] {
+  private buildImportTracksFromInfo(trackInfo: YtDlpTrackInfo): PluginImportTrack[] {
     const artistName = trackInfo.artist ?? trackInfo.uploader ?? trackInfo.channel ?? 'Unknown Artist';
     const albumName = trackInfo.album ?? `${trackInfo.channel ?? trackInfo.uploader} - YouTube`;
     const baseMetadata: TrackMetadata = {
@@ -335,7 +335,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
       youtubeId: extractYoutubeId(trackInfo.webpage_url),
     };
 
-    if (provider.config.splitChapters && trackInfo.chapters && trackInfo.chapters.length > 0) {
+    if (trackInfo.chapters && trackInfo.chapters.length > 0) {
       const cleanTitle = (title: string) => {
         const trim = (s: string) => s.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
         let t = trim(title);

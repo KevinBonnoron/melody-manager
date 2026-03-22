@@ -287,11 +287,6 @@
       "title": "YouTube",
       "description": "Search and add tracks from YouTube",
       "fields": {
-        "splitChapters": {
-          "label": "Split videos into chapters",
-          "placeholder": "",
-          "help": "When enabled, YouTube videos with chapters will be split into separate tracks and grouped as an album"
-        },
         "downloadPath": {
           "label": "Download path",
           "placeholder": "/path/to/music",

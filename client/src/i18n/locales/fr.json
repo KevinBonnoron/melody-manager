@@ -287,11 +287,6 @@
       "title": "YouTube",
       "description": "Rechercher et ajouter des titres depuis YouTube",
       "fields": {
-        "splitChapters": {
-          "label": "Diviser les vidéos en chapitres",
-          "placeholder": "",
-          "help": "Lorsque activé, les vidéos YouTube avec des chapitres seront divisées en pistes distinctes et regroupées en tant qu'album"
-        },
         "downloadPath": {
           "label": "Chemin de téléchargement",
           "placeholder": "/chemin/vers/musique",
