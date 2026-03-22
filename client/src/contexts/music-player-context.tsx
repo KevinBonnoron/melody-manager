@@ -187,9 +187,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         const playId = currentPlayIdRef.current;
         if (trackId && playId && trackId !== playCompletedForTrackIdRef.current && audio.duration > 0 && listenedTimeRef.current >= audio.duration * 0.9) {
           playCompletedForTrackIdRef.current = trackId;
-          trackPlayCollection.update(playId, (draft) => {
-            draft.completed = true;
-          });
+          // The tmp- key may have been replaced by a real server ID after sync
+          const play = trackPlaysRef.current.find((p) => p.id === playId) ?? trackPlaysRef.current.find((p) => p.track === trackId && p.user === userIdRef.current && !p.completed);
+          if (play) {
+            trackPlayCollection.update(play.id, (draft) => {
+              draft.completed = true;
+            });
+          }
         }
       }
     };
