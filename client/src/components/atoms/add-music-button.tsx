@@ -171,28 +171,33 @@ export function AddMusicButton() {
 
     let IconComponent = Music;
     let title = '';
-    let subtitle = '';
+    let subtitleLeft = '';
+    let subtitleRight = '';
     let image = '';
 
     if (isTrackResult(result)) {
       IconComponent = Music;
       title = result.title;
-      subtitle = [result.artist, result.album, result.duration ? formatDuration(result.duration) : null].filter(Boolean).join(' • ');
+      subtitleLeft = [result.artist, result.album].filter(Boolean).join(' • ');
+      subtitleRight = result.duration ? formatDuration(result.duration) : '';
       image = result.thumbnail || '';
     } else if (isAlbumResult(result)) {
       IconComponent = Disc;
       title = result.name;
-      subtitle = [result.artist, result.trackCount ? `${result.trackCount} tracks` : null, result.releaseYear].filter(Boolean).join(' • ');
+      subtitleLeft = result.artist ?? '';
+      subtitleRight = [result.trackCount ? `${result.trackCount} tracks` : null, result.releaseYear].filter(Boolean).join(' • ');
       image = result.coverUrl || '';
     } else if (isArtistResult(result)) {
       IconComponent = User;
       title = result.name;
-      subtitle = [result.genres?.join(', '), result.albumCount ? `${result.albumCount} albums` : null, result.trackCount ? `${result.trackCount} tracks` : null].filter(Boolean).join(' • ');
+      subtitleLeft = result.genres?.join(', ') ?? '';
+      subtitleRight = [result.albumCount ? `${result.albumCount} albums` : null, result.trackCount ? `${result.trackCount} tracks` : null].filter(Boolean).join(' • ');
       image = result.imageUrl || '';
     } else if (isPlaylistResult(result)) {
       IconComponent = Library;
       title = result.name;
-      subtitle = [result.owner, result.trackCount ? `${result.trackCount} tracks` : null, result.description].filter(Boolean).join(' • ');
+      subtitleLeft = result.owner ?? result.description ?? '';
+      subtitleRight = result.trackCount ? `${result.trackCount} tracks` : '';
       image = result.coverUrl || '';
     }
 
@@ -215,7 +220,10 @@ export function AddMusicButton() {
               {result.provider}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm text-muted-foreground truncate">{subtitleLeft}</p>
+            {subtitleRight && <p className="text-sm text-muted-foreground flex-shrink-0">{subtitleRight}</p>}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -268,7 +276,7 @@ export function AddMusicButton() {
         <span className="hidden sm:inline">{t('AppLayout.addMusic')}</span>
         <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
+      <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false} className="sm:max-w-2xl">
         <CommandInput placeholder={t('GlobalSearch.searchForMusic')} value={query} onValueChange={setQuery} autoFocus />
         <CommandList className="max-h-[500px] scrollbar-dialog-content">
           {!hasEnabledProviders && (
