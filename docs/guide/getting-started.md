@@ -63,58 +63,6 @@ Then run:
 docker compose up -d
 ```
 
-## Development Setup
+## Mobile Apps
 
-### Prerequisites
-
-- [Bun](https://bun.sh) (v1.2+)
-- [FFmpeg](https://ffmpeg.org) (for audio transcoding)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (for YouTube support)
-
-#### With Nix (recommended)
-
-If you use [Nix](https://nixos.org) with flakes, the project includes a `flake.nix` that provides all dependencies:
-
-```bash
-# With direnv (automatic)
-cd melody-manager   # dependencies are loaded automatically
-
-# Without direnv
-nix develop
-```
-
-This provides: bun, pocketbase, mailpit, ffmpeg, yt-dlp, nodejs, JDK 21, and gradle.
-
-### Install and Run
-
-```bash
-# Install dependencies
-bun install
-
-# Start all services in development mode
-bun run dev
-```
-
-This starts:
-- **Client:** Vite dev server (React frontend)
-- **Server:** Hono API server with hot reload
-- **Database:** PocketBase + Mailpit (for email testing)
-
-### Development Commands
-
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start all workspaces in dev mode |
-| `bun run build` | Build all workspaces |
-| `bun run lint` | Lint with Biome |
-| `bun run format` | Format with Biome |
-| `bun run type-check` | Type check all workspaces |
-| `bun run test` | Run tests |
-
-### Running Individual Workspaces
-
-```bash
-cd client && bun run dev    # Frontend only
-cd server && bun run dev    # API server only
-cd db && bun run dev        # Database only
-```
+Native Android and iOS apps are available. See the [mobile apps](#) section for installation instructions.
