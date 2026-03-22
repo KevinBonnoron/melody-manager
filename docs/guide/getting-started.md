@@ -65,4 +65,4 @@ docker compose up -d
 
 ## Mobile Apps
 
-Native Android and iOS apps are available. See the [mobile apps](#) section for installation instructions.
+Native Android and iOS apps are available. Installation instructions are included in the releases page.
