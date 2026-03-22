@@ -139,6 +139,11 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
           return [];
         }
 
+        // Video with chapters → surfaced as an album, not a single track
+        if (trackInfo.chapters?.length) {
+          return [];
+        }
+
         return [
           {
             type: 'track',
