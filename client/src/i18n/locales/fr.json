@@ -234,7 +234,11 @@
     "libraryArtists": "Artistes",
     "openExternal": "Ouvrir sur le site",
     "addToLibrary": "Ajouter à la bibliothèque",
-    "failedToSearch": "Échec de la recherche"
+    "failedToSearch": "Échec de la recherche",
+    "tracksCount_one": "{{count}} titre",
+    "tracksCount_other": "{{count}} titres",
+    "albumsCount_one": "{{count}} album",
+    "albumsCount_other": "{{count}} albums"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",
@@ -287,11 +291,6 @@
       "title": "YouTube",
       "description": "Rechercher et ajouter des titres depuis YouTube",
       "fields": {
-        "splitChapters": {
-          "label": "Diviser les vidéos en chapitres",
-          "placeholder": "",
-          "help": "Lorsque activé, les vidéos YouTube avec des chapitres seront divisées en pistes distinctes et regroupées en tant qu'album"
-        },
         "downloadPath": {
           "label": "Chemin de téléchargement",
           "placeholder": "/chemin/vers/musique",
