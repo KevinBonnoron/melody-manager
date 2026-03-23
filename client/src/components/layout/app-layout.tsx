@@ -37,14 +37,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 md:px-8 sticky top-0 bg-background z-20 overflow-hidden">
+      <SidebarInset className="px-3 md:px-4">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 sticky top-0 bg-background z-20 overflow-hidden">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="hidden md:inline-flex" />
             {!isRootPath && <BackButton />}
             {routeInfo && (
               <div>
-                <h2 className="text-lg font-bold leading-tight">{t(routeInfo.titleKey)}</h2>
+                <h2 className="text-xl font-bold leading-tight">{t(routeInfo.titleKey)}</h2>
                 <p className="text-xs text-muted-foreground hidden sm:block">{t(routeInfo.descriptionKey)}</p>
               </div>
             )}
@@ -56,7 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <ThemeToggle />
           </div>
         </header>
-        <main className={`flex-1 px-4 pt-4 md:px-8 md:pt-8 ${currentTrack ? 'pb-56 md:pb-48' : 'pb-20 md:pb-8'}`}>{children}</main>
+        <main className={`flex-1 pt-3 md:pt-4 ${currentTrack ? 'pb-56 md:pb-48' : 'pb-20 md:pb-8'}`}>{children}</main>
       </SidebarInset>
       <BottomNav />
       <MusicPlayer />
