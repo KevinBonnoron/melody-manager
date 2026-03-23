@@ -1,3 +1,9 @@
+import { Link, useNavigate } from '@tanstack/react-router';
+import { Camera, Loader2, LogOut, Settings } from 'lucide-react';
+import { useAuth } from 'pocketbase-react-hooks';
+import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,12 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
-import { useNavigate } from '@tanstack/react-router';
-import { Camera, Loader2, LogOut } from 'lucide-react';
-import { useAuth } from 'pocketbase-react-hooks';
-import { useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 export function ProfilePage() {
   const { t } = useTranslation();
@@ -172,6 +172,15 @@ export function ProfilePage() {
       </Card>
 
       <Separator />
+
+      {user.role === 'admin' && (
+        <Link to="/admin">
+          <Button variant="outline" className="w-full">
+            <Settings className="h-4 w-4" />
+            {t('AppSidebar.admin')}
+          </Button>
+        </Link>
+      )}
 
       {/* Logout */}
       <Button variant="destructive" className="w-full" onClick={handleLogout}>

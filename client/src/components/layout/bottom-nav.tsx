@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { History, Home, Library, Settings } from 'lucide-react';
+import { History, Home, Library, Share2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthUser } from '@/hooks/use-auth-user';
@@ -30,6 +30,7 @@ export function BottomNav() {
   };
 
   const profileActive = isActive('/profile');
+  const sharesActive = isActive('/shares');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
@@ -56,12 +57,10 @@ export function BottomNav() {
             <History className="h-5 w-5" />
             <span>{t('AppSidebar.history')}</span>
           </Link>
-          {user?.role === 'admin' && (
-            <Link to="/admin" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/admin') && 'text-primary')}>
-              <Settings className="h-5 w-5" />
-              <span>{t('AppSidebar.admin')}</span>
-            </Link>
-          )}
+          <Link to="/shares" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', sharesActive && 'text-primary')}>
+            <Share2 className="h-5 w-5" />
+            <span>{t('AppSidebar.shares')}</span>
+          </Link>
         </div>
       </div>
     </nav>
