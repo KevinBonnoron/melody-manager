@@ -141,6 +141,7 @@
     "home": "Accueil",
     "library": "Bibliothèque",
     "admin": "Admin",
+    "providers": "Services",
     "shares": "Partages",
     "history": "Historique",
     "stats": "Stats"
@@ -166,11 +167,15 @@
     "deleteSuccess": "Lien de partage supprimé",
     "deleteError": "Impossible de supprimer le lien de partage"
   },
+  "ProvidersPage": {
+    "title": "Services",
+    "description": "Vos sources musicales et appareils"
+  },
   "Admin": {
     "title": "Admin",
-    "description": "Gérer vos services de musique et appareils",
-    "providersTitle": "Services",
-    "providersDescription": "Configurer vos sources musicales et appareils de lecture",
+    "description": "Gérer les utilisateurs et paramètres du serveur",
+    "usersTitle": "Utilisateurs",
+    "usersDescription": "Gérer les comptes utilisateurs",
     "tabMusicSources": "Sources musicales",
     "tabPlaybackDevices": "Appareils de lecture",
     "addProvider": "Ajouter un service",
