@@ -17,12 +17,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatsIndexRouteImport } from './routes/stats/index'
 import { Route as SharesIndexRouteImport } from './routes/shares/index'
+import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as HistoryIndexRouteImport } from './routes/history/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists/$artistId'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums/$albumId'
-import { Route as AdminProvidersRouteImport } from './routes/admin/providers'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -64,6 +65,11 @@ const SharesIndexRoute = SharesIndexRouteImport.update({
   path: '/shares/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
+  id: '/providers/',
+  path: '/providers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryIndexRoute = LibraryIndexRouteImport.update({
   id: '/library/',
   path: '/library/',
@@ -89,9 +95,9 @@ const AlbumsAlbumIdRoute = AlbumsAlbumIdRouteImport.update({
   path: '/albums/$albumId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminProvidersRoute = AdminProvidersRouteImport.update({
-  id: '/admin/providers',
-  path: '/admin/providers',
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -102,12 +108,13 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
-  '/admin/providers': typeof AdminProvidersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin': typeof AdminIndexRoute
   '/history': typeof HistoryIndexRoute
   '/library': typeof LibraryIndexRoute
+  '/providers': typeof ProvidersIndexRoute
   '/shares': typeof SharesIndexRoute
   '/stats': typeof StatsIndexRoute
 }
@@ -118,12 +125,13 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
-  '/admin/providers': typeof AdminProvidersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin': typeof AdminIndexRoute
   '/history': typeof HistoryIndexRoute
   '/library': typeof LibraryIndexRoute
+  '/providers': typeof ProvidersIndexRoute
   '/shares': typeof SharesIndexRoute
   '/stats': typeof StatsIndexRoute
 }
@@ -135,12 +143,13 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
-  '/admin/providers': typeof AdminProvidersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/admin/': typeof AdminIndexRoute
   '/history/': typeof HistoryIndexRoute
   '/library/': typeof LibraryIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
   '/shares/': typeof SharesIndexRoute
   '/stats/': typeof StatsIndexRoute
 }
@@ -153,12 +162,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/setup'
-    | '/admin/providers'
+    | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin'
     | '/history'
     | '/library'
+    | '/providers'
     | '/shares'
     | '/stats'
   fileRoutesByTo: FileRoutesByTo
@@ -169,12 +179,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/setup'
-    | '/admin/providers'
+    | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin'
     | '/history'
     | '/library'
+    | '/providers'
     | '/shares'
     | '/stats'
   id:
@@ -185,12 +196,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/setup'
-    | '/admin/providers'
+    | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/admin/'
     | '/history/'
     | '/library/'
+    | '/providers/'
     | '/shares/'
     | '/stats/'
   fileRoutesById: FileRoutesById
@@ -202,12 +214,13 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
-  AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
+  ProvidersIndexRoute: typeof ProvidersIndexRoute
   SharesIndexRoute: typeof SharesIndexRoute
   StatsIndexRoute: typeof StatsIndexRoute
 }
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SharesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/providers/': {
+      id: '/providers/'
+      path: '/providers'
+      fullPath: '/providers'
+      preLoaderRoute: typeof ProvidersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/': {
       id: '/library/'
       path: '/library'
@@ -305,11 +325,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/providers': {
-      id: '/admin/providers'
-      path: '/admin/providers'
-      fullPath: '/admin/providers'
-      preLoaderRoute: typeof AdminProvidersRouteImport
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -322,12 +342,13 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
-  AdminProvidersRoute: AdminProvidersRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   LibraryIndexRoute: LibraryIndexRoute,
+  ProvidersIndexRoute: ProvidersIndexRoute,
   SharesIndexRoute: SharesIndexRoute,
   StatsIndexRoute: StatsIndexRoute,
 }

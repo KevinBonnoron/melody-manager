@@ -24,6 +24,7 @@ const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> 
   '/stats': { titleKey: 'StatsPage.title', descriptionKey: 'StatsPage.description' },
   '/admin': { titleKey: 'Admin.title', descriptionKey: 'Admin.description' },
   '/profile': { titleKey: 'ProfilePage.title', descriptionKey: 'ProfilePage.description' },
+  '/providers': { titleKey: 'ProvidersPage.title', descriptionKey: 'ProvidersPage.description' },
 };
 
 export function AppLayout({ children }: AppLayoutProps) {

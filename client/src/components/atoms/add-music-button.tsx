@@ -181,7 +181,7 @@ export function AddMusicButton() {
               </div>
               <p className="text-base font-semibold text-card-foreground mb-1">{t('GlobalSearch.noProvidersConfigured')}</p>
               <p className="text-sm text-muted-foreground mb-6 max-w-sm">{t('GlobalSearch.configureOneProvider')}</p>
-              <Link to="/admin/providers" onClick={() => setOpen(false)}>
+              <Link to="/providers" onClick={() => setOpen(false)}>
                 <Button size="sm" variant="outline" className="transition-colors">
                   <Settings className="h-4 w-4 mr-2" />
                   {t('GlobalSearch.configureProviders')}

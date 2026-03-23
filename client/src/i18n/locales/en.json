@@ -141,6 +141,7 @@
     "home": "Home",
     "library": "Library",
     "admin": "Admin",
+    "providers": "Providers",
     "shares": "Shares",
     "history": "History",
     "stats": "Stats"
@@ -166,11 +167,15 @@
     "deleteSuccess": "Share link deleted",
     "deleteError": "Failed to delete share link"
   },
+  "ProvidersPage": {
+    "title": "Providers",
+    "description": "Configure your music sources and playback devices"
+  },
   "Admin": {
     "title": "Admin",
-    "description": "Manage your music providers and devices",
-    "providersTitle": "Providers",
-    "providersDescription": "Configure your music sources and playback devices",
+    "description": "Manage users and server settings",
+    "usersTitle": "Users",
+    "usersDescription": "Manage user accounts",
     "tabMusicSources": "Music Sources",
     "tabPlaybackDevices": "Playback Devices",
     "addProvider": "Add provider",

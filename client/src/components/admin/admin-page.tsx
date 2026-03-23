@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ChevronRight, Settings2 } from 'lucide-react';
+import { ChevronRight, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/card';
 
@@ -7,10 +7,10 @@ export function AdminPage() {
   const { t } = useTranslation();
   const adminLinks = [
     {
-      titleKey: 'Admin.providersTitle' as const,
-      descriptionKey: 'Admin.providersDescription' as const,
-      icon: Settings2,
-      href: '/admin/providers',
+      titleKey: 'Admin.usersTitle' as const,
+      descriptionKey: 'Admin.usersDescription' as const,
+      icon: Users,
+      href: '/admin/users',
     },
   ];
 
