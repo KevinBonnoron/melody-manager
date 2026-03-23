@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { ChartNoAxesColumn, History, Home, Library, Link2, Settings, User, UserCircle } from 'lucide-react';
+import { ChartNoAxesColumn, History, Home, Library, Settings, Settings2, Share2, User, UserCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -34,6 +34,19 @@ export function AppSidebar() {
       title: t('AppSidebar.stats'),
       href: '/stats',
       icon: ChartNoAxesColumn,
+    },
+  ];
+
+  const userNavItems = [
+    {
+      title: t('AppSidebar.providers'),
+      href: '/providers',
+      icon: Settings2,
+    },
+    {
+      title: t('AppSidebar.shares'),
+      href: '/shares',
+      icon: Share2,
     },
   ];
 
@@ -89,6 +102,27 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup className="mt-auto border-t pt-2">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {userNavItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                      <Link to={item.href}>
+                        <Icon className={cn(active && 'text-primary')} />
+                        <span className={cn(active && 'text-primary')}>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t">
@@ -116,12 +150,6 @@ export function AppSidebar() {
                   <DropdownMenuItem>
                     <UserCircle className="mr-2 h-4 w-4" />
                     <span>{t('ProfilePage.title')}</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link to="/shares">
-                  <DropdownMenuItem>
-                    <Link2 className="mr-2 h-4 w-4" />
-                    <span>{t('AppSidebar.shares')}</span>
                   </DropdownMenuItem>
                 </Link>
                 {user?.role === 'admin' && (
