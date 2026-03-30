@@ -13,6 +13,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatsIndexRouteImport } from './routes/stats/index'
@@ -24,6 +25,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists/$artistId'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums/$albumId'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminProvidersRouteImport } from './routes/admin/providers'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -43,6 +45,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -100,14 +107,21 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProvidersRoute = AdminProvidersRouteImport.update({
+  id: '/admin/providers',
+  path: '/admin/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/admin/providers': typeof AdminProvidersRoute
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -121,10 +135,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/admin/providers': typeof AdminProvidersRoute
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -139,10 +155,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/admin/providers': typeof AdminProvidersRoute
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -158,10 +176,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/onboarding'
     | '/profile'
     | '/register'
     | '/reset-password'
     | '/setup'
+    | '/admin/providers'
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
@@ -175,10 +195,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/onboarding'
     | '/profile'
     | '/register'
     | '/reset-password'
     | '/setup'
+    | '/admin/providers'
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
@@ -192,10 +214,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/onboarding'
     | '/profile'
     | '/register'
     | '/reset-password'
     | '/setup'
+    | '/admin/providers'
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
@@ -210,10 +234,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
+  AdminProvidersRoute: typeof AdminProvidersRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
@@ -253,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -332,16 +365,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/providers': {
+      id: '/admin/providers'
+      path: '/admin/providers'
+      fullPath: '/admin/providers'
+      preLoaderRoute: typeof AdminProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
+  AdminProvidersRoute: AdminProvidersRoute,
   AdminUsersRoute: AdminUsersRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,

@@ -1,13 +1,13 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { pb } from '@/lib/pocketbase';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { pb } from '@/lib/pocketbase';
 
 export function RegisterForm() {
   const { t } = useTranslation();

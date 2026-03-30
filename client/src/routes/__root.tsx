@@ -1,3 +1,6 @@
+import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
+import { PocketBaseProvider } from 'pocketbase-react-hooks';
+import { Toaster } from 'sonner';
 import { AppLayout } from '@/components/layout/app-layout';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -5,13 +8,10 @@ import { MusicPlayerProvider } from '@/contexts/music-player-context';
 import { TaskProvider } from '@/contexts/task-context';
 import { pb } from '@/lib/pocketbase';
 import { ThemeProvider } from '@/providers/ThemeProvider';
-import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
-import { PocketBaseProvider } from 'pocketbase-react-hooks';
-import { Toaster } from 'sonner';
 
 function RootComponent() {
   const location = useLocation();
-  const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/setup');
+  const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/setup') || location.pathname.startsWith('/onboarding');
   const showAppLayout = !isAuthPage && pb.authStore.isValid;
 
   return (
