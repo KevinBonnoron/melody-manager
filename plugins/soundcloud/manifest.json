@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "icon": "soundcloud",
   "entry": "./src/index.ts",
+  "scope": "personal",
   "features": ["search", "stream", "import"],
   "searchTypes": ["track"],
   "importTypes": ["track"],

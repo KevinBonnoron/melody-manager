@@ -1,9 +1,12 @@
+import type { PluginScope } from './plugin-manifest.type';
 import type { PocketBaseRecord } from './pocketbase.type';
 
 interface BaseProvider extends PocketBaseRecord {
   type: string;
-  enabled: boolean;
+  category: 'track' | 'device';
+  scope?: PluginScope;
   config: Record<string, unknown>;
+  enabled: boolean;
 }
 
 export interface TrackProvider extends BaseProvider {
@@ -15,3 +18,15 @@ export interface DeviceProvider extends BaseProvider {
 }
 
 export type Provider = TrackProvider | DeviceProvider;
+
+export interface Connection extends PocketBaseRecord {
+  provider: string;
+  user: string;
+  config: Record<string, unknown>;
+  enabled: boolean;
+}
+
+export interface ProviderGrant extends PocketBaseRecord {
+  provider: string;
+  user: string;
+}

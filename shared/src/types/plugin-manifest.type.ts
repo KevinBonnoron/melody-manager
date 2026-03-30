@@ -12,8 +12,10 @@ export interface ConfigSchemaItem {
 }
 
 export type PluginFeature = 'search' | 'stream' | 'import' | 'device';
+export type PluginScope = 'public' | 'shared' | 'personal';
 
 export interface PluginManifest {
+  scope: PluginScope;
   id: string;
   name: string;
   description?: string;
@@ -25,4 +27,5 @@ export interface PluginManifest {
   importTypes?: SearchType[];
   urlPatterns?: string[];
   configSchema?: ConfigSchemaItem[];
+  connectionSchema?: ConfigSchemaItem[];
 }
