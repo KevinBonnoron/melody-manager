@@ -248,7 +248,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
                 provider: 'youtube',
                 name: trackInfo.title ?? 'Unknown Album',
                 artist: trackInfo.artist ?? trackInfo.uploader ?? trackInfo.channel,
-                coverUrl: trackInfo.thumbnail,
+                coverUrl: trackInfo.thumbnail?.startsWith('data:') ? undefined : trackInfo.thumbnail,
                 externalUrl: trackInfo.webpage_url,
                 trackCount: trackInfo.chapters.length,
               },
@@ -440,11 +440,12 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
   private buildImportTracksFromInfo(trackInfo: YtDlpTrackInfo): PluginImportTrack[] {
     const artistName = trackInfo.artist ?? trackInfo.uploader ?? trackInfo.channel ?? 'Unknown Artist';
     const albumName = trackInfo.album ?? `${trackInfo.channel ?? trackInfo.uploader} - YouTube`;
+    const thumbnail = trackInfo.thumbnail?.startsWith('data:') ? undefined : trackInfo.thumbnail;
     const baseMetadata: TrackMetadata = {
       year: trackInfo.upload_date ? Number.parseInt(trackInfo.upload_date.slice(0, 4), 10) : undefined,
       bitrate: trackInfo.tbr,
       format: trackInfo.ext,
-      coverArtUrl: trackInfo.thumbnail,
+      coverArtUrl: thumbnail,
       youtubeId: extractYoutubeId(trackInfo.webpage_url),
     };
 
@@ -467,7 +468,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
           sourceUrl: trackInfo.webpage_url,
           artistName,
           albumName: trackInfo.title ?? albumName,
-          coverUrl: trackInfo.thumbnail,
+          coverUrl: thumbnail,
           metadata: {
             ...baseMetadata,
             startTime: chapter.start_time,
@@ -483,7 +484,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         sourceUrl: trackInfo.webpage_url,
         artistName,
         albumName,
-        coverUrl: trackInfo.thumbnail,
+        coverUrl: thumbnail,
         metadata: {
           ...baseMetadata,
           chapters: trackInfo.chapters?.map(

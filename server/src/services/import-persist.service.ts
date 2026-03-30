@@ -1,6 +1,7 @@
 import type { PluginImportTrack } from '@melody-manager/plugin-sdk';
 import type { Track, TrackProvider } from '@melody-manager/shared';
 import { normalizeTrackTitle } from '@melody-manager/shared';
+import { uploadImageToRecord } from '../lib/image-upload';
 import { pbFilter } from '../lib/pocketbase';
 import { albumRepository, artistRepository, genreRepository, trackRepository } from '../repositories';
 
@@ -9,29 +10,33 @@ export const importPersistService = {
     const tracks: Track[] = [];
 
     for (const t of importTracks) {
-      const { id: artistId } = await artistRepository.getOrCreate({ name: t.artistName }, pbFilter('name = {:name}', { name: t.artistName }));
-
-      const albumData: { name: string; artists: string[]; coverUrl?: string; year?: number } = {
-        name: t.albumName,
-        artists: [artistId],
-      };
-      if (t.coverUrl) {
-        albumData.coverUrl = t.coverUrl;
+      const artistNames = t.artistName
+        .split(' & ')
+        .map((n) => n.trim())
+        .filter(Boolean);
+      const artistIds: string[] = [];
+      for (const name of artistNames) {
+        const { id } = await artistRepository.getOrCreate({ name }, pbFilter('name = {:name}', { name }));
+        artistIds.push(id);
       }
+
+      const albumData: { name: string; artists: string[]; year?: number } = {
+        name: t.albumName,
+        artists: artistIds,
+      };
       if (t.metadata?.year) {
         albumData.year = t.metadata.year;
       }
 
-      const album = await albumRepository.getOrCreate(albumData, pbFilter('name = {:name}', { name: t.albumName }));
-      const albumUpdate: { coverUrl?: string; year?: number } = {};
-      if (!album.coverUrl && t.coverUrl) {
-        albumUpdate.coverUrl = t.coverUrl;
-      }
+      const primaryArtistId = artistIds[0];
+      const albumFilter = primaryArtistId ? pbFilter('name = {:name} && artists.id ?= {:artistId}', { name: t.albumName, artistId: primaryArtistId }) : pbFilter('name = {:name}', { name: t.albumName });
+      const album = await albumRepository.getOrCreate(albumData, albumFilter);
+
       if (!album.year && t.metadata?.year) {
-        albumUpdate.year = t.metadata.year;
+        await albumRepository.update(album.id, { year: t.metadata.year });
       }
-      if (Object.keys(albumUpdate).length > 0) {
-        await albumRepository.update(album.id, albumUpdate);
+      if (!album.cover && t.coverUrl) {
+        await uploadImageToRecord('albums', album.id, 'cover', t.coverUrl);
       }
       const albumId = album.id;
 
@@ -57,7 +62,7 @@ export const importPersistService = {
           duration: t.duration,
           sourceUrl: t.sourceUrl,
           provider: provider.id,
-          artists: [artistId],
+          artists: artistIds,
           album: albumId,
           genres: genreIds,
           metadata,
