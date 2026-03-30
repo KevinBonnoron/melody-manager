@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Loader2, Music2, Pause, Play, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration, getProviderColor } from '@/lib/utils';
 
 interface Props {
@@ -18,7 +19,7 @@ export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
   return (
     <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isPlaying || isLoading ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`} onClick={() => onPlay(track)}>
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-        {album.coverUrl ? <img src={album.coverUrl} alt={track.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
+        {getAlbumCoverUrl(album) ? <img src={getAlbumCoverUrl(album)} alt={track.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
 
         <div className="absolute top-2 right-2 z-10">
           <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColor(provider.type, 'contrast')}`}>

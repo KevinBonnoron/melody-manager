@@ -7,6 +7,7 @@ export interface ArtistMetadata {
 export interface Artist extends Expand<Record<string, never>> {
   name: string;
   bio?: string;
+  image?: string;
   imageUrl?: string;
   externalUrl?: string;
   metadata?: ArtistMetadata;

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { getAlbumDownloadStatus } from '@/lib/album-download-status';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getProviderColor } from '@/lib/utils';
 
 interface Props {
@@ -21,12 +22,13 @@ export function AlbumCard({ album }: Props) {
   const { currentTrack } = useMusicPlayer();
   const isCurrentAlbum = currentTrack?.album === album.id;
   const { status: downloadStatus } = getAlbumDownloadStatus(tracks);
+  const coverUrl = getAlbumCoverUrl(album);
 
   return (
     <Link to="/albums/$albumId" params={{ albumId: album.id }}>
       <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isCurrentAlbum ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-          {album.coverUrl ? <img src={album.coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
+          {coverUrl ? <img src={coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
 
           {provider && (
             <div className="absolute top-2 right-2">

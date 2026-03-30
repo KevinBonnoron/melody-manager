@@ -16,6 +16,7 @@ import { useArtists } from '@/hooks/use-artists';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
+import { getAlbumCoverUrl, getArtistImageUrl } from '@/lib/cover-url';
 import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
 
 const trackFuseOptions: IFuseOptions<Track> = {
@@ -117,8 +118,8 @@ export function GlobalSearchButton() {
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
-                    {artist.imageUrl ? (
-                      <img src={artist.imageUrl} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                    {getArtistImageUrl(artist) ? (
+                      <img src={getArtistImageUrl(artist)} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                         <User className="h-5 w-5 text-muted-foreground" />
@@ -157,8 +158,8 @@ export function GlobalSearchButton() {
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
-                    {album.coverUrl ? (
-                      <img src={album.coverUrl} alt={album.name} className="h-10 w-10 rounded object-cover" />
+                    {getAlbumCoverUrl(album) ? (
+                      <img src={getAlbumCoverUrl(album)} alt={album.name} className="h-10 w-10 rounded object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
                         <Disc className="h-5 w-5 text-muted-foreground" />
@@ -201,8 +202,8 @@ export function GlobalSearchButton() {
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
-                    {track.expand.album?.coverUrl ? (
-                      <img src={track.expand.album.coverUrl} alt={track.title} className="h-10 w-10 rounded object-cover" />
+                    {track.expand.album && getAlbumCoverUrl(track.expand.album) ? (
+                      <img src={getAlbumCoverUrl(track.expand.album)} alt={track.title} className="h-10 w-10 rounded object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
                         <Music className="h-5 w-5 text-muted-foreground" />

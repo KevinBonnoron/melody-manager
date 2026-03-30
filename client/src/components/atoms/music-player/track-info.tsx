@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Music2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import Marquee from 'react-fast-marquee';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 
 interface Props {
   track: Track;
@@ -30,8 +31,8 @@ export function TrackInfo({ track }: Props) {
     <div className="flex items-center gap-3 min-w-0">
       <div className="h-14 w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
         <Link to="/albums/$albumId" params={{ albumId: track.expand?.album?.id }}>
-          {track.expand?.album?.coverUrl ? (
-            <img src={track.expand.album.coverUrl} alt={track.title} className="h-full w-full object-cover" />
+          {track.expand?.album && getAlbumCoverUrl(track.expand.album) ? (
+            <img src={getAlbumCoverUrl(track.expand.album)} alt={track.title} className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center">
               <Music2 className="h-6 w-6 text-primary/60" />

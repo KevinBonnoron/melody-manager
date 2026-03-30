@@ -9,6 +9,7 @@ import { trackCollection } from '@/collections/track.collection';
 import { trackPlayCollection } from '@/collections/track-play.collection';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatTimeAgo } from '@/lib/utils';
 
 export function HistoryPage() {
@@ -68,6 +69,7 @@ function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; tra
   const { t } = useTranslation();
   const { playTrack, togglePlayPause, currentTrack, setQueue } = useMusicPlayer();
   const album = albumMap.get(track.album);
+  const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artistNames = track.artists
     .map((id) => artistMap.get(id)?.name)
     .filter(Boolean)
@@ -88,7 +90,7 @@ function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; tra
 
   return (
     <button type="button" className="flex items-center gap-3 group cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors w-full text-left" onClick={handleClick}>
-      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">{album?.coverUrl ? <img src={album.coverUrl} alt={track.title} className="h-full w-full object-cover" /> : <Music2 className="h-4 w-4 text-muted-foreground" />}</div>
+      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">{coverUrl ? <img src={coverUrl} alt={track.title} className="h-full w-full object-cover" /> : <Music2 className="h-4 w-4 text-muted-foreground" />}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{track.title}</p>
         <p className="text-xs text-muted-foreground truncate">{artistNames}</p>

@@ -1,6 +1,7 @@
 import { trackPlayCollection } from '@/collections/track-play.collection';
 import i18n from '@/i18n';
 import { config } from '@/lib/config';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { Capacitor } from '@capacitor/core';
 import type { Device, PlayerState, Track, TrackPlay } from '@melody-manager/shared';
 import { useLiveQuery } from '@tanstack/react-db';
@@ -565,7 +566,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         title: track.title,
         artist: track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist',
         album: track.expand?.album?.name || 'Unknown Album',
-        artwork: track.expand?.album?.coverUrl,
+        artwork: track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined,
         duration: track.duration,
       });
 
@@ -582,7 +583,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       title: track.title,
       artist: track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist',
       album: track.expand?.album?.name || 'Unknown Album',
-      artwork: track.expand?.album?.coverUrl ? [{ src: track.expand.album.coverUrl, sizes: '512x512', type: 'image/jpeg' }] : [],
+      artwork: (() => {
+        const url = track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined;
+        return url ? [{ src: url, sizes: '512x512', type: 'image/jpeg' }] : [];
+      })(),
     });
 
     navigator.mediaSession.setActionHandler('play', () => {

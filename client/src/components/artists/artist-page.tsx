@@ -1,4 +1,5 @@
 import { artistsClient } from '@/clients/artists.client';
+import { getArtistImageUrl } from '@/lib/cover-url';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
@@ -63,7 +64,10 @@ export function ArtistPage({ artistId }: Props) {
           <div className="flex flex-col md:flex-row gap-8 mb-8">
             <div className="flex-shrink-0">
               <div className="w-64 h-64 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
-                {artist.imageUrl ? <img src={artist.imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-32 w-32 text-primary/60" />}
+                {(() => {
+                  const imageUrl = getArtistImageUrl(artist);
+                  return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-32 w-32 text-primary/60" />;
+                })()}
               </div>
             </div>
 
