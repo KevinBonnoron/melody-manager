@@ -5,11 +5,12 @@
   "version": "1.0.0",
   "icon": "spotify",
   "entry": "./src/index.ts",
+  "scope": "personal",
   "features": ["search", "import"],
   "searchTypes": ["track"],
   "importTypes": ["track"],
   "urlPatterns": ["spotify.com", "spotify:"],
-  "configSchema": [
+  "connectionSchema": [
     {
       "name": "clientId",
       "type": "string",
