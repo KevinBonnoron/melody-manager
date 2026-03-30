@@ -54,7 +54,7 @@ export const importPersistService = {
         }
       }
 
-      const metadata = t.metadata;
+      const metadata = t.metadata ? { ...t.metadata, coverArtUrl: t.metadata.coverArtUrl?.startsWith('data:') ? undefined : t.metadata.coverArtUrl } : undefined;
 
       const track = await trackRepository.getOrCreate(
         {
