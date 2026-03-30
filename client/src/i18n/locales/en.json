@@ -141,7 +141,7 @@
     "home": "Home",
     "library": "Library",
     "admin": "Admin",
-    "providers": "Providers",
+    "providers": "Connections",
     "shares": "Shares",
     "history": "History",
     "stats": "Stats"
@@ -169,13 +169,18 @@
   },
   "ProvidersPage": {
     "title": "Providers",
-    "description": "Configure your music sources and playback devices"
+    "description": "Configure your music sources and playback devices",
+    "sharedTitle": "Shared providers",
+    "sharedDescription": "Server-wide providers accessible to specific users"
   },
   "Admin": {
     "title": "Admin",
     "description": "Manage users and server settings",
     "usersTitle": "Users",
     "usersDescription": "Manage user accounts",
+    "usersLoading": "Loading users...",
+    "providersTitle": "Services",
+    "providersDescription": "Configure music sources and playback devices accessible to all users",
     "tabMusicSources": "Music Sources",
     "tabPlaybackDevices": "Playback Devices",
     "addProvider": "Add provider",
@@ -188,6 +193,7 @@
     "noProvidersInCategory": "No providers added yet. Use the button above to add one.",
     "providersCount": "{{count}} provider(s) configured",
     "allProviderTypesAdded": "All provider types already added",
+    "personalProviderHint": "Each user configures their own credentials",
     "providerActions": "Provider actions"
   },
   "ArtistPage": {
@@ -243,7 +249,17 @@
     "tracksCount_one": "{{count}} track",
     "tracksCount_other": "{{count}} tracks",
     "albumsCount_one": "{{count}} album",
-    "albumsCount_other": "{{count}} albums"
+    "albumsCount_other": "{{count}} albums",
+    "providerError": {
+      "COOKIES_REQUIRED": "{{provider}} requires cookies to work on this server.",
+      "CREDENTIALS_REQUIRED": "{{provider}} requires credentials to show results.",
+      "configure": "Configure →"
+    }
+  },
+  "Onboarding": {
+    "title": "Welcome to Melody Manager",
+    "description": "Connect your music services to get started. You can always change this later in your profile.",
+    "continue": "Continue to app"
   },
   "LoginPage": {
     "title": "Welcome back",
@@ -300,6 +316,11 @@
           "label": "Download path",
           "placeholder": "/path/to/music",
           "help": "Local directory where downloaded tracks will be saved"
+        },
+        "cookies": {
+          "label": "Cookies (optional)",
+          "placeholder": "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t...",
+          "help": "YouTube cookies in Netscape format. Only needed if YouTube blocks requests. Export via the \"Get cookies.txt LOCALLY\" extension or: yt-dlp --cookies-from-browser chrome --skip-download <url>"
         }
       }
     },
@@ -358,6 +379,7 @@
     "connect": "Connect",
     "edit": "Edit",
     "add": "Add",
+    "configure": "Configure",
     "disconnect": "Disconnect",
     "delete": "Delete",
     "deleting": "Deleting...",
@@ -373,6 +395,14 @@
     "providerSaveError": "Failed to save {{title}} provider",
     "providerDisconnectedSuccess": "{{title}} provider disconnected",
     "providerDisconnectError": "Failed to disconnect {{title}} provider"
+  },
+  "ProviderGrants": {
+    "manageAccess": "Access",
+    "title": "Manage access",
+    "description": "Select which users can use this provider.",
+    "loading": "Loading users...",
+    "noUsers": "No users found",
+    "saveError": "Failed to update access"
   },
   "TrackProviderFilter": {
     "filterBy": "Filter by:",
