@@ -141,7 +141,7 @@
     "home": "Accueil",
     "library": "Bibliothèque",
     "admin": "Admin",
-    "providers": "Services",
+    "providers": "Connexions",
     "shares": "Partages",
     "history": "Historique",
     "stats": "Stats"
@@ -169,13 +169,18 @@
   },
   "ProvidersPage": {
     "title": "Services",
-    "description": "Vos sources musicales et appareils"
+    "description": "Vos sources musicales et appareils",
+    "sharedTitle": "Services partagés",
+    "sharedDescription": "Services configurés par l'admin, accessibles à certains utilisateurs"
   },
   "Admin": {
     "title": "Admin",
     "description": "Gérer les utilisateurs et paramètres du serveur",
     "usersTitle": "Utilisateurs",
     "usersDescription": "Gérer les comptes utilisateurs",
+    "usersLoading": "Chargement des utilisateurs...",
+    "providersTitle": "Services",
+    "providersDescription": "Configurer les sources musicales et appareils accessibles à tous",
     "tabMusicSources": "Sources musicales",
     "tabPlaybackDevices": "Appareils de lecture",
     "addProvider": "Ajouter un service",
@@ -188,6 +193,7 @@
     "noProvidersInCategory": "Aucun service ajouté. Utilisez le bouton ci-dessus pour en ajouter un.",
     "providersCount": "{{count}} service(s) configuré(s)",
     "allProviderTypesAdded": "Tous les types sont déjà ajoutés",
+    "personalProviderHint": "Chaque utilisateur configure ses propres identifiants",
     "providerActions": "Actions du service"
   },
   "ArtistPage": {
@@ -243,7 +249,17 @@
     "tracksCount_one": "{{count}} titre",
     "tracksCount_other": "{{count}} titres",
     "albumsCount_one": "{{count}} album",
-    "albumsCount_other": "{{count}} albums"
+    "albumsCount_other": "{{count}} albums",
+    "providerError": {
+      "COOKIES_REQUIRED": "{{provider}} nécessite des cookies pour fonctionner sur ce serveur.",
+      "CREDENTIALS_REQUIRED": "{{provider}} nécessite des identifiants pour afficher des résultats.",
+      "configure": "Configurer →"
+    }
+  },
+  "Onboarding": {
+    "title": "Bienvenue sur Melody Manager",
+    "description": "Connectez vos services musicaux pour commencer. Vous pourrez modifier cela plus tard dans votre profil.",
+    "continue": "Accéder à l'application"
   },
   "LoginPage": {
     "title": "Bon retour parmi nous",
@@ -300,6 +316,11 @@
           "label": "Chemin de téléchargement",
           "placeholder": "/chemin/vers/musique",
           "help": "Répertoire local où les titres téléchargés seront enregistrés"
+        },
+        "cookies": {
+          "label": "Cookies (optionnel)",
+          "placeholder": "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t...",
+          "help": "Cookies YouTube au format Netscape. Nécessaire uniquement si YouTube bloque les requêtes. Exportez-les via l'extension « Get cookies.txt LOCALLY » ou : yt-dlp --cookies-from-browser chrome --skip-download <url>"
         }
       }
     },
@@ -358,6 +379,7 @@
     "connect": "Connecter",
     "edit": "Modifier",
     "add": "Ajouter",
+    "configure": "Configurer",
     "disconnect": "Déconnecter",
     "delete": "Supprimer",
     "deleting": "Suppression...",
@@ -373,6 +395,14 @@
     "providerSaveError": "Impossible d'enregistrer le service {{title}}",
     "providerDisconnectedSuccess": "Service {{title}} déconnecté",
     "providerDisconnectError": "Impossible de déconnecter le service {{title}}"
+  },
+  "ProviderGrants": {
+    "manageAccess": "Accès",
+    "title": "Gérer l'accès",
+    "description": "Sélectionnez les utilisateurs pouvant utiliser ce service.",
+    "loading": "Chargement des utilisateurs...",
+    "noUsers": "Aucun utilisateur trouvé",
+    "saveError": "Impossible de mettre à jour les accès"
   },
   "TrackProviderFilter": {
     "filterBy": "Filtrer par :",
