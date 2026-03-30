@@ -22,8 +22,8 @@ export type Provider = TrackProvider | DeviceProvider;
 export interface Connection extends PocketBaseRecord {
   provider: string;
   user: string;
-  config: Record<string, unknown>;
-  enabled: boolean;
+  config?: Record<string, unknown>;
+  enabled?: boolean;
 }
 
 export interface ProviderGrant extends PocketBaseRecord {

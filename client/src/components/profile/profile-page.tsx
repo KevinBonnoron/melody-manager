@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { Camera, Loader2, LogOut, Settings } from 'lucide-react';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useRef, useState } from 'react';
@@ -174,12 +174,10 @@ export function ProfilePage() {
       <Separator />
 
       {user.role === 'admin' && (
-        <Link to="/admin">
-          <Button variant="outline" className="w-full">
-            <Settings className="h-4 w-4" />
-            {t('AppSidebar.admin')}
-          </Button>
-        </Link>
+        <Button variant="outline" className="w-full" onClick={() => navigate({ to: '/admin' })}>
+          <Settings className="h-4 w-4" />
+          {t('AppSidebar.admin')}
+        </Button>
       )}
 
       {/* Logout */}

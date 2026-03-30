@@ -23,6 +23,8 @@ const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> 
   '/history': { titleKey: 'HistoryPage.title', descriptionKey: 'HistoryPage.description' },
   '/stats': { titleKey: 'StatsPage.title', descriptionKey: 'StatsPage.description' },
   '/admin': { titleKey: 'Admin.title', descriptionKey: 'Admin.description' },
+  '/admin/users': { titleKey: 'Admin.usersTitle', descriptionKey: 'Admin.usersDescription' },
+  '/admin/providers': { titleKey: 'Admin.providersTitle', descriptionKey: 'Admin.providersDescription' },
   '/profile': { titleKey: 'ProfilePage.title', descriptionKey: 'ProfilePage.description' },
   '/providers': { titleKey: 'ProvidersPage.title', descriptionKey: 'ProvidersPage.description' },
 };

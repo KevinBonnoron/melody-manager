@@ -1,6 +1,6 @@
 import type { ConfigSchemaItem, PluginManifest } from '@melody-manager/shared';
 import type { TFunction } from 'i18next';
-import { Folder, type LucideIcon, Music2, Speaker } from 'lucide-react';
+import { HardDrive, type LucideIcon, Music2, Speaker } from 'lucide-react';
 
 export interface FieldConfig {
   key: string;
@@ -16,12 +16,13 @@ export interface ProviderInfo {
   description: string;
   icon: LucideIcon;
   fields?: FieldConfig[];
+  connectionFields?: FieldConfig[];
   isAutoDiscovery?: boolean;
   discoveryHelp?: string;
 }
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  folder: Folder,
+  'hard-drive': HardDrive,
   speaker: Speaker,
 };
 
@@ -49,17 +50,14 @@ function resolveI18n(t: TFunction, key: string, fallback: string | undefined): s
   return fallback ?? '';
 }
 
-function buildFieldsFromSchema(t: TFunction, manifest: PluginManifest): FieldConfig[] {
-  if (!manifest.configSchema) {
-    return [];
-  }
-  return manifest.configSchema.map((schema) => ({
-    key: schema.name,
-    label: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${schema.name}.label`, schema.label),
-    type: mapSchemaTypeToFieldType(schema),
-    placeholder: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${schema.name}.placeholder`, schema.placeholder) || undefined,
-    help: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${schema.name}.help`, schema.description) || undefined,
-    required: schema.required,
+function buildFieldsFromSchema(t: TFunction, manifest: PluginManifest, schema: ConfigSchemaItem[]): FieldConfig[] {
+  return schema.map((item) => ({
+    key: item.name,
+    label: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${item.name}.label`, item.label),
+    type: mapSchemaTypeToFieldType(item),
+    placeholder: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${item.name}.placeholder`, item.placeholder) || undefined,
+    help: resolveI18n(t, `ProviderCard.${manifest.id}.fields.${item.name}.help`, item.description) || undefined,
+    required: item.required,
   }));
 }
 
@@ -73,8 +71,9 @@ export function getProviderInfoFromManifests(t: TFunction, manifests: PluginMani
       title: resolveI18n(t, `ProviderCard.${manifest.id}.title`, manifest.name),
       description: resolveI18n(t, `ProviderCard.${manifest.id}.description`, manifest.description),
       icon: (manifest.icon ? ICON_MAP[manifest.icon] : undefined) ?? (isDevice ? Speaker : Music2),
-      fields: buildFieldsFromSchema(t, manifest),
-      isAutoDiscovery: isDevice && !manifest.configSchema?.length,
+      fields: manifest.configSchema ? buildFieldsFromSchema(t, manifest, manifest.configSchema) : [],
+      connectionFields: manifest.connectionSchema ? buildFieldsFromSchema(t, manifest, manifest.connectionSchema) : undefined,
+      isAutoDiscovery: isDevice && !manifest.configSchema?.length && !manifest.connectionSchema?.length,
       discoveryHelp: isDevice ? resolveI18n(t, `ProviderCard.${manifest.id}.discoveryHelp`, undefined) : undefined,
     };
   }
