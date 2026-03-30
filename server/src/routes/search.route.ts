@@ -2,8 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import type { SearchType } from '@melody-manager/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { searchService } from '../services';
 import { logger } from '../lib/logger';
+import { searchService } from '../services';
 
 const searchSchema = z.object({
   query: z.string().min(1),
@@ -20,8 +20,9 @@ export const searchRoute = new Hono().post('/', zValidator('json', searchSchema)
       return c.json(results);
     }
 
-    const results = await searchService.search(query, type as SearchType);
-    return c.json(results);
+    const userId = c.get('userId') as string | null;
+    const response = await searchService.search(query, type as SearchType, userId);
+    return c.json(response);
   } catch (error) {
     logger.error(`Error searching ${source === 'library' ? 'library' : type}: ${error}`);
     return c.json({ error: `Failed to search ${source === 'library' ? 'library' : type}` }, 500);

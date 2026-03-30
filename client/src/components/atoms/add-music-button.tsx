@@ -1,3 +1,10 @@
+import type { ProviderError, SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
+import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
+import { Link } from '@tanstack/react-router';
+import { AlertCircle, Loader2, Plus, Settings } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
 import { artistsClient } from '@/clients/artists.client';
 import { playlistsClient } from '@/clients/playlists.client';
@@ -9,15 +16,8 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList } 
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
 import { getModifierKey } from '@/lib/utils';
-import type { SearchResult, SearchType, TrackProvider } from '@melody-manager/shared';
-import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@melody-manager/shared';
-import { Link } from '@tanstack/react-router';
-import { Loader2, Plus, Settings } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem } from './search-result-item';
 import type { LibraryStatus } from './search-result-item';
+import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem } from './search-result-item';
 
 const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 
@@ -26,6 +26,7 @@ export function AddMusicButton() {
   const { open, setOpen, handleOpenChange } = useCommandDialog('k');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [providerErrors, setProviderErrors] = useState<ProviderError[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
@@ -38,6 +39,7 @@ export function AddMusicButton() {
     if (!open) {
       setQuery('');
       setResults([]);
+      setProviderErrors([]);
       setAddedUrls(new Set());
       setSelectedProvider('all');
     }
@@ -57,7 +59,8 @@ export function AddMusicButton() {
       try {
         const responses = await Promise.all(SEARCH_TYPES.map((type) => searchClient.search(query, type, { signal: controller.signal })));
         if (!cancelled) {
-          setResults(responses.flat());
+          setResults(responses.flatMap((r) => r.results));
+          setProviderErrors(responses.flatMap((r) => r.providerErrors));
         }
       } catch (error) {
         if (!cancelled) {
@@ -239,6 +242,22 @@ export function AddMusicButton() {
                 </CommandGroup>
               )}
             </>
+          )}
+
+          {!isSearching && query && providerErrors.length > 0 && (
+            <div className="border-t px-3 py-2 space-y-1">
+              {providerErrors.map((err) => (
+                <div key={err.provider} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <span>{t(`GlobalSearch.providerError.${err.code}`, { provider: err.provider })}</span>
+                  </div>
+                  <Link to="/providers" onClick={() => setOpen(false)} className="shrink-0 text-primary underline-offset-2 hover:underline">
+                    {t('GlobalSearch.providerError.configure')}
+                  </Link>
+                </div>
+              ))}
+            </div>
           )}
         </CommandList>
       </CommandDialog>

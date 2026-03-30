@@ -51,6 +51,18 @@ export interface PlaylistSearchResult extends BaseSearchResult {
 
 export type SearchResult = TrackSearchResult | AlbumSearchResult | ArtistSearchResult | PlaylistSearchResult;
 
+export type ProviderAuthErrorCode = 'COOKIES_REQUIRED' | 'CREDENTIALS_REQUIRED';
+
+export interface ProviderError {
+  provider: string;
+  code: ProviderAuthErrorCode;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  providerErrors: ProviderError[];
+}
+
 // Type guards
 export function isTrackResult(result: SearchResult): result is TrackSearchResult {
   return result.type === 'track';

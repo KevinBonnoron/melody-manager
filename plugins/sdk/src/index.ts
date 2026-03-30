@@ -1,5 +1,6 @@
 export { type CacheEntry, CacheService, type CacheServiceOptions } from './cache.service';
 export { deleteCookiesFile, generateCookiesFile, parseCookies } from './cookies.util';
+export { ProviderAuthError, type ProviderAuthErrorCode } from './errors';
 export { ffmpeg } from './ffmpeg';
 export type { ILogger } from './logger';
 export { createDefaultLogger } from './logger';
