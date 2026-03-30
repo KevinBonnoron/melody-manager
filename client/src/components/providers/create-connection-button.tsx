@@ -1,11 +1,12 @@
-import { providerCollection } from '@/collections/provider.collection';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { usePlugins } from '@/hooks/use-plugins';
-import type { Provider } from '@melody-manager/shared';
+import type { Connection } from '@melody-manager/shared';
 import { Music2, Speaker } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { connectionCollection } from '@/collections/connection.collection';
+import { useAuthUser } from '@/hooks/use-auth-user';
+import { usePlugins } from '@/hooks/use-plugins';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { DropdownMenuItem } from '../ui/dropdown-menu';
 import { getDefaultConfigForType } from './available-provider-types';
 import type { ConfigFormData } from './provider-config-form';
@@ -13,38 +14,36 @@ import { ProviderConfigForm } from './provider-config-form';
 import { getProviderInfoFromManifests } from './provider-info';
 
 interface Props {
+  providerId: string;
   type: string;
   category: 'track' | 'device';
   title: string;
   description: string;
 }
 
-export function CreateProviderButton({ type, category, title, description }: Props) {
+export function CreateConnectionButton({ providerId, type, category, title, description }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
+  const user = useAuthUser();
   const [open, setOpen] = useState(false);
 
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
-  const initialConfig = useMemo(() => getDefaultConfigForType(manifests, type) as ConfigFormData, [manifests, type]);
+  const initialConfig = useMemo(() => getDefaultConfigForType(manifests, type, true) as ConfigFormData, [manifests, type]);
 
   const handleSubmit = async (config: ConfigFormData) => {
     if (!info) {
       return;
     }
     try {
-      providerCollection.insert({
-        id: crypto.randomUUID(),
-        category,
-        type,
+      const tx = connectionCollection.insert({
+        provider: providerId,
+        user: user.id,
         config,
         enabled: true,
-      } as Provider);
-      toast.success(
-        t('ProviderCardActions.providerConnectedSuccess', {
-          title: info.title,
-        }),
-      );
+      } as Connection);
+      await tx.isPersisted.promise;
+      toast.success(t('ProviderCardActions.providerConnectedSuccess', { title: info.title }));
       setOpen(false);
     } catch (error) {
       console.error(error);
@@ -52,23 +51,19 @@ export function CreateProviderButton({ type, category, title, description }: Pro
     }
   };
 
-  const handleAddAutoDiscovery = () => {
+  const handleAddAutoDiscovery = async () => {
     if (!info) {
       return;
     }
     try {
-      providerCollection.insert({
-        id: crypto.randomUUID(),
-        category,
-        type,
+      const tx = connectionCollection.insert({
+        provider: providerId,
+        user: user.id,
         config: {},
         enabled: true,
-      } as Provider);
-      toast.success(
-        t('ProviderCardActions.providerConnectedSuccess', {
-          title: info.title,
-        }),
-      );
+      } as Connection);
+      await tx.isPersisted.promise;
+      toast.success(t('ProviderCardActions.providerConnectedSuccess', { title: info.title }));
       setOpen(false);
     } catch (error) {
       console.error(error);
@@ -94,7 +89,7 @@ export function CreateProviderButton({ type, category, title, description }: Pro
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="mt-4">
-          <ProviderConfigForm type={type} initialConfig={initialConfig} onSubmit={handleSubmit} onAdd={info?.isAutoDiscovery ? handleAddAutoDiscovery : undefined} onCancel={handleCancel} isEdit={false} />
+          <ProviderConfigForm type={type} initialConfig={initialConfig} onSubmit={handleSubmit} onAdd={info?.isAutoDiscovery ? handleAddAutoDiscovery : undefined} onCancel={handleCancel} isEdit={false} useConnectionSchema />
         </div>
       </DialogContent>
     </Dialog>

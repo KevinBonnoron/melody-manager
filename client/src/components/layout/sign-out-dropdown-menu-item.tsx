@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { LogOut } from 'lucide-react';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useTranslation } from 'react-i18next';
@@ -7,11 +6,10 @@ import { DropdownMenuItem } from '../ui/dropdown-menu';
 export function SignOutDropdownMenuItem() {
   const { t } = useTranslation();
   const { signOut } = useAuth();
-  const navigate = useNavigate();
 
-  async function handleLogout() {
+  function handleLogout() {
     signOut();
-    navigate({ to: '/login' });
+    window.location.replace('/login');
   }
 
   return (

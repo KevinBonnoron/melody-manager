@@ -1,19 +1,17 @@
-import { providerCollection } from '@/collections/provider.collection';
-import type { Provider } from '@melody-manager/shared';
-import { DialogTrigger } from '@radix-ui/react-dialog';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { connectionCollection } from '@/collections/connection.collection';
 import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 interface Props {
   title: string;
-  providerId: Provider['id'];
+  connectionId: string;
 }
 
-export function DeleteProviderButton({ title, providerId }: Props) {
+export function DeleteConnectionButton({ title, connectionId }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -21,7 +19,7 @@ export function DeleteProviderButton({ title, providerId }: Props) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      providerCollection.delete(providerId);
+      await connectionCollection.delete(connectionId);
       toast.success(t('ProviderCardActions.providerDeletedSuccess', { title }));
       setOpen(false);
     } catch {
@@ -35,8 +33,8 @@ export function DeleteProviderButton({ title, providerId }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="min-w-0 flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive">
-          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-          {t('ProviderCardActions.delete')}
+          <Trash2 className="h-3.5 w-3.5 xl:mr-1.5" />
+          <span className="hidden xl:inline">{t('ProviderCardActions.delete')}</span>
         </Button>
       </DialogTrigger>
       <DialogContent>

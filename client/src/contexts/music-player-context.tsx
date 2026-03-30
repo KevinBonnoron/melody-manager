@@ -153,6 +153,9 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     [activeDevice, audioFormat],
   );
 
+  const playTrackRef = useRef(playTrack);
+  playTrackRef.current = playTrack;
+
   // Sync volume to audio element
   useEffect(() => {
     if (audioRef.current) {
@@ -160,7 +163,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [playerState.volume]);
 
-  // Initialize audio element
+  // Initialize audio element — intentionally runs once, initial volume read at mount only
+  // biome-ignore lint/correctness/useExhaustiveDependencies: audio element must only be created once
   useEffect(() => {
     audioRef.current = new Audio();
     audioRef.current.volume = playerState.volume;
@@ -214,20 +218,20 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           } else if (prev.shuffle && prev.queue.length > 1) {
             const otherTracks = prev.queue.filter((t) => t.id !== prev.currentTrack?.id);
             if (otherTracks.length > 0) {
-              setTimeout(() => playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]), 0);
+              setTimeout(() => playTrackRef.current(otherTracks[Math.floor(Math.random() * otherTracks.length)]), 0);
             }
             return prev;
           } else if (prev.repeatMode === 'all') {
             const currentIndex = prev.queue.findIndex((t) => t.id === prev.currentTrack?.id);
             if (currentIndex >= 0 && currentIndex < prev.queue.length - 1) {
-              setTimeout(() => playTrack(prev.queue[currentIndex + 1]), 0);
+              setTimeout(() => playTrackRef.current(prev.queue[currentIndex + 1]), 0);
             } else if (prev.queue.length > 0) {
-              setTimeout(() => playTrack(prev.queue[0]), 0);
+              setTimeout(() => playTrackRef.current(prev.queue[0]), 0);
             }
           } else if (prev.queue.length > 0) {
             const currentIndex = prev.queue.findIndex((t) => t.id === prev.currentTrack?.id);
             if (currentIndex >= 0 && currentIndex < prev.queue.length - 1) {
-              setTimeout(() => playTrack(prev.queue[currentIndex + 1]), 0);
+              setTimeout(() => playTrackRef.current(prev.queue[currentIndex + 1]), 0);
             } else {
               return { ...prev, currentTrack: null, isPlaying: false };
             }
@@ -296,7 +300,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       audio.removeEventListener('stalled', handleStalled);
       audio.pause();
     };
-  }, [playTrack]);
+  }, []);
 
   const pause = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {

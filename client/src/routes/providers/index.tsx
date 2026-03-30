@@ -1,6 +1,6 @@
-import { ProviderList } from '@/components/providers/provider-list';
-import { authGuard } from '@/lib/auth-guard';
 import { createFileRoute } from '@tanstack/react-router';
+import { ConnectionList } from '@/components/providers/connection-list';
+import { authGuard } from '@/lib/auth-guard';
 
 export const Route = createFileRoute('/providers/')({
   beforeLoad: authGuard,
@@ -8,9 +8,5 @@ export const Route = createFileRoute('/providers/')({
 });
 
 function RouteComponent() {
-  return (
-    <div>
-      <ProviderList />
-    </div>
-  );
+  return <ConnectionList />;
 }

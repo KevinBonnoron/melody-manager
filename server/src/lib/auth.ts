@@ -7,7 +7,7 @@ async function verifyToken(token: string): Promise<{ id: string; role?: string }
   userPb.authStore.save(token, null);
   try {
     const { record } = await userPb.collection('users').authRefresh();
-    return { id: record.id, role: record['role'] as string | undefined };
+    return { id: record.id, role: record.role as string | undefined };
   } catch {
     return null;
   }

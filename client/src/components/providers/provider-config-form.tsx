@@ -1,14 +1,14 @@
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { usePlugins } from '@/hooks/use-plugins';
-import { cn } from '@/lib/utils';
 import { useForm } from '@tanstack/react-form';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { usePlugins } from '@/hooks/use-plugins';
+import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import { getProviderInfoFromManifests } from './provider-info';
 
 export type ConfigFormData = Record<string, string | boolean>;
@@ -21,16 +21,18 @@ type Props = {
   onCancel?: () => void;
   isEdit?: boolean;
   isConnected?: boolean;
+  useConnectionSchema?: boolean;
 };
 
 export function ProviderConfigForm(props: Props) {
-  const { type, initialConfig, onSubmit, onAdd, onCancel, isEdit = false, isConnected = false } = props;
+  const { type, initialConfig, onSubmit, onAdd, onCancel, isEdit = false, isConnected = false, useConnectionSchema = false } = props;
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
 
-  const requiredKeys = info?.fields?.filter((f) => f.required && f.type !== 'checkbox').map((f) => f.key) ?? [];
+  const fields = useConnectionSchema ? (info?.connectionFields ?? info?.fields) : info?.fields;
+  const requiredKeys = fields?.filter((f) => f.required && f.type !== 'checkbox').map((f) => f.key) ?? [];
 
   const form = useForm({
     defaultValues: initialConfig,
@@ -102,7 +104,7 @@ export function ProviderConfigForm(props: Props) {
       }}
       className="space-y-4"
     >
-      {info.fields?.map((field) =>
+      {fields?.map((field) =>
         field.type === 'checkbox' ? (
           <form.Field key={field.key} name={field.key as keyof ConfigFormData}>
             {(fieldApi) => (
