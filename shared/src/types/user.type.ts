@@ -7,4 +7,5 @@ export interface User extends PocketBaseRecord {
   role: 'user' | 'admin';
   verified: boolean;
   emailVisibility: boolean;
+  onboardingDone?: boolean;
 }

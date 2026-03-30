@@ -1,10 +1,10 @@
-import { config } from '@/lib/config';
-import { useAppForm } from '@/lib/forms';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { config } from '@/lib/config';
+import { useAppForm } from '@/lib/forms';
 import { Button } from '../ui/button';
 
 export function LoginForm() {

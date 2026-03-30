@@ -14,4 +14,8 @@ export async function authGuard() {
   if (!pb.authStore.isValid) {
     throw redirect({ to: '/login' });
   }
+
+  if (!pb.authStore.record?.onboardingDone) {
+    throw redirect({ to: '/onboarding' });
+  }
 }
