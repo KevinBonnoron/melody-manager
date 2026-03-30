@@ -1,8 +1,15 @@
-import type { DownloadedTrack, DownloadProvider, ImportProvider, PluginImportTrack, PluginStreamDeps, ResolvedStream, SearchProvider, YtDlpTrackInfo } from '@melody-manager/plugin-sdk';
-import { ffmpeg, YtDlpService } from '@melody-manager/plugin-sdk';
-import type { AlbumSearchResult, ArtistSearchResult, PlaylistSearchResult, SearchResult, SearchType, TrackMetadata, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { existsSync, mkdirSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
+import type { DownloadedTrack, DownloadProvider, ImportProvider, PluginImportTrack, PluginStreamDeps, ResolvedStream, SearchProvider, YtDlpTrackInfo } from '@melody-manager/plugin-sdk';
+import { deleteCookiesFile, ffmpeg, ProviderAuthError, YtDlpService } from '@melody-manager/plugin-sdk';
+import type { AlbumSearchResult, ArtistSearchResult, PlaylistSearchResult, SearchResult, SearchType, TrackMetadata, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
+
+function isBotDetectionError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return msg.includes('sign in') || msg.includes('bot') || msg.includes('429') || msg.includes('cookie') || msg.includes('confirm your age');
+}
 
 function extractYoutubeId(url: string): string | undefined {
   const patterns = [/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/, /youtube\.com\/embed\/([^&\n?#]+)/];
@@ -69,6 +76,16 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
 
   public constructor(deps: PluginStreamDeps) {
     this.ytDlpService = new YtDlpService(deps.logger);
+  }
+
+  private async createCookiesFile(provider: TrackProvider): Promise<string | undefined> {
+    const cookies = provider.config.cookies as string | undefined;
+    if (!cookies?.trim()) {
+      return undefined;
+    }
+    const cookiesFile = join(tmpdir(), `yt-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+    await writeFile(cookiesFile, cookies.trim(), 'utf-8');
+    return cookiesFile;
   }
 
   public async search(query: string, type: SearchType, provider: TrackProvider): Promise<SearchResult[]> {
@@ -166,10 +183,11 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     return this.ytDlpService.getStreamUrl(sourceUrl);
   }
 
-  private async searchTracks(query: string, _provider: TrackProvider): Promise<TrackSearchResult[]> {
+  private async searchTracks(query: string, provider: TrackProvider): Promise<TrackSearchResult[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
       if (isYoutubeUrl(query)) {
-        const trackInfo = await this.ytDlpService.extractTrackInfo(query);
+        const trackInfo = await this.ytDlpService.extractTrackInfo(query, { cookiesFile });
         if (!trackInfo) {
           return [];
         }
@@ -193,7 +211,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         ];
       }
 
-      const results = await this.ytDlpService.searchYoutube(query, 20);
+      const results = await this.ytDlpService.searchYoutube(query, 20, cookiesFile);
       return results.map((info) => ({
         type: 'track' as const,
         provider: 'youtube' as const,
@@ -205,16 +223,24 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         duration: info.duration ? Math.floor(info.duration) : undefined,
       }));
     } catch (error) {
+      if (isBotDetectionError(error)) {
+        throw new ProviderAuthError('COOKIES_REQUIRED', 'youtube', `YouTube bot detection: ${error}`);
+      }
       console.error(`Error searching YouTube tracks: ${error}`);
       return [];
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
-  private async searchAlbums(query: string, _provider: TrackProvider): Promise<AlbumSearchResult[]> {
+  private async searchAlbums(query: string, provider: TrackProvider): Promise<AlbumSearchResult[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
       if (isYoutubeUrl(query) || isYoutubePlaylistUrl(query)) {
         if (!isYoutubePlaylistUrl(query)) {
-          const trackInfo = await this.ytDlpService.extractTrackInfo(query);
+          const trackInfo = await this.ytDlpService.extractTrackInfo(query, { cookiesFile });
           if (trackInfo?.chapters?.length) {
             return [
               {
@@ -232,7 +258,7 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         // URL without chapters — not an album, skip text search
         return [];
       }
-      const results = await this.ytDlpService.searchYoutubeAlbums(query, 20);
+      const results = await this.ytDlpService.searchYoutubeAlbums(query, 20, cookiesFile);
       return results.map((info) => ({
         type: 'album' as const,
         provider: 'youtube' as const,
@@ -243,31 +269,44 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         trackCount: undefined,
       }));
     } catch (error) {
+      if (isBotDetectionError(error)) {
+        throw new ProviderAuthError('COOKIES_REQUIRED', 'youtube', `YouTube bot detection: ${error}`);
+      }
       console.error(`Error searching YouTube albums: ${error}`);
       return [];
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
-  private async searchArtists(query: string, _provider: TrackProvider): Promise<ArtistSearchResult[]> {
+  private async searchArtists(query: string, provider: TrackProvider): Promise<ArtistSearchResult[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
       if (isYoutubeUrl(query) || isYoutubePlaylistUrl(query)) {
         return [];
       }
-      const results = await this.ytDlpService.searchYoutubeArtists(query, 20);
+      const results = await this.ytDlpService.searchYoutubeArtists(query, 20, cookiesFile);
       return results.map((info) => ({
         type: 'artist' as const,
         provider: 'youtube' as const,
         name: (info.channel || info.uploader || info.title)?.replace(' - Topic', '') ?? 'Unknown Artist',
         imageUrl: info.thumbnail,
-        externalUrl: info.channel_url || info.uploader_url || info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`,
+        externalUrl: (info.channel_url || info.uploader_url || info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`) as string,
       }));
     } catch (error) {
       console.error(`Error searching YouTube artists: ${error}`);
       return [];
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
-  private async searchPlaylists(query: string, _provider: TrackProvider): Promise<PlaylistSearchResult[]> {
+  private async searchPlaylists(query: string, provider: TrackProvider): Promise<PlaylistSearchResult[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
       if (isYoutubeUrl(query) || isYoutubePlaylistUrl(query)) {
         return [];
@@ -280,19 +319,24 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
         description: info.description,
         coverUrl: info.thumbnail,
         externalUrl: info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`,
-        trackCount: info.playlist_count,
+        trackCount: info.playlist_count as number | undefined,
         owner: info.uploader ?? info.channel,
       }));
     } catch (error) {
       console.error(`Error searching YouTube playlists: ${error}`);
       return [];
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
   public async getTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
     url = normalizeYoutubeUrl(url);
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
-      const trackInfo = await this.ytDlpService.extractTrackInfo(url);
+      const trackInfo = await this.ytDlpService.extractTrackInfo(url, { cookiesFile });
       if (!trackInfo) {
         throw new Error('Failed to extract track info from URL');
       }
@@ -306,17 +350,22 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     } catch (error) {
       console.error(`Error getting tracks from URL ${url}: ${error}`);
       throw error;
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
   public async getAlbumTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
     url = normalizeYoutubeUrl(url);
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
       if (url.includes('playlist') || url.includes('list=')) {
         return this.getPlaylistTracks(url, provider);
       }
       // Always fetch with comments — descriptions are often truncated by YouTube
-      const trackInfo = await this.ytDlpService.extractTrackInfo(url, { withComments: true });
+      const trackInfo = await this.ytDlpService.extractTrackInfo(url, { withComments: true, cookiesFile });
       if (!trackInfo) {
         throw new Error('Failed to extract album info from URL');
       }
@@ -329,16 +378,21 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     } catch (error) {
       console.error(`Error getting album tracks from URL ${url}: ${error}`);
       throw error;
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
-  public async getArtistTracks(url: string, _provider: TrackProvider): Promise<PluginImportTrack[]> {
+  public async getArtistTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
-      const channelTracks = await this.ytDlpService.extractChannelTracks(url, 200);
+      const channelTracks = await this.ytDlpService.extractChannelTracks(url, 200, cookiesFile);
       const all: PluginImportTrack[] = [];
       for (const info of channelTracks) {
         try {
-          const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url);
+          const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url, { cookiesFile });
           if (fullInfo) {
             all.push(...this.buildImportTracksFromInfo(fullInfo));
           }
@@ -350,16 +404,21 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     } catch (error) {
       console.error(`Error getting artist tracks from URL ${url}: ${error}`);
       throw error;
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 
-  public async getPlaylistTracks(url: string, _provider: TrackProvider): Promise<PluginImportTrack[]> {
+  public async getPlaylistTracks(url: string, provider: TrackProvider): Promise<PluginImportTrack[]> {
+    const cookiesFile = await this.createCookiesFile(provider);
     try {
-      const playlistTracks = await this.ytDlpService.extractPlaylistTracks(url);
+      const playlistTracks = await this.ytDlpService.extractPlaylistTracks(url, cookiesFile);
       const all: PluginImportTrack[] = [];
       for (const info of playlistTracks) {
         try {
-          const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url);
+          const fullInfo = await this.ytDlpService.extractTrackInfo(info.webpage_url, { cookiesFile });
           if (fullInfo) {
             all.push(...this.buildImportTracksFromInfo(fullInfo));
           }
@@ -371,6 +430,10 @@ export class YoutubePlugin implements SearchProvider, ImportProvider, DownloadPr
     } catch (error) {
       console.error(`Error getting playlist tracks from URL ${url}: ${error}`);
       throw error;
+    } finally {
+      if (cookiesFile) {
+        await deleteCookiesFile(cookiesFile);
+      }
     }
   }
 

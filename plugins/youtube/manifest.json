@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "icon": "youtube",
   "entry": "./src/index.ts",
+  "scope": "personal",
   "features": ["search", "stream", "import"],
   "searchTypes": ["track", "album", "artist", "playlist"],
   "importTypes": ["track", "album", "artist", "playlist"],
@@ -14,8 +15,17 @@
       "name": "downloadPath",
       "type": "string",
       "label": "Download path",
-      "description": "Local directory where downloaded tracks will be saved (e.g. /home/user/Music)",
-      "placeholder": "/path/to/music",
+      "description": "Server path where YouTube audio files will be downloaded (e.g. /music/youtube)",
+      "required": true
+    }
+  ],
+  "connectionSchema": [
+    {
+      "name": "cookies",
+      "type": "textarea",
+      "label": "Cookies (optional)",
+      "description": "YouTube cookies in Netscape format. Only needed if YouTube blocks requests. Export from your browser with the « Get cookies.txt LOCALLY » extension or via: yt-dlp --cookies-from-browser chrome --skip-download <url>",
+      "placeholder": "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t...",
       "required": false
     }
   ]
