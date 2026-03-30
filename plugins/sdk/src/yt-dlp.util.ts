@@ -220,7 +220,11 @@ export class YtDlpService {
     this.logger = logger;
   }
 
-  public async getStreamUrl(sourceUrl: string): Promise<string> {
+  private static cookiesArgs(cookiesFile?: string): string[] {
+    return cookiesFile ? ['--cookies', cookiesFile] : [];
+  }
+
+  public async getStreamUrl(sourceUrl: string, cookiesFile?: string): Promise<string> {
     const cached = this.streamInfoCache.get(sourceUrl);
     if (cached) {
       return cached.url;
@@ -236,7 +240,8 @@ export class YtDlpService {
         formatSelector = 'bestaudio[protocol!=m3u8][protocol!=m3u8_native][protocol!=http_dash_segments]/bestaudio';
       }
 
-      const result = await $`yt-dlp -f ${formatSelector} -g ${sourceUrl}`.text();
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
+      const result = await $`yt-dlp -f ${formatSelector} -g ${cookies} ${sourceUrl}`.text();
       const streamUrl = result.trim();
       this.streamInfoCache.set(sourceUrl, { url: streamUrl });
       return streamUrl;
@@ -250,16 +255,17 @@ export class YtDlpService {
     this.streamInfoCache.delete(sourceUrl);
   }
 
-  public async extractTrackInfo(url: string, options?: { withComments?: boolean }): Promise<YtDlpTrackInfo | null> {
+  public async extractTrackInfo(url: string, options?: { withComments?: boolean; cookiesFile?: string }): Promise<YtDlpTrackInfo | null> {
     const cacheKey = options?.withComments ? `${url}#comments` : url;
     const cached = this.trackInfoCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
+    const cookies = YtDlpService.cookiesArgs(options?.cookiesFile);
     try {
       // Fast path: extract metadata without downloading comments
-      const info: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist --extractor-args "youtube:player_client=default" ${url}`.json();
+      const info: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist ${cookies} --extractor-args "youtube:player_client=default" ${url}`.json();
 
       const cleanTitle = (title: string): string => {
         const trim = (str: string) => str.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
@@ -297,7 +303,7 @@ export class YtDlpService {
         let commentChapters: YtDlpChapter[] = [];
         if (options?.withComments && info.duration) {
           try {
-            const infoWithComments: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist --write-comments --extractor-args "youtube:player_client=default" ${url}`.json();
+            const infoWithComments: YtDlpTrackInfo = await $`yt-dlp -j --no-playlist --write-comments ${cookies} --extractor-args "youtube:player_client=default" ${url}`.json();
             const totalComments = infoWithComments.comments?.length ?? 0;
             if (infoWithComments.comments && totalComments > 0) {
               const rootComments = infoWithComments.comments.filter((c) => c.parent === 'root');
@@ -346,21 +352,24 @@ export class YtDlpService {
     }
   }
 
-  public async searchYoutube(query: string, maxResults = 20): Promise<YtDlpTrackInfo[]> {
+  public async searchYoutube(query: string, maxResults = 20, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
     try {
-      const searchQuery = `ytsearch${maxResults}:${query}`;
-      const result = await $`yt-dlp -j --flat-playlist --extractor-args "youtube:player_client=default" ${searchQuery}`.text();
+      const searchUrl = `https://music.youtube.com/search?q=${encodeURIComponent(query)}`;
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
+      const result = await $`yt-dlp -j --flat-playlist --playlist-end ${maxResults} ${cookies} ${searchUrl}`.text();
       const lines = result
         .trim()
         .split('\n')
         .filter((l) => l.trim() !== '');
-      return lines.map((line) => {
-        const info = JSON.parse(line);
-        if (!info.thumbnail && info.id) {
-          info.thumbnail = `https://i.ytimg.com/vi/${info.id}/mqdefault.jpg`;
-        }
-        return info;
-      });
+      return lines
+        .map((line) => {
+          const info = JSON.parse(line);
+          if (!info.thumbnail && info.id) {
+            info.thumbnail = `https://i.ytimg.com/vi/${info.id}/mqdefault.jpg`;
+          }
+          return info;
+        })
+        .filter((info) => typeof info.duration === 'number' && info.duration > 0);
     } catch (error) {
       handleYtDlpError(error, 'search YouTube', this.logger);
       return [];
@@ -372,11 +381,12 @@ export class YtDlpService {
     return [];
   }
 
-  public async searchYoutubeArtists(query: string, maxResults = 20): Promise<YtDlpTrackInfo[]> {
+  public async searchYoutubeArtists(query: string, maxResults = 20, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
     try {
       const results: YtDlpTrackInfo[] = [];
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
       const topicQuery = `ytsearch${Math.ceil(maxResults / 2)}:${query} - Topic`;
-      const topicResult = await $`yt-dlp -j --flat-playlist --extractor-args "youtube:player_client=default" ${topicQuery}`.text();
+      const topicResult = await $`yt-dlp -j --flat-playlist ${cookies} --extractor-args "youtube:player_client=default" ${topicQuery}`.text();
       const topicLines = topicResult
         .trim()
         .split('\n')
@@ -385,7 +395,7 @@ export class YtDlpService {
       results.push(...topicChannels);
 
       const channelQuery = `ytsearch${Math.ceil(maxResults / 2)}:${query} channel`;
-      const channelResult = await $`yt-dlp -j --flat-playlist --extractor-args "youtube:player_client=default" ${channelQuery}`.text();
+      const channelResult = await $`yt-dlp -j --flat-playlist ${cookies} --extractor-args "youtube:player_client=default" ${channelQuery}`.text();
       const channelLines = channelResult
         .trim()
         .split('\n')
@@ -406,10 +416,11 @@ export class YtDlpService {
     }
   }
 
-  public async searchYoutubeAlbums(query: string, maxResults = 20): Promise<YtDlpTrackInfo[]> {
+  public async searchYoutubeAlbums(query: string, maxResults = 20, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
     try {
       const searchQuery = `ytsearch${maxResults}:${query} full album`;
-      const result = await $`yt-dlp -j --flat-playlist --extractor-args "youtube:player_client=default" ${searchQuery}`.text();
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
+      const result = await $`yt-dlp -j --flat-playlist ${cookies} --extractor-args "youtube:player_client=default" ${searchQuery}`.text();
       const lines = result
         .trim()
         .split('\n')
@@ -442,9 +453,10 @@ export class YtDlpService {
     }
   }
 
-  public async extractPlaylistTracks(playlistUrl: string): Promise<YtDlpTrackInfo[]> {
+  public async extractPlaylistTracks(playlistUrl: string, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
     try {
-      const result = await $`yt-dlp -j --flat-playlist --extractor-args "youtube:player_client=default" ${playlistUrl}`.text();
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
+      const result = await $`yt-dlp -j --flat-playlist ${cookies} --extractor-args "youtube:player_client=default" ${playlistUrl}`.text();
       const lines = result
         .trim()
         .split('\n')
@@ -465,9 +477,10 @@ export class YtDlpService {
     }
   }
 
-  public async extractChannelTracks(channelUrl: string, maxResults = 100): Promise<YtDlpTrackInfo[]> {
+  public async extractChannelTracks(channelUrl: string, maxResults = 100, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
     try {
-      const result = await $`yt-dlp -j --flat-playlist --playlist-end ${maxResults} --extractor-args "youtube:player_client=default" ${channelUrl}/videos`.text();
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
+      const result = await $`yt-dlp -j --flat-playlist --playlist-end ${maxResults} ${cookies} --extractor-args "youtube:player_client=default" ${channelUrl}/videos`.text();
       const lines = result
         .trim()
         .split('\n')
@@ -488,10 +501,11 @@ export class YtDlpService {
     }
   }
 
-  public async extractChannelInfo(channelUrl: string): Promise<YtDlpChannelInfo | null> {
+  public async extractChannelInfo(channelUrl: string, cookiesFile?: string): Promise<YtDlpChannelInfo | null> {
     try {
+      const cookies = YtDlpService.cookiesArgs(cookiesFile);
       const aboutUrl = `${channelUrl.replace(/\/videos\/?$/, '').replace(/\/?$/, '')}/about`;
-      const result = await $`yt-dlp -j --skip-download --extractor-args "youtube:player_client=default" ${aboutUrl}`.text();
+      const result = await $`yt-dlp -j --skip-download ${cookies} --extractor-args "youtube:player_client=default" ${aboutUrl}`.text();
       const info = JSON.parse(result.trim()) as Record<string, unknown>;
       const resolvedUrl = (info.channel_url as string) || (info.uploader_url as string) || channelUrl;
       return {
