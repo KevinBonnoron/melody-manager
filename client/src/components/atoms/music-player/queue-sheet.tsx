@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { ListMusic, Loader2, Music2, Pause, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +52,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                 const isCurrentTrack = currentTrack?.id === track.id;
                 const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
                 const isListened = currentIndex > -1 && index < currentIndex;
-                const albumCoverUrl = track.expand?.album?.coverUrl;
+                const albumCoverUrl = track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined;
                 const artistName = track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist';
 
                 return (

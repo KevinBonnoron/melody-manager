@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Check, Disc3, ExternalLink, Library, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumLikes } from '@/hooks/use-album-likes';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -19,6 +20,7 @@ interface Props {
 export function AlbumPage({ album, tracks, artists }: Props) {
   const { t } = useTranslation();
   const { isLiked, toggleLike } = useAlbumLikes();
+  const coverUrl = getAlbumCoverUrl(album);
   const totalDuration = tracks.reduce((sum, { duration }) => sum + duration, 0);
   const sourceUrl = (() => {
     const raw = tracks.find((t) => {
@@ -40,7 +42,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
       <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 xl:gap-x-8 xl:gap-y-4 mb-8">
         <div className="row-span-2">
           <div className="w-32 h-32 xl:w-64 xl:h-64 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
-            {album.coverUrl ? <img src={album.coverUrl} alt={album.name} className="w-full h-full object-cover" /> : <Disc3 className="h-16 w-16 xl:h-32 xl:w-32 text-primary/60" />}
+            {coverUrl ? <img src={coverUrl} alt={album.name} className="w-full h-full object-cover" /> : <Disc3 className="h-16 w-16 xl:h-32 xl:w-32 text-primary/60" />}
           </div>
         </div>
 

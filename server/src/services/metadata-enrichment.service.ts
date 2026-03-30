@@ -1,4 +1,5 @@
 import type { Track } from '@melody-manager/shared';
+import { uploadImageToRecord } from '../lib/image-upload';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { albumRepository, artistRepository, trackRepository } from '../repositories';
@@ -56,7 +57,7 @@ class MetadataEnrichmentService {
 
   private async enrichAlbum(albumId: string): Promise<void> {
     const album = await albumRepository.getOne(albumId);
-    if (!album || (album.coverUrl && album.year)) {
+    if (!album || (album.cover && album.year)) {
       return;
     }
 
@@ -70,21 +71,15 @@ class MetadataEnrichmentService {
       return;
     }
 
-    const update: { coverUrl?: string; year?: number } = {};
+    if (!album.year && release.year) {
+      await albumRepository.update(albumId, { year: release.year });
+    }
 
-    if (!album.coverUrl) {
+    if (!album.cover) {
       const coverUrl = await musicBrainzClient.getCoverArtUrl(release.mbid);
       if (coverUrl) {
-        update.coverUrl = coverUrl;
+        await uploadImageToRecord('albums', albumId, 'cover', coverUrl);
       }
-    }
-
-    if (!album.year && release.year) {
-      update.year = release.year;
-    }
-
-    if (Object.keys(update).length > 0) {
-      await albumRepository.update(albumId, update);
     }
   }
 
@@ -96,11 +91,12 @@ class MetadataEnrichmentService {
 
     const knownMbid = artist.metadata?.mbid;
 
-    if (knownMbid && artist.imageUrl) {
+    if (knownMbid && artist.image) {
       return;
     }
 
-    const mbArtist = knownMbid ? { mbid: knownMbid, wikidataId: undefined } : await musicBrainzClient.searchArtist(artist.name);
+    // When MBID is known but image is missing, still search to get wikidataId for image backfill
+    const mbArtist = knownMbid && artist.image ? { mbid: knownMbid, wikidataId: undefined } : await musicBrainzClient.searchArtist(artist.name);
     if (!mbArtist) {
       return;
     }
@@ -114,21 +110,21 @@ class MetadataEnrichmentService {
       }
     }
 
-    const update: { metadata?: { mbid: string }; imageUrl?: string } = {};
+    const update: { metadata?: { mbid: string } } = {};
 
     if (!knownMbid) {
       update.metadata = { ...artist.metadata, mbid: mbArtist.mbid };
     }
 
-    if (!artist.imageUrl && mbArtist.wikidataId) {
-      const imageUrl = await musicBrainzClient.getArtistImageUrl(mbArtist.wikidataId);
-      if (imageUrl) {
-        update.imageUrl = imageUrl;
-      }
-    }
-
     if (Object.keys(update).length > 0) {
       await artistRepository.update(artistId, update);
+    }
+
+    if (!artist.image && mbArtist.wikidataId) {
+      const imageUrl = await musicBrainzClient.getArtistImageUrl(mbArtist.wikidataId);
+      if (imageUrl) {
+        await uploadImageToRecord('artists', artistId, 'image', imageUrl);
+      }
     }
   }
 
