@@ -3,19 +3,19 @@ import type { SearchResult, SearchType, Task, TrackProvider } from '@melody-mana
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
-import { providerRepository } from '../repositories';
+import { connectionRepository, providerRepository } from '../repositories';
 import { importPersistService } from './import-persist.service';
 import { libraryService } from './library.service';
 import { taskService } from './task.service';
 
 class SourceService {
   public async addFromUrl(url: string, userId?: string | null): Promise<Task> {
-    const { provider, importPlugin } = await this.resolveImport(url);
+    const { provider, importPlugin } = await this.resolveImport(url, userId);
     return this.runImportTask(`Import track from ${provider.type}`, provider, () => importPlugin.getTracks(url, provider), userId);
   }
 
   public async addAlbumFromUrl(url: string, userId?: string | null): Promise<Task> {
-    const { provider, importPlugin } = await this.resolveImport(url);
+    const { provider, importPlugin } = await this.resolveImport(url, userId);
     const getAlbumTracks = importPlugin.getAlbumTracks?.bind(importPlugin);
     if (!getAlbumTracks) {
       throw new Error(`Provider ${provider.type} does not support album import`);
@@ -24,7 +24,7 @@ class SourceService {
   }
 
   public async addArtistFromUrl(url: string, userId?: string | null): Promise<Task> {
-    const { provider, importPlugin } = await this.resolveImport(url);
+    const { provider, importPlugin } = await this.resolveImport(url, userId);
     const getArtistTracks = importPlugin.getArtistTracks?.bind(importPlugin);
     if (!getArtistTracks) {
       throw new Error(`Provider ${provider.type} does not support artist import`);
@@ -33,7 +33,7 @@ class SourceService {
   }
 
   public async addPlaylistFromUrl(url: string, userId?: string | null): Promise<Task> {
-    const { provider, importPlugin } = await this.resolveImport(url);
+    const { provider, importPlugin } = await this.resolveImport(url, userId);
     const getPlaylistTracks = importPlugin.getPlaylistTracks?.bind(importPlugin);
     if (!getPlaylistTracks) {
       throw new Error(`Provider ${provider.type} does not support playlist import`);
@@ -54,15 +54,44 @@ class SourceService {
     return await searchPlugin.search(query, type, provider);
   }
 
-  private async resolveImport(url: string): Promise<{ provider: TrackProvider; importPlugin: ImportProvider }> {
+  private async resolveImport(url: string, userId?: string | null): Promise<{ provider: TrackProvider; importPlugin: ImportProvider }> {
     const providerType = pluginRegistry.detectProviderFromUrl(url);
     if (!providerType) {
       throw new Error('Could not detect provider from URL');
     }
 
-    const provider = (await providerRepository.getOneBy(pbFilter('type = {:providerType} && enabled = true && category = "track"', { providerType }))) as TrackProvider;
-    if (!provider) {
+    const manifest = pluginRegistry.getManifest(providerType);
+    if (!manifest) {
+      throw new Error(`Unknown provider type: ${providerType}`);
+    }
+    const systemProvider = await providerRepository.getOneBy(pbFilter('type = {:providerType} && enabled = true && category = "track"', { providerType }));
+    if (!systemProvider) {
       throw new Error(`Provider ${providerType} is not enabled`);
+    }
+
+    let effectiveProvider: TrackProvider;
+
+    if (manifest.scope === 'personal') {
+      if (!userId) {
+        throw new Error(`Provider ${providerType} requires authentication`);
+      }
+      const connection = await connectionRepository.getOneBy(pbFilter('provider = {:providerId} && user = {:userId} && enabled = true', { providerId: systemProvider.id, userId }));
+      if (!connection) {
+        throw new Error(`No active connection for provider ${providerType}`);
+      }
+      effectiveProvider = {
+        id: systemProvider.id,
+        collectionId: systemProvider.collectionId,
+        collectionName: systemProvider.collectionName,
+        created: systemProvider.created,
+        updated: systemProvider.updated,
+        type: systemProvider.type,
+        category: 'track',
+        config: { ...systemProvider.config, ...connection.config },
+        enabled: connection.enabled,
+      };
+    } else {
+      effectiveProvider = systemProvider as TrackProvider;
     }
 
     const importPlugin = pluginRegistry.getImportProvider(providerType);
@@ -70,7 +99,7 @@ class SourceService {
       throw new Error(`No import plugin found for ${providerType}`);
     }
 
-    return { provider, importPlugin };
+    return { provider: effectiveProvider, importPlugin };
   }
 
   private runImportTask(name: string, provider: TrackProvider, fetchTracks: () => Promise<PluginImportTrack[]>, userId?: string | null): Task {

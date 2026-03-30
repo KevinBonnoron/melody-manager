@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import { copyFileSync, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { ffmpeg } from './ffmpeg';
-
 import type { ILogger } from './logger';
 
 export interface CacheEntry {

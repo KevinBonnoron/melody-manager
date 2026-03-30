@@ -1,34 +1,79 @@
-import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
+import { ProviderAuthError } from '@melody-manager/plugin-sdk';
+import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, ProviderError, SearchResponse, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { pluginRegistry } from '../plugins';
-import { albumRepository, artistRepository, providerRepository, trackRepository } from '../repositories';
+import { albumRepository, artistRepository, connectionRepository, providerRepository, trackRepository } from '../repositories';
 import { trackSourceService } from './track-source.service';
 
 class SearchService {
-  public async search(query: string, type: SearchType): Promise<SearchResult[]> {
-    const providers = await this.getProvidersForQuery(query);
+  public async search(query: string, type: SearchType, userId?: string | null): Promise<SearchResponse> {
+    const providers = await this.getProvidersForQuery(query, userId);
+    const providerErrors: ProviderError[] = [];
     const providerResults = await Promise.all(
       providers.map(async (provider) => {
         try {
           return await trackSourceService.search(query, type, provider);
         } catch (error) {
+          if (error instanceof ProviderAuthError) {
+            providerErrors.push({ provider: provider.type, code: error.code });
+            return [];
+          }
           logger.error(`Error searching with provider ${provider.type}: ${error}`);
           return [];
         }
       }),
     );
-    const results = providerResults.flat();
-    return this.enrichWithLibraryStatus(results, type);
+    const results = await this.enrichWithLibraryStatus(providerResults.flat(), type);
+    return { results, providerErrors };
   }
 
-  private async getProvidersForQuery(query: string): Promise<TrackProvider[]> {
-    const allProviders = (await providerRepository.getAllBy('category = "track" && enabled = true')) as TrackProvider[];
+  private async getProvidersForQuery(query: string, userId?: string | null): Promise<TrackProvider[]> {
     const detectedProviderType = pluginRegistry.detectProviderFromUrl(query);
+
+    const providers = await this.getEffectiveProviders(userId);
+
     if (detectedProviderType) {
-      return allProviders.filter((p) => p.type === detectedProviderType);
+      return providers.filter((p) => p.type === detectedProviderType);
     }
-    return allProviders;
+    return providers;
+  }
+
+  public async getEffectiveProviders(userId?: string | null): Promise<TrackProvider[]> {
+    const results: TrackProvider[] = [];
+
+    // Shared providers: used directly, no user config needed
+    const sharedProviders = (await providerRepository.getAllBy('category = "track" && enabled = true')) as TrackProvider[];
+    for (const provider of sharedProviders) {
+      const manifest = pluginRegistry.getManifest(provider.type);
+      if (manifest?.scope === 'shared') {
+        results.push(provider);
+      }
+    }
+
+    // Personal providers: require a connection from the user
+    if (userId) {
+      const connections = await connectionRepository.getAllBy(pbFilter('user = {:userId} && enabled = true', { userId }));
+      for (const connection of connections) {
+        const provider = await providerRepository.getOne(connection.provider);
+        if (!provider || !provider.enabled || provider.category !== 'track') {
+          continue;
+        }
+        results.push({
+          id: provider.id,
+          collectionId: provider.collectionId,
+          collectionName: provider.collectionName,
+          created: provider.created,
+          updated: provider.updated,
+          type: provider.type,
+          category: 'track',
+          config: { ...provider.config, ...connection.config },
+          enabled: connection.enabled,
+        });
+      }
+    }
+
+    return results;
   }
 
   private async enrichWithLibraryStatus(results: SearchResult[], type: SearchType): Promise<SearchResult[]> {

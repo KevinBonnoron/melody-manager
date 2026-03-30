@@ -1,4 +1,4 @@
-import type { ImportProvider, PluginImportTrack, SearchProvider } from '@melody-manager/plugin-sdk';
+import { type ImportProvider, type PluginImportTrack, ProviderAuthError, type SearchProvider } from '@melody-manager/plugin-sdk';
 import type { SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { SpotifyClient } from './spotify-client';
 
@@ -27,8 +27,7 @@ export class SpotifyPlugin implements SearchProvider, ImportProvider {
     const clientId = provider.config.clientId as string | undefined;
     const clientSecret = provider.config.clientSecret as string | undefined;
     if (!clientId || !clientSecret) {
-      console.warn('[Spotify] Search requires clientId and clientSecret configuration');
-      return [];
+      throw new ProviderAuthError('CREDENTIALS_REQUIRED', 'spotify', 'Spotify requires clientId and clientSecret');
     }
     try {
       await this.client.authenticate(clientId, clientSecret);
@@ -54,7 +53,7 @@ export class SpotifyPlugin implements SearchProvider, ImportProvider {
     const clientId = provider.config.clientId as string | undefined;
     const clientSecret = provider.config.clientSecret as string | undefined;
     if (!clientId || !clientSecret) {
-      throw new Error('[Spotify] clientId and clientSecret required');
+      throw new ProviderAuthError('CREDENTIALS_REQUIRED', 'spotify', 'Spotify requires clientId and clientSecret');
     }
     try {
       await this.client.authenticate(clientId, clientSecret);
