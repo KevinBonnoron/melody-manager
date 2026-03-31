@@ -7,6 +7,7 @@ import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AlbumActionsMenu } from './album-actions-menu';
 import { AlbumTable } from './album-table';
 import { PlayAlbumButton } from './play-album-button';
@@ -55,9 +56,20 @@ export function AlbumPage({ album, tracks, artists }: Props) {
               </Link>
             )) ?? t('AlbumPage.unknownArtist')}
             {artists.length > 1 && (
-              <Badge variant="secondary" className="text-xs">
-                +{artists.length - 1}
-              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge variant="secondary" className="text-xs cursor-pointer">
+                    +{artists.length - 1}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="flex flex-col gap-1 p-1 min-w-0">
+                  {artists.slice(1).map((artist) => (
+                    <Link key={artist.id} to="/artists/$artistId" params={{ artistId: artist.id }} className="text-sm hover:underline px-2 py-1 rounded hover:bg-accent">
+                      {artist.name}
+                    </Link>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
