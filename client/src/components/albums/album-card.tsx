@@ -54,7 +54,7 @@ export function AlbumCard({ album }: Props) {
               <span>
                 {trackCount} {t('AlbumPage.tracks', { count: trackCount })}
               </span>
-              {downloadStatus !== 'none' && <Download className="h-3 w-3 text-muted-foreground/70" />}
+              {downloadStatus !== 'none' && provider?.type === 'youtube' && <Download className="h-3 w-3 text-muted-foreground/70" />}
             </p>
           </div>
         </CardContent>

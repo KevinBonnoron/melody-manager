@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuthUser } from '@/hooks/use-auth-user';
+import { useAlbumTracks } from '@/hooks/use-tracks';
 import type { Album } from '@melody-manager/shared';
 import { MoreVertical, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,10 @@ export function AlbumActionsMenu({ album }: Props) {
   const { t } = useTranslation();
   const user = useAuthUser();
   const isAdmin = user.role === 'admin';
+  const { data: tracks = [] } = useAlbumTracks(album.id);
+  const isYouTubeAlbum = tracks.some((t) => t.sourceUrl.includes('youtube.com') || t.sourceUrl.includes('youtu.be'));
+  const hasChapters = tracks.some((t) => t.metadata?.startTime !== undefined);
+  const hasActionItems = isYouTubeAlbum || hasChapters;
 
   return (
     <DeleteAlbumDialog
@@ -32,7 +37,7 @@ export function AlbumActionsMenu({ album }: Props) {
             <ResyncAlbumMenuItem album={album} />
             {isAdmin && (
               <>
-                <DropdownMenuSeparator />
+                {hasActionItems && <DropdownMenuSeparator />}
                 <DropdownMenuItem onSelect={openDialog}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   {t('AlbumActionsMenu.delete')}
