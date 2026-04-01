@@ -23,10 +23,12 @@ export const taskRoute = new Hono()
       }
 
       const unsubscribe = taskService.onUpdate((task) => {
-        stream.writeSSE({
-          data: JSON.stringify(task),
-          event: 'task',
-        });
+        stream
+          .writeSSE({
+            data: JSON.stringify(task),
+            event: 'task',
+          })
+          .catch(() => unsubscribe());
       });
 
       // Keep the stream alive until the client disconnects
