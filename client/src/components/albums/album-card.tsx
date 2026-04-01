@@ -28,7 +28,7 @@ export function AlbumCard({ album }: Props) {
     <Link to="/albums/$albumId" params={{ albumId: album.id }}>
       <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isCurrentAlbum ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-          {coverUrl ? <img src={coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-16 w-16 text-primary/60" />}
+          {coverUrl ? <img src={coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-8 w-8 sm:h-12 sm:w-12 text-primary/60" />}
 
           {provider && (
             <div className="absolute top-2 right-2">
@@ -46,11 +46,11 @@ export function AlbumCard({ album }: Props) {
             </div>
           )}
         </div>
-        <CardContent className="px-2 py-1.5 sm:p-4">
-          <div className="flex flex-col gap-0 sm:gap-1">
-            <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{album.name}</h3>
-            <p className="hidden sm:block text-sm text-muted-foreground line-clamp-1">{album.expand?.artists?.map((artist) => artist.name).join(', ') ?? t('AlbumPage.unknownArtist')}</p>
-            <p className="hidden sm:flex text-xs text-muted-foreground items-center gap-1">
+        <CardContent className="px-1.5 py-1 sm:px-2 sm:py-1.5">
+          <div className="flex flex-col gap-0 sm:gap-0.5">
+            <h3 className="font-semibold text-[11px] sm:text-xs line-clamp-1">{album.name}</h3>
+            <p className="hidden sm:block text-[11px] text-muted-foreground line-clamp-1">{album.expand?.artists?.map((artist) => artist.name).join(', ') ?? t('AlbumPage.unknownArtist')}</p>
+            <p className="hidden sm:flex text-[11px] text-muted-foreground items-center gap-1">
               <span>
                 {trackCount} {t('AlbumPage.tracks', { count: trackCount })}
               </span>

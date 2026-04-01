@@ -25,7 +25,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-10 pb-48">
-      <RecentSection<Artist> title={t('HomePage.recentArtists')} items={sortedArtists} isLoading={isLoadingArtists} renderItem={(artist) => <ArtistCard key={artist.id} artist={artist} />} />
+      <RecentSection<Artist> title={t('HomePage.recentArtists')} items={sortedArtists} isLoading={isLoadingArtists} gridClassName="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-4" renderItem={(artist) => <ArtistCard key={artist.id} artist={artist} />} />
 
       <RecentSection<Album> title={t('HomePage.recentAlbums')} items={sortedAlbums} isLoading={isLoadingAlbums} renderItem={(album) => <AlbumCard key={album.id} album={album} />} />
     </div>
@@ -37,9 +37,10 @@ interface RecentSectionProps<T> {
   items: T[];
   isLoading: boolean;
   renderItem: (item: T) => React.ReactNode;
+  gridClassName?: string;
 }
 
-function RecentSection<T>({ title, items, isLoading, renderItem }: RecentSectionProps<T>) {
+function RecentSection<T>({ title, items, isLoading, renderItem, gridClassName }: RecentSectionProps<T>) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -61,7 +62,7 @@ function RecentSection<T>({ title, items, isLoading, renderItem }: RecentSection
           </Button>
         )}
       </div>
-      {isLoading ? <CardSkeletonGrid /> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">{displayItems.map(renderItem)}</div>}
+      {isLoading ? <CardSkeletonGrid gridClassName={gridClassName} /> : <div className={gridClassName ?? 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3'}>{displayItems.map(renderItem)}</div>}
     </section>
   );
 }

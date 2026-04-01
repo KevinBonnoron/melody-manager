@@ -36,13 +36,15 @@ export function TrackGrid({ tracks, provider }: Props) {
     const updateColumns = () => {
       const width = window.innerWidth;
       if (width < 768) {
-        setColumns(2); // mobile
+        setColumns(3);
       } else if (width < 1024) {
-        setColumns(3); // md
+        setColumns(4);
       } else if (width < 1280) {
-        setColumns(4); // lg
+        setColumns(5);
+      } else if (width < 1536) {
+        setColumns(6);
       } else {
-        setColumns(5); // xl
+        setColumns(7);
       }
     };
 
@@ -103,7 +105,7 @@ export function TrackGrid({ tracks, provider }: Props) {
                 transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
               }}
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 mb-2 sm:mb-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3 mb-2 sm:mb-3">
                 {row.map((track) => (
                   <TrackCard key={track.id} track={track} onPlay={handlePlayTrack} isPlaying={currentTrack?.id === track.id && isPlaying} isLoading={currentTrack?.id === track.id && isLoading} />
                 ))}
