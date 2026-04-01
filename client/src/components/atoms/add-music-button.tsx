@@ -211,7 +211,7 @@ export function AddMusicButton() {
               )}
 
               {filteredTracks.length > 0 && (
-                <CommandGroup heading={t('GlobalSearch.tracks')}>
+                <CommandGroup heading={t('GlobalSearch.tracks')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredTracks.map((result) => (
                     <TrackResultItem key={`track-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
                   ))}
@@ -219,7 +219,7 @@ export function AddMusicButton() {
               )}
 
               {filteredAlbums.length > 0 && (
-                <CommandGroup heading={t('GlobalSearch.albums')}>
+                <CommandGroup heading={t('GlobalSearch.albums')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredAlbums.map((result) => (
                     <AlbumResultItem key={`album-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
                   ))}
@@ -227,7 +227,7 @@ export function AddMusicButton() {
               )}
 
               {filteredPlaylists.length > 0 && (
-                <CommandGroup heading={t('GlobalSearch.playlists')}>
+                <CommandGroup heading={t('GlobalSearch.playlists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredPlaylists.map((result) => (
                     <PlaylistResultItem key={`playlist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
                   ))}
@@ -235,7 +235,7 @@ export function AddMusicButton() {
               )}
 
               {filteredArtists.length > 0 && (
-                <CommandGroup heading={t('GlobalSearch.artists')}>
+                <CommandGroup heading={t('GlobalSearch.artists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredArtists.map((result) => (
                     <ArtistResultItem key={`artist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
                   ))}
