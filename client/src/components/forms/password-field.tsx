@@ -2,6 +2,7 @@ import { useFieldContext } from '@/lib/forms';
 import { useStore } from '@tanstack/react-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
@@ -14,6 +15,7 @@ export interface PasswordFieldProps {
 }
 
 export function PasswordField({ label, placeholder = '', autoComplete = 'off', className, labelAction }: PasswordFieldProps) {
+  const { t } = useTranslation();
   const inputId = useId();
   const field = useFieldContext<string>();
   const hasError = useStore(field.store, (state) => state.meta.isTouched && state.meta.errors.length > 0);
@@ -25,7 +27,7 @@ export function PasswordField({ label, placeholder = '', autoComplete = 'off', c
   }
 
   const toggleIcon = (
-    <button type="button" onClick={handleTogglePassword} className="text-gray-500 dark:text-gray-400 transition-colors flex items-center justify-center" tabIndex={-1}>
+    <button type="button" onClick={handleTogglePassword} className="text-muted-foreground transition-colors flex items-center justify-center" aria-label={showPassword ? t('PasswordField.hidePassword') : t('PasswordField.showPassword')} aria-pressed={showPassword}>
       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
     </button>
   );

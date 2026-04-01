@@ -532,5 +532,9 @@
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "avatarUpdated": "Avatar mis à jour avec succès",
     "avatarUpdateError": "Impossible de mettre à jour l'avatar"
+  },
+  "PasswordField": {
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
   }
 }

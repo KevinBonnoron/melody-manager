@@ -532,5 +532,9 @@
     "passwordsMismatch": "Passwords do not match",
     "avatarUpdated": "Avatar updated successfully",
     "avatarUpdateError": "Failed to update avatar"
+  },
+  "PasswordField": {
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   }
 }

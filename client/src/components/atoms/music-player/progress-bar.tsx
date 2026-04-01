@@ -131,8 +131,8 @@ export function ProgressBar() {
           }}
         />
       )}
-      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-foreground/60 pointer-events-none tabular-nums">{formatTime(currentTime)}</span>
-      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-foreground/40 pointer-events-none tabular-nums">{formatTime(currentTrack.duration)}</span>
+      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none tabular-nums">{formatTime(currentTime)}</span>
+      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none tabular-nums">{formatTime(currentTrack.duration)}</span>
       {chapters.length > 0 && (
         <div className="absolute top-0 left-0 right-0 h-full pointer-events-none">
           {chapters.map((chapter) => {

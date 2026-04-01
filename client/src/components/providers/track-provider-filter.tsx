@@ -48,7 +48,7 @@ export function TrackProviderFilter<T>({ selectedProvider, onProviderChange, ite
     };
 
     if (!colorStyles[provider.type]) {
-      return `${baseStyles} ${selectedStyles} bg-gray-500/10 text-gray-600 dark:text-gray-400 hover:bg-gray-500/20 border-gray-500/20`;
+      return `${baseStyles} ${selectedStyles} bg-muted text-muted-foreground hover:bg-muted/80 border-border`;
     }
 
     return `${baseStyles} ${selectedStyles} ${colorStyles[provider.type]}`;
