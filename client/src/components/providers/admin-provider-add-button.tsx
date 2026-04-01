@@ -28,8 +28,6 @@ export function AdminProviderAddButton({ type, category, title, description }: P
   const info = providerInfo[type] ?? null;
   const initialConfig = useMemo(() => getDefaultConfigForType(manifests, type) as ConfigFormData, [manifests, type]);
 
-  const manifest = useMemo(() => manifests.find((m) => m.id === type), [manifests, type]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!info) {
       return;
@@ -39,7 +37,6 @@ export function AdminProviderAddButton({ type, category, title, description }: P
         id: crypto.randomUUID(),
         type,
         category,
-        scope: manifest?.scope,
         config,
         enabled: true,
       } as Provider);
@@ -60,7 +57,6 @@ export function AdminProviderAddButton({ type, category, title, description }: P
         id: crypto.randomUUID(),
         type,
         category,
-        scope: manifest?.scope,
         config: {},
         enabled: true,
       } as Provider);

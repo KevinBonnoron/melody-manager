@@ -1,10 +1,8 @@
-import type { PluginScope } from './plugin-manifest.type';
 import type { PocketBaseRecord } from './pocketbase.type';
 
 interface BaseProvider extends PocketBaseRecord {
   type: string;
   category: 'track' | 'device';
-  scope?: PluginScope;
   config: Record<string, unknown>;
   enabled: boolean;
 }

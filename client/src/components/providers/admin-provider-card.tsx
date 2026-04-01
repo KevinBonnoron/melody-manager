@@ -118,7 +118,7 @@ export function AdminProviderCard({ providerId }: Props) {
         <CardAction className="shrink-0">{isEnabled ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground" />}</CardAction>
       </CardHeader>
       <CardFooter className="mt-auto gap-2 border-t p-0 pt-4">
-        {(isShared || isPublic) && hasConfig && <AdminProviderEditButton providerId={providerId} title={info.title} description={info.description} />}
+        {hasConfig && <AdminProviderEditButton providerId={providerId} title={info.title} description={info.description} />}
         {isShared && <ProviderGrantsManager providerId={providerId} />}
         <DeleteSharedProviderButton providerId={providerId} title={info.title} />
       </CardFooter>

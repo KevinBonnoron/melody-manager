@@ -1,4 +1,7 @@
 {
+  "common": {
+    "cancel": "Cancel"
+  },
   "forms": {
     "errors": {
       "email": "Please enter a valid email address",
@@ -259,7 +262,8 @@
   "Onboarding": {
     "title": "Welcome to Melody Manager",
     "description": "Connect your music services to get started. You can always change this later in your profile.",
-    "continue": "Continue to app"
+    "continue": "Continue to app",
+    "adminManaged": "Managed by administrator"
   },
   "LoginPage": {
     "title": "Welcome back",

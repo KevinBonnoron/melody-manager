@@ -75,9 +75,11 @@ class SourceService {
       if (!userId) {
         throw new Error(`Provider ${providerType} requires authentication`);
       }
-      const connection = await connectionRepository.getOneBy(pbFilter('provider = {:providerId} && user = {:userId} && enabled = true', { providerId: systemProvider.id, userId }));
-      if (!connection) {
-        throw new Error(`No active connection for provider ${providerType}`);
+      // Connection is optional: merge if present, fallback to provider config alone
+      // Query without enabled filter so a disabled connection is distinguishable from no connection
+      const connection = await connectionRepository.getOneBy(pbFilter('provider = {:providerId} && user = {:userId}', { providerId: systemProvider.id, userId }));
+      if (connection && !connection.enabled) {
+        throw new Error(`Provider ${providerType} is disconnected for this user`);
       }
       effectiveProvider = {
         id: systemProvider.id,
@@ -87,8 +89,8 @@ class SourceService {
         updated: systemProvider.updated,
         type: systemProvider.type,
         category: 'track',
-        config: { ...systemProvider.config, ...connection.config },
-        enabled: connection.enabled,
+        config: connection ? { ...systemProvider.config, ...connection.config } : systemProvider.config,
+        enabled: connection?.enabled ?? true,
       };
     } else {
       effectiveProvider = systemProvider as TrackProvider;

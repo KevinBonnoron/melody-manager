@@ -1,6 +1,6 @@
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { OnboardingPage } from '@/components/onboarding/onboarding-page';
 import { pb } from '@/lib/pocketbase';
-import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/onboarding')({
   beforeLoad: () => {
