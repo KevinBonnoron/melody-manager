@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useAlbumsForArtist } from '@/hooks/use-album';
 import { useArtistTracks } from '@/hooks/use-tracks';
 import { getArtistImageUrl } from '@/lib/cover-url';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface Props {
   artist: Artist;
@@ -20,18 +19,16 @@ export function ArtistCard({ artist }: Props) {
   const imageUrl = getArtistImageUrl(artist);
 
   return (
-    <Link to="/artists/$artistId" params={{ artistId: artist.id }}>
-      <Card className="group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden relative p-0 gap-0">
-        <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">{imageUrl ? <img src={imageUrl} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-8 w-8 sm:h-16 sm:w-16 text-primary/60" />}</div>
-        <CardContent className="px-2 py-1.5 sm:p-4">
-          <div className="flex flex-col gap-0 sm:gap-0.5 text-center">
-            <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{artist.name}</h3>
-            <p className="hidden sm:block text-xs text-muted-foreground">
-              {albumCount} {t('ArtistPage.albums', { count: albumCount })} · {trackCount} {t('ArtistPage.tracks', { count: trackCount })}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
+      <div className="relative aspect-square w-full overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        {imageUrl ? <img src={imageUrl} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-6 w-6 sm:h-10 sm:w-10 text-primary/60" />}
+      </div>
+      <div className="flex flex-col items-center gap-0 text-center w-full px-1">
+        <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{artist.name}</h3>
+        <p className="hidden sm:block text-[11px] text-muted-foreground">
+          {albumCount} {t('ArtistPage.albums', { count: albumCount })} · {trackCount} {t('ArtistPage.tracks', { count: trackCount })}
+        </p>
+      </div>
     </Link>
   );
 }

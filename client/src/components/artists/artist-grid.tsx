@@ -17,14 +17,18 @@ export function ArtistGrid({ artists }: Props) {
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth;
-      if (width < 768) {
-        setColumns(2);
-      } else if (width < 1024) {
+      if (width < 640) {
         setColumns(3);
-      } else if (width < 1280) {
+      } else if (width < 768) {
         setColumns(4);
-      } else {
+      } else if (width < 1024) {
         setColumns(5);
+      } else if (width < 1280) {
+        setColumns(6);
+      } else if (width < 1536) {
+        setColumns(7);
+      } else {
+        setColumns(8);
       }
     };
 
@@ -84,7 +88,7 @@ export function ArtistGrid({ artists }: Props) {
                 transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
               }}
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 mb-2 sm:mb-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 sm:gap-4 mb-2 sm:mb-4">
                 {row.map((artist) => (
                   <ArtistCard key={artist.id} artist={artist} />
                 ))}

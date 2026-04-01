@@ -63,17 +63,17 @@ export function ArtistPage({ artistId }: Props) {
         <>
           <div className="flex flex-col md:flex-row gap-8 mb-8">
             <div className="flex-shrink-0">
-              <div className="w-64 h-64 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
+              <div className="w-24 h-24 md:w-32 md:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
                 {(() => {
                   const imageUrl = getArtistImageUrl(artist);
-                  return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-32 w-32 text-primary/60" />;
+                  return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-10 w-10 md:h-14 md:w-14 xl:h-16 xl:w-16 text-primary/60" />;
                 })()}
               </div>
             </div>
 
             <div className="flex-1 flex flex-col justify-end">
               <p className="text-sm text-muted-foreground mb-2">{t('ArtistPage.artistLabel')}</p>
-              <h1 className="text-5xl font-bold mb-4">{artist.name}</h1>
+              <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-4">{artist.name}</h1>
               {artist.bio && <p className="text-lg text-muted-foreground mb-6">{artist.bio}</p>}
               <div className="flex items-center gap-4">
                 <Button size="lg" onClick={handlePlayAll} disabled={tracks.length === 0}>
@@ -99,7 +99,7 @@ export function ArtistPage({ artistId }: Props) {
           {albums.length > 0 && (
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">{t('ArtistPage.albumsSectionTitle')}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
                 {albums.map((album) => (
                   <AlbumCard key={album.id} album={album} />
                 ))}
