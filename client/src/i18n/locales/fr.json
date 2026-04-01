@@ -257,6 +257,15 @@
       "COOKIES_REQUIRED": "{{provider}} nécessite des cookies pour fonctionner sur ce serveur.",
       "CREDENTIALS_REQUIRED": "{{provider}} nécessite des identifiants pour afficher des résultats.",
       "configure": "Configurer →"
+    },
+    "filters": {
+      "allGenres": "Tous les genres",
+      "clearGenre": "Effacer le filtre de genre"
+    },
+    "history": {
+      "title": "Recherches récentes",
+      "clear": "Effacer l'historique",
+      "remove": "Supprimer"
     }
   },
   "Onboarding": {

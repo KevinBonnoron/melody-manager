@@ -1,23 +1,28 @@
-import type { Album, Artist, Track } from '@melody-manager/shared';
-import { useNavigate } from '@tanstack/react-router';
-import type { IFuseOptions } from 'fuse.js';
-import Fuse from 'fuse.js';
-import { Disc, Heart, Music, Search, User } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { genreCollection } from '@/collections/genre.collection';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbums } from '@/hooks/use-album';
 import { useAlbumLikes } from '@/hooks/use-album-likes';
 import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtists } from '@/hooks/use-artists';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
+import { useProviders } from '@/hooks/use-providers';
+import { useSearchHistory } from '@/hooks/use-search-history';
 import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistImageUrl } from '@/lib/cover-url';
 import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
+import type { Album, Artist, Genre, Track, TrackProvider } from '@melody-manager/shared';
+import { useLiveQuery } from '@tanstack/react-db';
+import { useNavigate } from '@tanstack/react-router';
+import type { IFuseOptions } from 'fuse.js';
+import Fuse from 'fuse.js';
+import { Clock, Disc, Heart, Music, Search, User, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { type SearchFilters, SearchFiltersBar, hasActiveFilters } from './search-filters';
 
 const trackFuseOptions: IFuseOptions<Track> = {
   keys: [
@@ -44,12 +49,26 @@ const artistFuseOptions: IFuseOptions<Artist> = {
   includeScore: true,
 };
 
+function applyTrackFilters(tracks: Track[], filters: SearchFilters): Track[] {
+  return tracks.filter((track) => {
+    if (filters.provider && track.provider !== filters.provider) {
+      return false;
+    }
+    if (filters.genre && !track.genres.includes(filters.genre)) {
+      return false;
+    }
+    return true;
+  });
+}
+
 export function GlobalSearchButton() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { playTrackWithContext } = useMusicPlayer();
   const { open, setOpen, handleOpenChange } = useCommandDialog('f');
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<SearchFilters>({});
+  const { history, addEntry, removeEntry, clearHistory } = useSearchHistory();
 
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
@@ -57,41 +76,75 @@ export function GlobalSearchButton() {
   const { isLiked: isTrackLiked, toggleLike: toggleTrackLike } = useTrackLikes();
   const { isLiked: isAlbumLiked, toggleLike: toggleAlbumLike } = useAlbumLikes();
   const { isLiked: isArtistLiked, toggleLike: toggleArtistLike } = useArtistLikes();
+  const { data: trackProviders = [] } = useProviders({ category: 'track', enabled: true });
+  const { data: genres = [] } = useLiveQuery((q) => q.from({ genres: genreCollection }));
 
-  const trackFuse = useMemo(() => (open ? new Fuse(tracks, trackFuseOptions) : null), [tracks, open]);
-  const albumFuse = useMemo(() => (open ? new Fuse(albums, albumFuseOptions) : null), [albums, open]);
-  const artistFuse = useMemo(() => (open ? new Fuse(artists, artistFuseOptions) : null), [artists, open]);
+  const trackFuse = useMemo(() => new Fuse(tracks, trackFuseOptions), [tracks]);
+  const albumFuse = useMemo(() => new Fuse(albums, albumFuseOptions), [albums]);
+  const artistFuse = useMemo(() => new Fuse(artists, artistFuseOptions), [artists]);
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setQuery('');
+      setFilters({});
     }
   }, [open]);
 
   const trimmedQuery = query.trim();
+  const filtersActive = hasActiveFilters(filters);
 
   const filteredTracks = useMemo(() => {
-    if (!trimmedQuery || !trackFuse) {
+    if (!trackFuse) {
       return [];
     }
-    return trackFuse.search(trimmedQuery, { limit: 10 }).map((r) => r.item);
-  }, [trackFuse, trimmedQuery]);
+
+    let results: Track[];
+    if (trimmedQuery) {
+      results = trackFuse.search(trimmedQuery, { limit: 30 }).map((r) => r.item);
+    } else if (filtersActive) {
+      results = applyTrackFilters(tracks, filters).slice(0, 10);
+      return results;
+    } else {
+      return [];
+    }
+
+    if (filtersActive) {
+      results = applyTrackFilters(results, filters);
+    }
+    return results.slice(0, 10);
+  }, [trackFuse, trimmedQuery, filters, filtersActive, tracks]);
 
   const filteredAlbums = useMemo(() => {
-    if (!trimmedQuery || !albumFuse) {
+    // Don't show albums when provider/genre filter is active (those are track-level)
+    if (filtersActive || !albumFuse || !trimmedQuery) {
       return [];
     }
     return albumFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
-  }, [albumFuse, trimmedQuery]);
+  }, [albumFuse, trimmedQuery, filtersActive]);
 
   const filteredArtists = useMemo(() => {
-    if (!trimmedQuery || !artistFuse) {
+    // Don't show artists when provider/genre filter is active
+    if (filtersActive || !artistFuse || !trimmedQuery) {
       return [];
     }
     return artistFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
-  }, [artistFuse, trimmedQuery]);
+  }, [artistFuse, trimmedQuery, filtersActive]);
 
   const hasResults = filteredTracks.length > 0 || filteredAlbums.length > 0 || filteredArtists.length > 0;
+  const showHistory = !trimmedQuery && !filtersActive && history.length > 0;
+
+  const handleSelect = useCallback(
+    (action: () => void) => {
+      const savedQuery = trimmedQuery;
+      setOpen(false);
+      action();
+      if (savedQuery) {
+        // Defer to avoid re-render during close animation
+        setTimeout(() => addEntry(savedQuery), 200);
+      }
+    },
+    [trimmedQuery, addEntry, setOpen],
+  );
 
   return (
     <>
@@ -102,8 +155,37 @@ export function GlobalSearchButton() {
       </Button>
       <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
         <CommandInput placeholder={t('GlobalSearch.typeToSearch')} value={query} onValueChange={setQuery} autoFocus />
+
+        <SearchFiltersBar filters={filters} onChange={setFilters} providers={trackProviders as TrackProvider[]} genres={genres as Genre[]} />
+
         <CommandList className="max-h-[500px] scrollbar-dialog-content">
-          {trimmedQuery && !hasResults && <CommandEmpty>{t('GlobalSearch.noResults')}</CommandEmpty>}
+          {/* Search History */}
+          {showHistory && (
+            <CommandGroup heading={t('GlobalSearch.history.title')}>
+              {history.map((entry) => (
+                <CommandItem key={entry} value={`history-${entry}`} onSelect={() => setQuery(entry)} className="flex items-center gap-3 p-3 transition-colors">
+                  <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="flex-1 text-sm truncate">{entry}</span>
+                  <button
+                    type="button"
+                    className="flex-shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+                    aria-label={t('GlobalSearch.history.remove')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeEntry(entry);
+                    }}
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </CommandItem>
+              ))}
+              <CommandItem onSelect={clearHistory} className="justify-center text-xs text-muted-foreground p-2 transition-colors">
+                {t('GlobalSearch.history.clear')}
+              </CommandItem>
+            </CommandGroup>
+          )}
+
+          {(trimmedQuery || filtersActive) && !hasResults && <CommandEmpty>{t('GlobalSearch.noResults')}</CommandEmpty>}
 
           {filteredArtists.length > 0 && (
             <CommandGroup heading={t('GlobalSearch.libraryArtists')}>
@@ -111,10 +193,11 @@ export function GlobalSearchButton() {
                 <CommandItem
                   key={artist.id}
                   value={artist.id}
-                  onSelect={() => {
-                    navigate({ to: '/artists/$artistId', params: { artistId: artist.id } });
-                    setOpen(false);
-                  }}
+                  onSelect={() =>
+                    handleSelect(() => {
+                      navigate({ to: '/artists/$artistId', params: { artistId: artist.id } });
+                    })
+                  }
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
@@ -151,10 +234,11 @@ export function GlobalSearchButton() {
                 <CommandItem
                   key={album.id}
                   value={album.id}
-                  onSelect={() => {
-                    navigate({ to: '/albums/$albumId', params: { albumId: album.id } });
-                    setOpen(false);
-                  }}
+                  onSelect={() =>
+                    handleSelect(() => {
+                      navigate({ to: '/albums/$albumId', params: { albumId: album.id } });
+                    })
+                  }
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
@@ -195,10 +279,11 @@ export function GlobalSearchButton() {
                 <CommandItem
                   key={track.id}
                   value={track.id}
-                  onSelect={() => {
-                    playTrackWithContext(track, tracks);
-                    setOpen(false);
-                  }}
+                  onSelect={() =>
+                    handleSelect(() => {
+                      playTrackWithContext(track, tracks);
+                    })
+                  }
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
