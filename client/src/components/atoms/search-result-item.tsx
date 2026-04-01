@@ -76,8 +76,8 @@ function SearchResultItem({ externalUrl, provider, image, Icon, title, subtitle,
             onAdd();
           }}
           disabled={isAdding || !!isComplete}
-          variant={isComplete ? 'secondary' : 'default'}
-          className="transition-all w-9 h-9 p-0 cursor-pointer hover:brightness-125"
+          variant="default"
+          className="transition-all w-9 h-9 p-0 cursor-pointer"
         >
           {isAdding ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -88,7 +88,7 @@ function SearchResultItem({ externalUrl, provider, image, Icon, title, subtitle,
               {status.tracksInLibrary}/{status.totalTracks}
             </span>
           ) : (
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 text-primary-foreground" />
           )}
         </Button>
       </div>
