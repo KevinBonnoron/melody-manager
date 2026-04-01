@@ -180,7 +180,13 @@ export function AlbumTable({ tracks }: Props) {
                 ref={virtualizer.measureElement}
                 className={`flex w-full items-center absolute group ${isTrackDisliked ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${isCurrentTrack ? 'bg-primary/5' : ''}`}
                 style={{ transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)` }}
-                onClick={() => handleTrackClick(track)}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('button, a, input, select, textarea, [role="button"]')) {
+                    return;
+                  }
+                  handleTrackClick(track);
+                }}
               >
                 {row.getVisibleCells().map((cell) => {
                   const columnDef = cell.column.columnDef as TrackColumnDef;
