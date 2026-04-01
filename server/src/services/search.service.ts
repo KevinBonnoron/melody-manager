@@ -41,22 +41,22 @@ class SearchService {
 
   public async getEffectiveProviders(userId?: string | null): Promise<TrackProvider[]> {
     const results: TrackProvider[] = [];
+    const allProviders = (await providerRepository.getAllBy('category = "track" && enabled = true')) as TrackProvider[];
 
-    // Shared providers: used directly, no user config needed
-    const sharedProviders = (await providerRepository.getAllBy('category = "track" && enabled = true')) as TrackProvider[];
-    for (const provider of sharedProviders) {
+    // Load all user connections in one query and index by provider id
+    const connectionsByProvider = new Map(userId ? (await connectionRepository.getAllBy(pbFilter('user = {:userId}', { userId }))).map((c) => [c.provider, c]) : []);
+
+    for (const provider of allProviders) {
       const manifest = pluginRegistry.getManifest(provider.type);
-      if (manifest?.scope === 'shared') {
-        results.push(provider);
+      if (!manifest) {
+        continue;
       }
-    }
 
-    // Personal providers: require a connection from the user
-    if (userId) {
-      const connections = await connectionRepository.getAllBy(pbFilter('user = {:userId} && enabled = true', { userId }));
-      for (const connection of connections) {
-        const provider = await providerRepository.getOne(connection.provider);
-        if (!provider || !provider.enabled || provider.category !== 'track') {
+      if (manifest.scope === 'shared' || manifest.scope === 'public') {
+        results.push(provider);
+      } else if (manifest.scope === 'personal' && userId) {
+        const connection = connectionsByProvider.get(provider.id);
+        if (connection && !connection.enabled) {
           continue;
         }
         results.push({
@@ -67,8 +67,8 @@ class SearchService {
           updated: provider.updated,
           type: provider.type,
           category: 'track',
-          config: { ...provider.config, ...connection.config },
-          enabled: connection.enabled,
+          config: connection ? { ...provider.config, ...connection.config } : provider.config,
+          enabled: connection?.enabled ?? true,
         });
       }
     }
