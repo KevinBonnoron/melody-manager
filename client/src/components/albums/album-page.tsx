@@ -48,7 +48,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
         </div>
 
         <div className="flex flex-col justify-end">
-          <h1 className="text-2xl xl:text-4xl font-bold leading-tight">{album.name}</h1>
+          <h1 className="text-2xl xl:text-4xl font-bold leading-tight line-clamp-2">{album.name}</h1>
           <p className="text-base xl:text-xl text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
             {artists.slice(0, 1).map((artist) => (
               <Link key={artist.id} to="/artists/$artistId" params={{ artistId: artist.id }} className="hover:text-foreground hover:underline transition-colors">

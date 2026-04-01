@@ -52,7 +52,7 @@ export function LibraryPage() {
       {showSection('artists') && likedArtists.length > 0 && (
         <section>
           <SectionHeader title={t('LibraryPage.artists')} count={likedArtists.length} hasMore={likedArtists.length > PREVIEW_LIMIT} isExpanded={artistsExpanded} onToggle={() => toggleSection('artists')} />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-4">
             {displayArtists.map((artist) => (
               <ArtistCard key={artist.id} artist={artist} />
             ))}
@@ -63,7 +63,7 @@ export function LibraryPage() {
       {showSection('albums') && likedAlbums.length > 0 && (
         <section>
           <SectionHeader title={t('LibraryPage.albums')} count={likedAlbums.length} hasMore={likedAlbums.length > PREVIEW_LIMIT} isExpanded={albumsExpanded} onToggle={() => toggleSection('albums')} />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
             {displayAlbums.map((album) => (
               <AlbumCard key={album.id} album={album} />
             ))}

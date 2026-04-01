@@ -19,7 +19,7 @@ export function AlbumGrid({ albums }: Props) {
           <p className="text-sm">{t('AlbumGrid.addMusicToSeeAlbums')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
           {albums.map((album) => (
             <AlbumCard key={album.id} album={album} />
           ))}
