@@ -5,11 +5,8 @@ import { trackCollection } from '@/collections/track.collection';
 
 export function useAlbums() {
   const { data: tracks = [], isLoading: isLoadingTracks } = useLiveQuery((q) => q.from({ tracks: trackCollection }));
-
   const albumIds = useMemo(() => [...new Set(tracks.map((t) => t.album))], [tracks]);
-
   const { data, isLoading } = useLiveQuery((q) => q.from({ albums: albumCollection }).where(({ albums }) => inArray(albums.id, albumIds.length > 0 ? albumIds : [''])), [albumIds.join(',')]);
-
   return { data, isLoading: isLoadingTracks || isLoading };
 }
 

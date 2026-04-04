@@ -6,11 +6,11 @@ export function useUsers(options?: { enabled?: boolean }) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const enabled = options?.enabled ?? true;
-
   useEffect(() => {
     if (!enabled) {
       return;
     }
+
     setLoading(true);
     pb.collection<User>('users')
       .getFullList({ requestKey: null })

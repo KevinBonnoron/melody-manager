@@ -27,7 +27,6 @@ export function ProviderConnectCard({ providerId }: Props) {
   const { manifests } = usePlugins();
   const user = useAuthUser();
   const [open, setOpen] = useState(false);
-
   const { data: provider } = useLiveQuery(
     (q) =>
       q
@@ -41,11 +40,11 @@ export function ProviderConnectCard({ providerId }: Props) {
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = type ? providerInfo[type] : null;
   const initialConfig = useMemo(() => (type ? getDefaultConfigForType(manifests, type, true) : {}) as ConfigFormData, [type, manifests]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!info || !type) {
       return;
     }
+
     try {
       connectionCollection.insert({
         id: crypto.randomUUID(),
@@ -66,6 +65,7 @@ export function ProviderConnectCard({ providerId }: Props) {
     if (!info || !type) {
       return;
     }
+
     try {
       connectionCollection.insert({
         id: crypto.randomUUID(),
@@ -88,7 +88,6 @@ export function ProviderConnectCard({ providerId }: Props) {
 
   const Icon = info.icon;
   const colors = getProviderTypeColors(type);
-
   return (
     <Card className="gap-4 p-5 opacity-60">
       <CardHeader className="flex flex-row items-center gap-4 p-0">

@@ -17,9 +17,7 @@ function RouteComponent() {
   const { data: album, isLoading: isAlbumLoading } = useAlbum(albumId);
   const { data: tracks = [], isLoading: isTracksLoading } = useAlbumTracks(albumId);
   const { data: artists = [], isLoading: isArtistsLoading } = useArtistsByIds(album?.artists ?? []);
-
   const isLoading = isAlbumLoading || isTracksLoading || isArtistsLoading;
-
   return (
     <div>
       {isLoading ? (

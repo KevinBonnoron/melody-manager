@@ -5,8 +5,8 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { connectionCollection } from '@/collections/connection.collection';
-import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { providerCollection } from '@/collections/provider.collection';
+import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { usePlugins } from '@/hooks/use-plugins';
 import { getDefaultConfigForType } from '../providers/available-provider-types';
@@ -37,7 +37,6 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   const [connectOpen, setConnectOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const { data: provider } = useLiveQuery(
     (q) =>
       q
@@ -48,19 +47,13 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   );
 
   const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.provider, provider?.id ?? '')), [provider?.id]);
-
   const { data: grants = [] } = useLiveQuery((q) => q.from({ grants: providerGrantsCollection }).where(({ grants }) => eq(grants.provider, provider?.id ?? '')), [provider?.id]);
-
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[manifest.id];
   const colors = getProviderTypeColors(manifest.id);
-
   const userConnection = connections.find((c) => c.user === user.id);
-
   const configInitial = useMemo(() => (provider?.config ?? getDefaultConfigForType(manifests, manifest.id)) as ConfigFormData, [provider?.config, manifests, manifest.id]);
-
   const connectInitial = useMemo(() => (userConnection?.config ?? getDefaultConfigForType(manifests, manifest.id, true)) as ConfigFormData, [userConnection?.config, manifests, manifest.id]);
-
   const handleConfigure = async (config: ConfigFormData) => {
     try {
       if (provider) {
@@ -78,6 +71,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
         } as Provider);
         await tx.isPersisted.promise;
       }
+
       toast.success(t('ProviderCardActions.providerConnectedSuccess', { title: info?.title }));
       setConfigOpen(false);
     } catch (err) {
@@ -90,6 +84,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
     if (!provider) {
       return;
     }
+
     try {
       if (userConnection) {
         const tx = connectionCollection.update(userConnection.id, (draft) => {
@@ -107,6 +102,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
         } as Connection);
         await tx.isPersisted.promise;
       }
+
       toast.success(t('ProviderCardActions.providerConnectedSuccess', { title: info?.title }));
       setConnectOpen(false);
     } catch (err) {
@@ -119,6 +115,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
     if (!provider) {
       return;
     }
+
     setIsDeleting(true);
     try {
       await Promise.all(connections.map((c) => connectionCollection.delete(c.id).isPersisted.promise));
@@ -142,7 +139,6 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   const isConfigured = !!provider;
   const hasConnectionSchema = !!manifest.connectionSchema?.length;
   const isConnected = !hasConnectionSchema || (!!userConnection && userConnection.enabled !== false);
-
   const showConfigButton = isAdmin && !!manifest.configSchema?.length && !info.isAutoDiscovery;
   const showAddButton = isAdmin && !isConfigured && (!manifest.configSchema?.length || info.isAutoDiscovery);
   const showConnectButton = isConfigured && hasConnectionSchema;
@@ -150,12 +146,9 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   const deleteOnly = showDeleteButton && !showConfigButton && !showConnectButton;
   const isUnavailable = !isConfigured && !isAdmin;
   const isAdminManaged = isConfigured && isShared && !isAdmin;
-
   const isDone = isConfigured && isConnected && !isAdminManaged;
   const statusIcon = isDone ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : isAdminManaged ? <Lock className="h-5 w-5 text-muted-foreground" /> : <Circle className="h-5 w-5 text-muted-foreground" />;
-
   const showFooter = showConfigButton || showAddButton || showConnectButton || showDeleteButton;
-
   return (
     <Card className={`gap-4 p-5 ${isUnavailable || isAdminManaged ? 'opacity-60' : ''}`}>
       <CardHeader className="flex flex-row items-center gap-4 p-0">

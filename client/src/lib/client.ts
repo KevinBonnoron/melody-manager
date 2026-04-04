@@ -11,6 +11,7 @@ export const withHttpDelegate = (baseURL: string) =>
         if (!headers['Content-Type']) {
           headers['Content-Type'] = 'application/json';
         }
+
         return {
           ...context,
           headers: {

@@ -9,7 +9,6 @@ interface Props {
 
 export function AlbumGrid({ albums }: Props) {
   const { t } = useTranslation();
-
   return (
     <>
       {albums.length === 0 ? (

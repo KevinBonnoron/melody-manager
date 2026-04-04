@@ -1,8 +1,8 @@
-import { useFieldContext } from '@/lib/forms';
 import { useStore } from '@tanstack/react-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFieldContext } from '@/lib/forms';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
@@ -20,7 +20,6 @@ export function PasswordField({ label, placeholder = '', autoComplete = 'off', c
   const field = useFieldContext<string>();
   const hasError = useStore(field.store, (state) => state.meta.isTouched && state.meta.errors.length > 0);
   const [showPassword, setShowPassword] = useState(false);
-
   function handleTogglePassword(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     setShowPassword(!showPassword);

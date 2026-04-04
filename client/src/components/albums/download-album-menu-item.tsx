@@ -17,7 +17,6 @@ export function DownloadAlbumMenuItem({ album }: Props) {
   const [isDownloading, setIsDownloading] = useState(false);
   const allDownloaded = tracks.length > 0 && tracks.every((track) => track.metadata?.localPath);
   const isYouTubeAlbum = tracks.some((t) => t.sourceUrl.includes('youtube.com') || t.sourceUrl.includes('youtu.be'));
-
   if (!isYouTubeAlbum) {
     return null;
   }

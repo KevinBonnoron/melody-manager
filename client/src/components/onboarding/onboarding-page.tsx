@@ -18,9 +18,7 @@ export function OnboardingPage() {
   const isAdmin = user.role === 'admin';
   const navigate = useNavigate();
   const [isContinuing, setIsContinuing] = useState(false);
-
   const { data: providers = [] } = useLiveQuery((q) => q.from({ providers: providerCollection }), []);
-
   const handleContinue = useCallback(async () => {
     setIsContinuing(true);
     try {
@@ -38,7 +36,6 @@ export function OnboardingPage() {
   // For non-admins, only show providers that are configured and require user credentials
   const configuredProviderTypes = new Set(providers.filter((p) => p.enabled).map((p) => p.type));
   const visibleManifests = isAdmin ? manifests : manifests.filter((m) => m.connectionSchema?.some((f) => f.required) && configuredProviderTypes.has(m.id));
-
   // Auto-skip onboarding for non-admins if there's nothing to connect
   useEffect(() => {
     if (!isAdmin && !loading && visibleManifests.length === 0) {

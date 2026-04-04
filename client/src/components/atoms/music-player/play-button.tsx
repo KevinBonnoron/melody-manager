@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
 import { Loader2, Pause, Play } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   isPlaying: boolean;

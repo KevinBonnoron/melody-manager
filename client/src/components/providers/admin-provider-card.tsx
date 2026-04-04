@@ -4,17 +4,17 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { connectionCollection } from '@/collections/connection.collection';
-import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { providerCollection } from '@/collections/provider.collection';
+import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { usePlugins } from '@/hooks/use-plugins';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Card, CardAction, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { getProviderInfoFromManifests } from './provider-info';
-import { ProviderGrantsManager } from './provider-grants-manager';
-import { getProviderTypeColors } from './provider-type-colors';
 import { AdminProviderEditButton } from './admin-provider-edit-button';
+import { ProviderGrantsManager } from './provider-grants-manager';
+import { getProviderInfoFromManifests } from './provider-info';
+import { getProviderTypeColors } from './provider-type-colors';
 
 interface Props {
   providerId: string;
@@ -24,19 +24,19 @@ function DeleteSharedProviderButton({ providerId, title }: { providerId: string;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.provider, providerId)), [providerId]);
   const { data: grants = [] } = useLiveQuery((q) => q.from({ grants: providerGrantsCollection }).where(({ grants }) => eq(grants.provider, providerId)), [providerId]);
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       for (const c of connections) {
         connectionCollection.delete(c.id);
       }
+
       for (const g of grants) {
         providerGrantsCollection.delete(g.id);
       }
+
       providerCollection.delete(providerId);
       toast.success(t('ProviderCardActions.providerDeletedSuccess', { title }));
       setOpen(false);
@@ -76,7 +76,6 @@ function DeleteSharedProviderButton({ providerId, title }: { providerId: string;
 export function AdminProviderCard({ providerId }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
-
   const { data: provider } = useLiveQuery(
     (q) =>
       q
@@ -90,7 +89,6 @@ export function AdminProviderCard({ providerId }: Props) {
   const manifest = type ? manifests.find((m) => m.id === type) : null;
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = type ? providerInfo[type] : null;
-
   if (!provider || !type || !info) {
     return null;
   }
@@ -102,7 +100,6 @@ export function AdminProviderCard({ providerId }: Props) {
   const isShared = scope === 'shared';
   const isPublic = scope === 'public';
   const hasConfig = !!manifest?.configSchema?.length;
-
   return (
     <Card className="flex flex-col gap-4 p-5">
       <CardHeader className="flex flex-row items-center gap-4 p-0">

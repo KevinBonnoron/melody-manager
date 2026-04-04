@@ -13,7 +13,6 @@ export function ArtistGrid({ artists }: Props) {
   const { t } = useTranslation();
   const [columns, setColumns] = useState(4);
   const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth;
@@ -42,6 +41,7 @@ export function ArtistGrid({ artists }: Props) {
     for (let i = 0; i < artists.length; i += columns) {
       result.push(artists.slice(i, i + columns));
     }
+
     return result;
   }, [artists, columns]);
 
@@ -63,7 +63,6 @@ export function ArtistGrid({ artists }: Props) {
   }
 
   const virtualItems = virtualizer.getVirtualItems();
-
   return (
     <div ref={containerRef}>
       <div

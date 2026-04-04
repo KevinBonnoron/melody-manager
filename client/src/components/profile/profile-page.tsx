@@ -19,20 +19,15 @@ export function ProfilePage() {
   const user = useAuthUser();
   const { signOut, signIn } = useAuth();
   const navigate = useNavigate();
-
   const [name, setName] = useState(user.name);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const avatarUrl = user.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -47,6 +42,7 @@ export function ProfilePage() {
     if (!name.trim()) {
       return;
     }
+
     setIsUpdatingName(true);
     try {
       await pb.collection('users').update(user.id, { name: name.trim() });
@@ -64,10 +60,12 @@ export function ProfilePage() {
       toast.error(t('ProfilePage.passwordTooShort'));
       return;
     }
+
     if (newPassword !== confirmPassword) {
       toast.error(t('ProfilePage.passwordsMismatch'));
       return;
     }
+
     setIsUpdatingPassword(true);
     try {
       await pb.collection('users').update(user.id, {
@@ -97,6 +95,7 @@ export function ProfilePage() {
     if (!file) {
       return;
     }
+
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();

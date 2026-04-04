@@ -13,7 +13,6 @@ export function buildStreamUrl(track: Track, device: Device, baseUrl: string): s
 
 export function getMimeType(track: Track, device: Device): string {
   const format = track.metadata?.format;
-
   if (device.type === 'sonos') {
     return 'audio/mpeg';
   }

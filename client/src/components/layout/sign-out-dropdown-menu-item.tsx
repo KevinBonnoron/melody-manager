@@ -6,7 +6,6 @@ import { DropdownMenuItem } from '../ui/dropdown-menu';
 export function SignOutDropdownMenuItem() {
   const { t } = useTranslation();
   const { signOut } = useAuth();
-
   function handleLogout() {
     signOut();
     window.location.replace('/login');

@@ -1,5 +1,5 @@
-import { formatDuration } from '@/lib/utils';
 import type { Track } from '@melody-manager/shared';
+import { formatDuration } from '@/lib/utils';
 
 interface Props {
   track: Track;

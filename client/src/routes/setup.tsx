@@ -1,7 +1,7 @@
-import { SetupPage } from '@/components/setup/setup-page';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { createFileRoute, redirect } from '@tanstack/react-router';
+import { SetupPage } from '@/components/setup/setup-page';
 
 export const Route = createFileRoute('/setup')({
   beforeLoad: async () => {

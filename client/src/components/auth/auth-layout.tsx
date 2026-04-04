@@ -10,7 +10,6 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, description }: AuthLayoutProps) {
   const { t } = useTranslation();
-
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left side - Branding */}

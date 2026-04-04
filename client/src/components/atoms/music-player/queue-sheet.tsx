@@ -1,9 +1,9 @@
+import { ListMusic, Loader2, Music2, Pause, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
-import { ListMusic, Loader2, Music2, Pause, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 interface QueueSheetProps {
   open: boolean;
@@ -13,7 +13,6 @@ interface QueueSheetProps {
 export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
   const { t } = useTranslation();
   const { queue, currentTrack, isLoading, isPlaying, removeFromQueue, clearQueue, playTrack } = useMusicPlayer();
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -54,7 +53,6 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                 const isListened = currentIndex > -1 && index < currentIndex;
                 const albumCoverUrl = track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined;
                 const artistName = track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist';
-
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: contains nested interactive elements (remove button), cannot use <button>
                   // biome-ignore lint/a11y/noStaticElementInteractions: same reason

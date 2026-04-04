@@ -18,11 +18,8 @@ export function ProviderGrantsManager({ providerId }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { users, loading } = useUsers({ enabled: open });
-
   const { data: grants = [] } = useLiveQuery((q) => q.from({ grants: providerGrantsCollection }).where(({ grants }) => eq(grants.provider, providerId)), [providerId]);
-
   const grantedUserIds = new Set(grants.map((g) => g.user));
-
   const handleToggle = (userId: string, currentlyGranted: boolean) => {
     try {
       if (currentlyGranted) {

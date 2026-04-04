@@ -11,7 +11,6 @@ interface FormatSelectorProps {
 
 export function FormatSelector({ audioFormat, onFormatChange }: FormatSelectorProps) {
   const { t } = useTranslation();
-
   const formatOptions: { value: AudioFormat; label: string }[] = [
     { value: 'source', label: t('FormatSelector.source') },
     { value: 'mp3', label: t('FormatSelector.mp3') },

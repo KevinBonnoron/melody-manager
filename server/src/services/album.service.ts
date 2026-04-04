@@ -1,14 +1,14 @@
-import type { YtDlpChapter } from '@melody-manager/plugin-sdk';
-import { YtDlpService } from '@melody-manager/plugin-sdk';
-import type { Track, TrackProvider } from '@melody-manager/shared';
 import { existsSync } from 'node:fs';
+import type { Track, TrackProvider } from '@melody-manager/shared';
 import { AlbumError } from '../errors';
 import { databaseServiceFactory } from '../factories';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
-import { pluginRegistry } from '../plugins';
+import { providerRegistry } from '../providers';
 import { albumRepository, providerRepository, trackRepository } from '../repositories';
+import type { YtDlpChapter } from '../types';
 import { detectAllSilenceRegions } from '../utils';
+import * as ytDlp from '../utils/yt-dlp.util';
 import { taskService } from './task.service';
 
 export const albumService = databaseServiceFactory(albumRepository, {
@@ -28,7 +28,7 @@ export const albumService = databaseServiceFactory(albumRepository, {
       throw new AlbumError('Provider not found', 404);
     }
 
-    const downloadPlugin = pluginRegistry.getDownloadProvider(provider.type);
+    const downloadPlugin = providerRegistry.getDownloadProvider(provider.type);
     if (!downloadPlugin) {
       throw new AlbumError(`Provider ${provider.type} does not support downloading`, 400);
     }
@@ -110,7 +110,6 @@ export const albumService = databaseServiceFactory(albumRepository, {
 
     // Run async — return task immediately
     (async () => {
-      const ytDlp = new YtDlpService(logger);
       try {
         taskService.update(task.id, { status: 'running' });
 
@@ -135,7 +134,7 @@ export const albumService = databaseServiceFactory(albumRepository, {
           await resyncTimestamps(sorted, chapters, regions);
 
           // Invalidate cache for affected tracks
-          const { cacheService } = await import('../plugins/loader');
+          const { cacheService } = await import('./cache.service');
           for (const track of sorted) {
             cacheService.invalidate(`track-${track.id}`);
           }

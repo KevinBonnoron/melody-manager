@@ -1,10 +1,10 @@
-import { AuthLayout } from '@/components/auth/auth-layout';
-import { LoginForm } from '@/components/auth/login-form';
-import { pb } from '@/lib/pocketbase';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { AuthLayout } from '@/components/auth/auth-layout';
+import { LoginForm } from '@/components/auth/login-form';
+import { pb } from '@/lib/pocketbase';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
@@ -24,7 +24,6 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const { t } = useTranslation();
-
   return (
     <AuthLayout title={t('LoginPage.title')} description={t('LoginPage.description')}>
       <LoginForm />

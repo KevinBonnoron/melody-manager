@@ -51,7 +51,6 @@ function Button({
   }) {
   const Comp = asChild ? Slot.Root : "button"
   const resolvedType = asChild ? type : (type ?? "button")
-
   return (
     <Comp
       data-slot="button"

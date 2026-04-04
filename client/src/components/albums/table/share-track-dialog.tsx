@@ -25,7 +25,6 @@ export function ShareTrackDialog({ track, children }: Props) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [expiresAt, setExpiresAt] = useState('');
-
   const handleCreate = async () => {
     setIsCreating(true);
     try {

@@ -9,6 +9,7 @@ export * from './player-state.type';
 export * from './playlist.type';
 export * from './plugin-manifest.type';
 export * from './provider.type';
+export * from './resolver.type';
 export * from './search-result.type';
 export * from './share-link.type';
 export * from './task.type';

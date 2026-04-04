@@ -1,9 +1,9 @@
-import { ProviderAuthError } from '@melody-manager/plugin-sdk';
 import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, ProviderError, SearchResponse, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
-import { pluginRegistry } from '../plugins';
+import { providerRegistry } from '../providers';
 import { albumRepository, artistRepository, connectionRepository, providerRepository, trackRepository } from '../repositories';
+import { ProviderAuthError } from '../utils';
 import { trackSourceService } from './track-source.service';
 
 class SearchService {
@@ -29,7 +29,7 @@ class SearchService {
   }
 
   private async getProvidersForQuery(query: string, userId?: string | null): Promise<TrackProvider[]> {
-    const detectedProviderType = pluginRegistry.detectProviderFromUrl(query);
+    const detectedProviderType = providerRegistry.detectProviderFromUrl(query);
 
     const providers = await this.getEffectiveProviders(userId);
 
@@ -47,7 +47,7 @@ class SearchService {
     const connectionsByProvider = new Map(userId ? (await connectionRepository.getAllBy(pbFilter('user = {:userId}', { userId }))).map((c) => [c.provider, c]) : []);
 
     for (const provider of allProviders) {
-      const manifest = pluginRegistry.getManifest(provider.type);
+      const manifest = providerRegistry.getManifest(provider.type);
       if (!manifest) {
         continue;
       }

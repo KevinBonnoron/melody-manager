@@ -1,12 +1,12 @@
+import { Check, Copy, Link2Off, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { shareLinkCollection } from '@/collections/share-link.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useShareLinks } from '@/hooks/use-share-links';
-import { Check, Copy, Link2Off, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 export function SharesPage() {
   const { t } = useTranslation();
@@ -14,11 +14,11 @@ export function SharesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
   const handleDelete = async () => {
     if (!confirmId) {
       return;
     }
+
     setDeletingId(confirmId);
     setConfirmId(null);
     try {

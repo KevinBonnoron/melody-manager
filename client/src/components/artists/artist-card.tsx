@@ -17,7 +17,6 @@ export function ArtistCard({ artist }: Props) {
   const trackCount = tracks.length;
   const albumCount = albums.length;
   const imageUrl = getArtistImageUrl(artist);
-
   return (
     <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
       <div className="relative aspect-square w-full overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">

@@ -9,7 +9,6 @@ export function useTracks() {
 
 export function useAlbumTracks(albumId: string) {
   const result = useLiveQuery((q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.album, albumId)), [albumId]);
-
   const data = useMemo(
     () =>
       result.data
@@ -19,12 +18,15 @@ export function useAlbumTracks(albumId: string) {
             if (aTime !== undefined && bTime !== undefined) {
               return aTime - bTime;
             }
+
             if (aTime !== undefined) {
               return -1;
             }
+
             if (bTime !== undefined) {
               return 1;
             }
+
             return 0;
           })
         : undefined,

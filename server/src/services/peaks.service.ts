@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import type { Track } from '@melody-manager/shared';
-import { cacheService } from '../plugins/loader';
+import { cacheService } from './cache.service';
 
 const NUM_PEAKS = 800;
 

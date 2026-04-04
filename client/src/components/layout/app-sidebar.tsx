@@ -13,7 +13,6 @@ export function AppSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const user = useAuthUser();
-
   const navItems = [
     {
       title: t('AppSidebar.home'),
@@ -54,6 +53,7 @@ export function AppSidebar() {
     if (href === '/') {
       return location.pathname === '/';
     }
+
     return location.pathname.startsWith(href);
   };
 
@@ -67,7 +67,6 @@ export function AppSidebar() {
   };
 
   const avatarUrl = user?.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
-
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="h-16 border-b p-0 flex items-center justify-center">
@@ -87,7 +86,6 @@ export function AppSidebar() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
-
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
@@ -108,7 +106,6 @@ export function AppSidebar() {
               {userNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
-
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>

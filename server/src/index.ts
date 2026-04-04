@@ -1,12 +1,12 @@
 import { existsSync } from 'node:fs';
 import { logger } from './lib/logger';
 import { initPocketBase } from './lib/pocketbase';
-import { initializeWatchProviders, loadPlugins } from './plugins';
+import { initializeWatchProviders, registerAllProviders } from './providers';
 import { trackRepository } from './repositories';
 import { app } from './server';
 
 await initPocketBase();
-await loadPlugins();
+registerAllProviders();
 
 await initializeWatchProviders();
 

@@ -32,14 +32,13 @@ export function AlbumTable({ tracks }: Props) {
   const { isDisliked } = useTrackDislikes();
   const { getPlayCount } = useTrackPlays();
   const currentTrackId = currentTrack?.id;
-
   const queueableTracks = useMemo(() => tracks.filter((track) => !isDisliked(track.id)), [tracks, isDisliked]);
-
   const handleTrackClick = useCallback(
     (track: Track) => {
       if (isDisliked(track.id)) {
         return;
       }
+
       if (currentTrackId === track.id) {
         togglePlayPause();
       } else {
@@ -134,9 +133,7 @@ export function AlbumTable({ tracks }: Props) {
   });
 
   const { rows } = table.getRowModel();
-
   const tableContainerRef = useRef<HTMLDivElement>(null);
-
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
     estimateSize: () => 49,
@@ -146,7 +143,6 @@ export function AlbumTable({ tracks }: Props) {
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
-
   return (
     <div ref={tableContainerRef} className="border rounded-lg overflow-hidden">
       <table className="grid w-full text-sm">
@@ -172,7 +168,6 @@ export function AlbumTable({ tracks }: Props) {
             const track = row.original;
             const isCurrentTrack = currentTrackId === track.id && isPlaying;
             const isTrackDisliked = isDisliked(track.id);
-
             return (
               <TableRow
                 key={row.id}
@@ -185,6 +180,7 @@ export function AlbumTable({ tracks }: Props) {
                   if (target.closest('button, a, input, select, textarea, [role="button"]')) {
                     return;
                   }
+
                   handleTrackClick(track);
                 }}
               >

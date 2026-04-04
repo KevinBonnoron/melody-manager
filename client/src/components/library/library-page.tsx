@@ -13,13 +13,11 @@ import { useLikedArtistIds } from '@/hooks/use-liked-artist-ids';
 import { useLikedTracks } from '@/hooks/use-track-likes';
 
 const PREVIEW_LIMIT = 6;
-
 type ExpandedSection = 'artists' | 'albums' | 'tracks' | null;
 
 export function LibraryPage() {
   const { t } = useTranslation();
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
-
   const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);
@@ -27,15 +25,12 @@ export function LibraryPage() {
   const { data: likedArtistIds = [] } = useLikedArtistIds();
   const { data: artistsByIds = [] } = useArtistsByIds(likedArtistIds);
   const likedArtists = useMemo(() => likedArtistIds.map((id) => artistsByIds.find((a) => a.id === id)).filter((a): a is Artist => a != null), [likedArtistIds, artistsByIds]);
-
   const toggleSection = (section: ExpandedSection) => {
     setExpandedSection((prev) => (prev === section ? null : section));
   };
 
   const showSection = (section: ExpandedSection) => expandedSection === null || expandedSection === section;
-
   const totalItems = likedArtists.length + likedAlbums.length + likedTracks.length;
-
   if (totalItems === 0) {
     return <LibraryEmptyState />;
   }
@@ -46,7 +41,6 @@ export function LibraryPage() {
   const displayArtists = artistsExpanded ? likedArtists : likedArtists.slice(0, PREVIEW_LIMIT);
   const displayAlbums = albumsExpanded ? likedAlbums : likedAlbums.slice(0, PREVIEW_LIMIT);
   const displayTracks = tracksExpanded ? likedTracks : likedTracks.slice(0, PREVIEW_LIMIT * 2);
-
   return (
     <div className="space-y-10 pb-48">
       {showSection('artists') && likedArtists.length > 0 && (
@@ -83,7 +77,6 @@ export function LibraryPage() {
 
 function SectionHeader({ title, count, hasMore, isExpanded, onToggle }: { title: string; count: number; hasMore: boolean; isExpanded: boolean; onToggle: () => void }) {
   const { t } = useTranslation();
-
   return (
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold">
@@ -102,7 +95,6 @@ function SectionHeader({ title, count, hasMore, isExpanded, onToggle }: { title:
 
 function LibraryEmptyState() {
   const { t } = useTranslation();
-
   const openAddMusic = () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
   };

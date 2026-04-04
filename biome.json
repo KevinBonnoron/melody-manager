@@ -13,7 +13,6 @@
       "!!client/src/components/ui",
       "server/**/*.ts",
       "shared/**/*.ts",
-      "plugins/**/*.ts",
       "e2e/**/*.ts"
     ]
   },

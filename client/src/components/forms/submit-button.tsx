@@ -1,8 +1,8 @@
+import { useStore } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useFormContext } from '@/lib/forms';
 import { cn } from '@/lib/utils';
-import { useStore } from '@tanstack/react-form';
 
 export interface Props {
   label: string;

@@ -23,7 +23,6 @@ interface Props {
 
 export function SearchFiltersBar({ filters, onChange, providers, genres }: Props) {
   const { t } = useTranslation();
-
   return (
     <div className="flex items-center gap-2 border-b px-3 py-2">
       {/* Provider chips */}

@@ -1,6 +1,6 @@
+import { universalClient, withMethods } from 'universal-client';
 import { withHttpDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
-import { universalClient, withMethods } from 'universal-client';
 
 export const playlistsClient = universalClient(
   withHttpDelegate(config.server.url),

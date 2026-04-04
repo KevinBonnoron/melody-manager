@@ -26,15 +26,14 @@ export function CreateConnectionButton({ providerId, type, category, title, desc
   const { manifests } = usePlugins();
   const user = useAuthUser();
   const [open, setOpen] = useState(false);
-
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
   const initialConfig = useMemo(() => getDefaultConfigForType(manifests, type, true) as ConfigFormData, [manifests, type]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!info) {
       return;
     }
+
     try {
       const tx = connectionCollection.insert({
         provider: providerId,
@@ -55,6 +54,7 @@ export function CreateConnectionButton({ providerId, type, category, title, desc
     if (!info) {
       return;
     }
+
     try {
       const tx = connectionCollection.insert({
         provider: providerId,
@@ -72,7 +72,6 @@ export function CreateConnectionButton({ providerId, type, category, title, desc
   };
 
   const handleCancel = () => setOpen(false);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

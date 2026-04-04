@@ -22,7 +22,6 @@ export function AdminProviderEditButton({ title, description, providerId }: Prop
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const [open, setOpen] = useState(false);
-
   const { data: provider } = useLiveQuery(
     (q) =>
       q
@@ -36,11 +35,11 @@ export function AdminProviderEditButton({ title, description, providerId }: Prop
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = type ? (providerInfo[type] ?? null) : null;
   const initialConfig = useMemo(() => (provider?.config ? { ...provider.config } : type ? getDefaultConfigForType(manifests, type) : {}) as ConfigFormData, [provider?.config, type, manifests]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!provider || !info) {
       return;
     }
+
     try {
       const tx = providerCollection.update(providerId, (draft) => {
         draft.config = config;
@@ -56,7 +55,6 @@ export function AdminProviderEditButton({ title, description, providerId }: Prop
   };
 
   const handleCancel = () => setOpen(false);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

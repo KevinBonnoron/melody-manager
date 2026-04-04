@@ -11,17 +11,14 @@ export function ConnectionList() {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const user = useAuthUser();
-
   // All enabled personal providers (system-level)
   const { data: providers = [] } = useLiveQuery((q) => q.from({ providers: providerCollection }).where(({ providers }) => eq(providers.enabled, true)));
-
   const personalProviders = providers.filter((p) => {
     const manifest = manifests.find((m) => m.id === p.type);
     return manifest?.scope === 'personal';
   });
 
   const personalProviderIds = personalProviders.map((p) => p.id);
-
   const { data: connections = [] } = useLiveQuery(
     (q) =>
       q
@@ -32,7 +29,6 @@ export function ConnectionList() {
   );
 
   const connectedProviderIds = new Set(connections.map((c) => c.provider));
-
   if (personalProviders.length === 0) {
     return <p className="text-muted-foreground text-sm">{t('Admin.noProvidersInCategory')}</p>;
   }
@@ -44,6 +40,7 @@ export function ConnectionList() {
         if (connectedProviderIds.has(p.id) && connection) {
           return <ConnectionCard key={p.id} connectionId={connection.id} />;
         }
+
         return <ProviderConnectCard key={p.id} providerId={p.id} />;
       })}
     </div>

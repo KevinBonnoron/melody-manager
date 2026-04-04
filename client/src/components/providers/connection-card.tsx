@@ -18,7 +18,6 @@ interface Props {
 export function ConnectionCard({ connectionId }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
-
   const { data: connection } = useLiveQuery(
     (q) =>
       q
@@ -41,7 +40,6 @@ export function ConnectionCard({ connectionId }: Props) {
   const category = provider?.category;
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = type ? providerInfo[type] : null;
-
   if (!connection || !provider || !type || !category || !info) {
     return null;
   }
@@ -49,7 +47,6 @@ export function ConnectionCard({ connectionId }: Props) {
   const Icon = info.icon;
   const isConnected = !!connection.enabled;
   const colors = getProviderTypeColors(type);
-
   return (
     <Card className="gap-4 p-5">
       <CardHeader className="flex flex-row items-center gap-4 p-0">

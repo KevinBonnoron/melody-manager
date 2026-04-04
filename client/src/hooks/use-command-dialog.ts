@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const CLOSE_EVENT = 'command-dialog-request-close';
-
 export function useCommandDialog(shortcutKey?: string) {
   const [open, setOpen] = useState(false);
   const isOpeningRef = useRef(false);
   const openRef = useRef(false);
-
   useEffect(() => {
     openRef.current = open;
   }, [open]);
@@ -25,6 +23,7 @@ export function useCommandDialog(shortcutKey?: string) {
     if (!shortcutKey) {
       return;
     }
+
     const down = (e: KeyboardEvent) => {
       if (e.key === shortcutKey && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -48,6 +47,7 @@ export function useCommandDialog(shortcutKey?: string) {
       window.dispatchEvent(new CustomEvent(CLOSE_EVENT));
       isOpeningRef.current = false;
     }
+
     setOpen(newOpen);
   }, []);
 

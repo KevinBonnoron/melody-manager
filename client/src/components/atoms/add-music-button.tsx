@@ -20,7 +20,6 @@ import type { LibraryStatus } from './search-result-item';
 import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem } from './search-result-item';
 
 const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
-
 export function AddMusicButton() {
   const { t } = useTranslation();
   const { open, setOpen, handleOpenChange } = useCommandDialog('k');
@@ -32,9 +31,7 @@ export function AddMusicButton() {
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
   const [selectedProvider, setSelectedProvider] = useState<TrackProvider | 'all'>('all');
   const { data: providers } = useProviders({ category: 'track', enabled: true });
-
   const hasEnabledProviders = providers && providers.length > 0;
-
   useEffect(() => {
     if (!open) {
       setQuery('');
@@ -86,7 +83,6 @@ export function AddMusicButton() {
     try {
       let title = '';
       let count = 0;
-
       if (isTrackResult(result)) {
         await tracksClient.addFromUrl(result.externalUrl);
         title = result.title;
@@ -127,6 +123,7 @@ export function AddMusicButton() {
     if (addedUrls.has(result.externalUrl)) {
       return { ...status, isInLibrary: true };
     }
+
     return status;
   };
 
@@ -135,6 +132,7 @@ export function AddMusicButton() {
       if (!providers) {
         return [];
       }
+
       const provider = providers.find((p) => p.type === result.provider);
       return provider ? [provider.id] : [];
     },
@@ -145,6 +143,7 @@ export function AddMusicButton() {
     if (!results.length) {
       return [];
     }
+
     const providerTypes = new Set(results.map((r) => r.provider));
     return Array.from(providerTypes);
   }, [results]);
@@ -159,6 +158,7 @@ export function AddMusicButton() {
     if (selectedProvider === 'all') {
       return results;
     }
+
     return results.filter((result) => result.provider === selectedProvider.type);
   }, [results, selectedProvider]);
 
@@ -166,7 +166,6 @@ export function AddMusicButton() {
   const filteredAlbums = useMemo(() => filteredResults.filter(isAlbumResult), [filteredResults]);
   const filteredTracks = useMemo(() => filteredResults.filter(isTrackResult), [filteredResults]);
   const filteredPlaylists = useMemo(() => filteredResults.filter(isPlaylistResult), [filteredResults]);
-
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)} aria-label={t('AppLayout.addMusic')}>

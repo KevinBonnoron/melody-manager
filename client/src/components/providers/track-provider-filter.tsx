@@ -1,9 +1,9 @@
-import { Badge } from '@/components/ui/badge';
-import { useProviders } from '@/hooks/use-providers';
 import type { TrackProvider } from '@melody-manager/shared';
 import { AlertCircle, CheckCircle2, Music, XCircle } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import { useProviders } from '@/hooks/use-providers';
 
 interface Props<T> {
   selectedProvider: TrackProvider | 'all';
@@ -30,16 +30,17 @@ export function TrackProviderFilter<T>({ selectedProvider, onProviderChange, ite
     if (!provider.enabled) {
       return <XCircle className="h-3 w-3" />;
     }
+
     if (!provider.config) {
       return <AlertCircle className="h-3 w-3" />;
     }
+
     return <CheckCircle2 className="h-3 w-3" />;
   };
 
   const getProviderStyles = (provider: TrackProvider, isSelected: boolean) => {
     const baseStyles = 'cursor-pointer transition-all hover:scale-105';
     const selectedStyles = isSelected ? 'ring-2 ring-primary ring-offset-2' : '';
-
     const colorStyles: Record<TrackProvider['type'], string> = {
       local: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border-blue-500/20',
       youtube: 'bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border-red-500/20',

@@ -21,12 +21,15 @@ function getDefaultValueForSchemaType(schema: ConfigSchemaItem): unknown {
   if (schema.type === 'boolean') {
     return false;
   }
+
   if (schema.type === 'number') {
     return 0;
   }
+
   if (schema.type === 'string-list') {
     return [];
   }
+
   return '';
 }
 
@@ -41,5 +44,6 @@ export function getDefaultConfigForType(manifests: PluginManifest[], type: strin
   for (const field of schema) {
     config[field.name] = getDefaultValueForSchemaType(field);
   }
+
   return config;
 }

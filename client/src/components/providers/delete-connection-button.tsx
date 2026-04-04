@@ -15,7 +15,6 @@ export function DeleteConnectionButton({ title, connectionId }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
