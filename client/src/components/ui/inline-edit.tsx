@@ -17,7 +17,6 @@ export function InlineEdit({ value, onSave, className = '', inputClassName = '',
 	const [isSaving, setIsSaving] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const actionsRef = useRef<HTMLDivElement>(null);
-
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
 			inputRef.current.focus();

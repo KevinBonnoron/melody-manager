@@ -1,0 +1,12 @@
+import type { PluginManifest } from '@melody-manager/shared';
+
+export const sonosManifest: PluginManifest = {
+  id: 'sonos',
+  name: 'Sonos',
+  description: 'Stream music to Sonos speakers on the local network',
+  version: '1.0.0',
+  icon: 'speaker',
+  entry: '',
+  scope: 'shared',
+  features: ['device'],
+};

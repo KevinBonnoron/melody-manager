@@ -1,11 +1,11 @@
+import type { Device } from '@melody-manager/shared';
+import { ListMusic } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import type { Device } from '@melody-manager/shared';
-import { ListMusic } from 'lucide-react';
-import { useState } from 'react';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MobileSettings } from './music-player/mobile-settings';
@@ -21,7 +21,6 @@ export function MusicPlayer() {
   const [previousVolume, setPreviousVolume] = useState(1.0);
   const [devices, setDevices] = useState<Device[]>([]);
   const [queueOpen, setQueueOpen] = useState(false);
-
   const handleVolumeToggle = () => {
     if (isMuted) {
       setVolume(previousVolume > 0 ? previousVolume : 0.5);
@@ -29,6 +28,7 @@ export function MusicPlayer() {
       if (volume > 0) {
         setPreviousVolume(volume);
       }
+
       setVolume(0);
     }
   };

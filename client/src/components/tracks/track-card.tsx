@@ -15,7 +15,6 @@ interface Props {
 
 export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
   const { album, artists, provider, genres } = track.expand;
-
   return (
     <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isPlaying || isLoading ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`} onClick={() => onPlay(track)}>
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">

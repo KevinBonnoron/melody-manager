@@ -1,7 +1,7 @@
-import { withHttpDelegate, withSseDelegate } from '@/lib/client';
-import { config } from '@/lib/config';
 import type { Task } from '@melody-manager/shared';
 import { universalClient, withMethods } from 'universal-client';
+import { withHttpDelegate, withSseDelegate } from '@/lib/client';
+import { config } from '@/lib/config';
 
 export const tasksClient = universalClient(
   withHttpDelegate(config.server.url),

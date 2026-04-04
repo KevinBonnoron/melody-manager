@@ -1,14 +1,16 @@
-import { ffmpeg, type ResolvedStream, TranscodeService } from '@melody-manager/plugin-sdk';
-import type { Track, TranscodeFormat } from '@melody-manager/shared';
-import { transcodeConfigs } from '@melody-manager/shared';
-import type { Context } from 'hono';
-import { stream } from 'hono/streaming';
 import { execFile } from 'node:child_process';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { pluginRegistry } from '../plugins';
-import { cacheService } from '../plugins/loader';
+import type { Track, TranscodeFormat } from '@melody-manager/shared';
+import { transcodeConfigs } from '@melody-manager/shared';
+import type { Context } from 'hono';
+import { stream } from 'hono/streaming';
+import { providerRegistry } from '../providers';
+import type { ResolvedStream } from '../providers/types';
+import { ffmpeg } from '../utils';
+import { cacheService } from './cache.service';
+import { TranscodeService } from './transcode.service';
 
 const transcodeService = new TranscodeService();
 
@@ -360,7 +362,7 @@ class StreamService {
     }
 
     const provider = track.expand.provider;
-    const resolver = pluginRegistry.getStreamResolver(provider.type);
+    const resolver = providerRegistry.getStreamResolver(provider.type);
     if (!resolver) {
       return null;
     }

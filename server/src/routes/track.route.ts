@@ -2,11 +2,10 @@ import { zValidator } from '@hono/zod-validator';
 import { transcodeFormats } from '@melody-manager/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
-import { pluginRegistry } from '../plugins';
-import { trackService, trackSourceService } from '../services';
+import { adminMiddleware } from '../middlewares';
+import { cacheService, trackService, trackSourceService } from '../services';
 import { libraryService } from '../services/library.service';
 
 const id = z.object({
@@ -71,7 +70,7 @@ export const trackRoute = new Hono()
       if (!success) {
         return c.json({ error: 'Track not found' }, 404);
       }
-      pluginRegistry.invalidateCache(`track-${trackId}`);
+      cacheService.invalidate(`track-${trackId}`);
       return c.json({ message: 'Track deleted successfully' });
     } catch (error) {
       logger.error(`Error deleting track: ${error}`);

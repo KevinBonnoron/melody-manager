@@ -9,7 +9,6 @@
     "client",
     "db",
     "docs",
-    "plugins/*",
     "server",
     "shared"
   ],
@@ -36,7 +35,5 @@
     "turbo": "^2.8.15"
   },
   "peerDependencies": {},
-  "dependencies": {
-    "@svrooij/sonos": "^2.5.0"
-  }
+  "dependencies": {}
 }

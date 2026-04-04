@@ -197,7 +197,10 @@
     "providersCount": "{{count}} provider(s) configured",
     "allProviderTypesAdded": "All provider types already added",
     "personalProviderHint": "Each user configures their own credentials",
-    "providerActions": "Provider actions"
+    "providerActions": "Provider actions",
+    "enrichAllTitle": "Re-enrich all metadata",
+    "enrichAllStarted": "Metadata enrichment started",
+    "enrichAllFailed": "Failed to start metadata enrichment"
   },
   "ArtistPage": {
     "playAll": "Play all",

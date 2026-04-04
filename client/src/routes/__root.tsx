@@ -13,7 +13,6 @@ function RootComponent() {
   const location = useLocation();
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/setup') || location.pathname.startsWith('/onboarding');
   const showAppLayout = !isAuthPage && pb.authStore.isValid;
-
   return (
     <PocketBaseProvider pocketBase={pb}>
       <ThemeProvider defaultTheme="dark" storageKey="melody-manager-theme">

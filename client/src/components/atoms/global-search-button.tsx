@@ -1,7 +1,15 @@
+import type { Album, Artist, Genre, Track, TrackProvider } from '@melody-manager/shared';
+import { useLiveQuery } from '@tanstack/react-db';
+import { useNavigate } from '@tanstack/react-router';
+import type { IFuseOptions } from 'fuse.js';
+import Fuse from 'fuse.js';
+import { Clock, Disc, Heart, Music, Search, User, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { genreCollection } from '@/collections/genre.collection';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { genreCollection } from '@/collections/genre.collection';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbums } from '@/hooks/use-album';
 import { useAlbumLikes } from '@/hooks/use-album-likes';
@@ -14,15 +22,7 @@ import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistImageUrl } from '@/lib/cover-url';
 import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
-import type { Album, Artist, Genre, Track, TrackProvider } from '@melody-manager/shared';
-import { useLiveQuery } from '@tanstack/react-db';
-import { useNavigate } from '@tanstack/react-router';
-import type { IFuseOptions } from 'fuse.js';
-import Fuse from 'fuse.js';
-import { Clock, Disc, Heart, Music, Search, User, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { type SearchFilters, SearchFiltersBar, hasActiveFilters } from './search-filters';
+import { hasActiveFilters, type SearchFilters, SearchFiltersBar } from './search-filters';
 
 const trackFuseOptions: IFuseOptions<Track> = {
   keys: [
@@ -54,9 +54,11 @@ function applyTrackFilters(tracks: Track[], filters: SearchFilters): Track[] {
     if (filters.provider && track.provider !== filters.provider) {
       return false;
     }
+
     if (filters.genre && !track.genres.includes(filters.genre)) {
       return false;
     }
+
     return true;
   });
 }
@@ -69,7 +71,6 @@ export function GlobalSearchButton() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
   const { history, addEntry, removeEntry, clearHistory } = useSearchHistory();
-
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
   const { data: artists = [] } = useArtists();
@@ -78,11 +79,9 @@ export function GlobalSearchButton() {
   const { isLiked: isArtistLiked, toggleLike: toggleArtistLike } = useArtistLikes();
   const { data: trackProviders = [] } = useProviders({ category: 'track', enabled: true });
   const { data: genres = [] } = useLiveQuery((q) => q.from({ genres: genreCollection }));
-
   const trackFuse = useMemo(() => new Fuse(tracks, trackFuseOptions), [tracks]);
   const albumFuse = useMemo(() => new Fuse(albums, albumFuseOptions), [albums]);
   const artistFuse = useMemo(() => new Fuse(artists, artistFuseOptions), [artists]);
-
   useEffect(() => {
     if (open) {
       setQuery('');
@@ -92,7 +91,6 @@ export function GlobalSearchButton() {
 
   const trimmedQuery = query.trim();
   const filtersActive = hasActiveFilters(filters);
-
   const filteredTracks = useMemo(() => {
     if (!trackFuse) {
       return [];
@@ -111,6 +109,7 @@ export function GlobalSearchButton() {
     if (filtersActive) {
       results = applyTrackFilters(results, filters);
     }
+
     return results.slice(0, 10);
   }, [trackFuse, trimmedQuery, filters, filtersActive, tracks]);
 
@@ -119,6 +118,7 @@ export function GlobalSearchButton() {
     if (filtersActive || !albumFuse || !trimmedQuery) {
       return [];
     }
+
     return albumFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
   }, [albumFuse, trimmedQuery, filtersActive]);
 
@@ -127,12 +127,12 @@ export function GlobalSearchButton() {
     if (filtersActive || !artistFuse || !trimmedQuery) {
       return [];
     }
+
     return artistFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item);
   }, [artistFuse, trimmedQuery, filtersActive]);
 
   const hasResults = filteredTracks.length > 0 || filteredAlbums.length > 0 || filteredArtists.length > 0;
   const showHistory = !trimmedQuery && !filtersActive && history.length > 0;
-
   const handleSelect = useCallback(
     (action: () => void) => {
       const savedQuery = trimmedQuery;

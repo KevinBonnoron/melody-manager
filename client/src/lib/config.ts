@@ -4,7 +4,6 @@ import { createEnv } from '@melody-manager/shared';
 
 async function resolveEnv(): Promise<Record<string, string>> {
   const vars: Record<string, string> = {};
-
   for (const name of ['VITE_PB_URL', 'VITE_SERVER_URL', 'VITE_REGISTRATION_DISABLED']) {
     vars[name] = import.meta.env[name] ?? '';
   }
@@ -23,7 +22,6 @@ async function resolveEnv(): Promise<Record<string, string>> {
 
 const resolved = await resolveEnv();
 const env = createEnv((name) => resolved[name]);
-
 export const config = {
   nodeEnv: env('NODE_ENV').string('development'),
   pb: {

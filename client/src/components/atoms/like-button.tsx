@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 
 interface Props {

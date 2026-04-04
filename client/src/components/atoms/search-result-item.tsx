@@ -1,12 +1,12 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { CommandItem } from '@/components/ui/command';
-import { formatDuration, getProviderColor } from '@/lib/utils';
 import type { AlbumSearchResult, ArtistSearchResult, PlaylistSearchResult, TrackSearchResult } from '@melody-manager/shared';
 import type { LucideIcon } from 'lucide-react';
 import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { CommandItem } from '@/components/ui/command';
+import { formatDuration, getProviderColor } from '@/lib/utils';
 
 export interface LibraryStatus {
   isInLibrary: boolean;
@@ -30,7 +30,6 @@ function SearchResultItem({ externalUrl, provider, image, Icon, title, subtitle,
   const { t } = useTranslation();
   const isComplete = status.isInLibrary && !status.tracksInLibrary;
   const isPartial = status.tracksInLibrary && status.totalTracks && status.tracksInLibrary < status.totalTracks;
-
   return (
     <CommandItem value={title} className="flex items-center gap-3 p-3 transition-colors hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-primary/50 data-[selected=true]:bg-secondary/60">
       <div className="flex-shrink-0">

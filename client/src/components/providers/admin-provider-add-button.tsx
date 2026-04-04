@@ -23,15 +23,14 @@ export function AdminProviderAddButton({ type, category, title, description }: P
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const [open, setOpen] = useState(false);
-
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
   const initialConfig = useMemo(() => getDefaultConfigForType(manifests, type) as ConfigFormData, [manifests, type]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!info) {
       return;
     }
+
     try {
       providerCollection.insert({
         id: crypto.randomUUID(),
@@ -52,6 +51,7 @@ export function AdminProviderAddButton({ type, category, title, description }: P
     if (!info) {
       return;
     }
+
     try {
       providerCollection.insert({
         id: crypto.randomUUID(),
@@ -69,7 +69,6 @@ export function AdminProviderAddButton({ type, category, title, description }: P
   };
 
   const handleCancel = () => setOpen(false);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

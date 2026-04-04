@@ -30,10 +30,8 @@ export function ProviderConfigForm(props: Props) {
   const { manifests } = usePlugins();
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
-
   const fields = useConnectionSchema ? (info?.connectionFields ?? info?.fields) : info?.fields;
   const requiredKeys = fields?.filter((f) => f.required && f.type !== 'checkbox').map((f) => f.key) ?? [];
-
   const form = useForm({
     defaultValues: initialConfig,
     validators: {
@@ -47,10 +45,12 @@ export function ProviderConfigForm(props: Props) {
             errors[key] = t('forms.errors.required');
           }
         }
+
         if (Object.keys(errors).length > 0) {
           toast.error(t('ProviderCardActions.validationError'));
           return errors;
         }
+
         return undefined;
       },
     },
@@ -68,7 +68,6 @@ export function ProviderConfigForm(props: Props) {
   }
 
   const formId = isEdit ? `edit-${type}` : `create-${type}`;
-
   if (info.isAutoDiscovery && onAdd) {
     return (
       <div className="space-y-4">

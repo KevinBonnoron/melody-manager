@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { useMusicPlayer } from '@/contexts/music-player-context';
 import type { Track } from '@melody-manager/shared';
 import { Loader2, Pause, Play } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useMusicPlayer } from '@/contexts/music-player-context';
 
 interface Props {
   index: number;
@@ -14,7 +14,6 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
   const isCurrentTrack = currentTrack?.id === track.id;
   const isCurrentlyPlaying = isCurrentTrack && isPlaying;
   const isCurrentlyLoading = isCurrentTrack && isLoading;
-
   function handleClick() {
     if (isCurrentTrack) {
       togglePlayPause();
@@ -27,9 +26,11 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
     if (isCurrentlyLoading) {
       return <Loader2 className="absolute inset-0 m-auto h-4 w-4 animate-spin text-primary" />;
     }
+
     if (isCurrentlyPlaying) {
       return <Pause className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground group-hover:opacity-0 transition-[opacity]" fill="currentColor" />;
     }
+
     return <span className={`text-sm absolute inset-0 flex items-center justify-center transition-opacity ${isCurrentTrack ? 'text-primary' : ''} group-hover:opacity-0`}>{index}</span>;
   };
 
@@ -37,6 +38,7 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
     if (isCurrentlyLoading) {
       return null;
     }
+
     return (
       <Button
         size="icon"

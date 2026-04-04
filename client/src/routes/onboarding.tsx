@@ -7,6 +7,7 @@ export const Route = createFileRoute('/onboarding')({
     if (!pb.authStore.isValid) {
       throw redirect({ to: '/login' });
     }
+
     const user = pb.authStore.record;
     if (user?.onboardingDone) {
       throw redirect({ to: '/' });

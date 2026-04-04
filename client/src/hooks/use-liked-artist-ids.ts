@@ -1,7 +1,7 @@
-import { artistLikeCollection } from '@/collections/artist-like.collection';
-import { artistCollection } from '@/collections/artist.collection';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useMemo } from 'react';
+import { artistCollection } from '@/collections/artist.collection';
+import { artistLikeCollection } from '@/collections/artist-like.collection';
 
 export function useLikedArtistIds() {
   const { data: joinResult = [] } = useLiveQuery((q) =>

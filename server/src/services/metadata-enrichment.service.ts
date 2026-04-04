@@ -2,6 +2,9 @@ import type { Track } from '@melody-manager/shared';
 import { uploadImageToRecord } from '../lib/image-upload';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
+import { deezerClient } from '../providers/deezer/deezer.client';
+import { soundcloudClient } from '../providers/soundcloud/soundcloud.client';
+import { youtubeClient } from '../providers/youtube/youtube.client';
 import { albumRepository, artistRepository, trackRepository } from '../repositories';
 import { musicBrainzClient } from './musicbrainz.service';
 import { taskService } from './task.service';
@@ -95,37 +98,70 @@ class MetadataEnrichmentService {
       return;
     }
 
-    // When MBID is known but image is missing, still search to get wikidataId for image backfill
-    const mbArtist = knownMbid && artist.image ? { mbid: knownMbid, wikidataId: undefined } : await musicBrainzClient.searchArtist(artist.name);
-    if (!mbArtist) {
-      return;
-    }
+    // When MBID is known, fetch full details to get wikidataId for image lookup
+    const mbArtist = knownMbid ? ((await musicBrainzClient.searchArtist(artist.name)) ?? { mbid: knownMbid, wikidataId: undefined }) : await musicBrainzClient.searchArtist(artist.name);
 
-    // Check if another artist already has this MBID — if so, merge into it
-    if (!knownMbid) {
+    if (mbArtist && !knownMbid) {
+      // Check if another artist already has this MBID — if so, merge into it
       const existing = await artistRepository.getOneBy(pbFilter('metadata.mbid = {:mbid} && id != {:artistId}', { mbid: mbArtist.mbid, artistId: artist.id }));
       if (existing) {
         await this.mergeArtists(existing.id, artist.id);
         return;
       }
+
+      await artistRepository.update(artistId, { metadata: { ...artist.metadata, mbid: mbArtist.mbid } });
     }
 
-    const update: { metadata?: { mbid: string } } = {};
+    if (!artist.image) {
+      let imageUrl: string | null = null;
 
-    if (!knownMbid) {
-      update.metadata = { ...artist.metadata, mbid: mbArtist.mbid };
-    }
+      if (mbArtist?.wikidataId) {
+        imageUrl = await musicBrainzClient.getArtistImageUrl(mbArtist.wikidataId);
+      }
 
-    if (Object.keys(update).length > 0) {
-      await artistRepository.update(artistId, update);
-    }
+      if (!imageUrl) {
+        imageUrl = await deezerClient.getArtistImage(artist.name);
+      }
 
-    if (!artist.image && mbArtist.wikidataId) {
-      const imageUrl = await musicBrainzClient.getArtistImageUrl(mbArtist.wikidataId);
+      if (!imageUrl) {
+        imageUrl = await this.findArtistImageFromTracks(artistId);
+      }
+
       if (imageUrl) {
         await uploadImageToRecord('artists', artistId, 'image', imageUrl);
+      } else {
+        logger.info(`[enrichment] No image found for "${artist.name}"`);
       }
     }
+  }
+
+  /** Use the artist's existing tracks to find a suitable image (channel avatar for YouTube/SoundCloud, cover art fallback). */
+  private async findArtistImageFromTracks(artistId: string): Promise<string | null> {
+    const tracks = await trackRepository.getAllBy(pbFilter('artists.id ?= {:artistId}', { artistId }));
+
+    for (const track of tracks) {
+      if (track.sourceUrl.includes('youtube.com') || track.sourceUrl.includes('youtu.be')) {
+        const avatar = await youtubeClient.getArtistImage(track.sourceUrl);
+        if (avatar) {
+          return avatar;
+        }
+      }
+      if (track.sourceUrl.includes('soundcloud.com')) {
+        const avatar = await soundcloudClient.getArtistImage(track.sourceUrl);
+        if (avatar) {
+          return avatar;
+        }
+      }
+    }
+
+    // Fallback to track cover art
+    for (const track of tracks) {
+      if (track.metadata?.coverArtUrl) {
+        return track.metadata.coverArtUrl;
+      }
+    }
+
+    return null;
   }
 
   /** Merge sourceArtistId into targetArtistId: reassign tracks/albums, then delete source. */

@@ -2,8 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { AlbumError } from '../errors';
-import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
+import { adminMiddleware } from '../middlewares';
 import { albumService, trackSourceService } from '../services';
 
 const addAlbumSchema = z.object({

@@ -1,5 +1,5 @@
-import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useTrackLikes } from '@/hooks/use-track-likes';
 import { LikeButton } from '../like-button';
 import { NextButton } from './next-button';
 import { PlayButton } from './play-button';
@@ -13,7 +13,6 @@ export function PlaybackControls() {
   const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
   const canGoNext = (currentIndex >= 0 && currentIndex < queue.length - 1) || (repeatMode === 'all' && queue.length > 0);
   const canGoPrevious = currentIndex > 0 || (repeatMode === 'all' && queue.length > 0);
-
   return (
     <div className="flex items-center justify-self-center gap-2">
       <div className="hidden sm:flex items-center gap-2 w-20 justify-end">

@@ -11,7 +11,6 @@ interface Props {
 export function PlayAlbumButton({ tracks }: Props) {
   const { t } = useTranslation();
   const { playTrack, setQueue } = useMusicPlayer();
-
   const handlePlayAll = () => {
     if (tracks.length > 0) {
       setQueue(tracks);

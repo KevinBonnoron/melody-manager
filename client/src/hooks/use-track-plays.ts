@@ -4,7 +4,6 @@ import { pb } from '@/lib/pocketbase';
 
 export function useTrackPlays() {
   const [playCounts, setPlayCounts] = useState<Record<string, number>>({});
-
   useEffect(() => {
     const fetchCounts = async () => {
       try {
@@ -32,7 +31,6 @@ export function useTrackPlays() {
   }, []);
 
   const playCountMap = useMemo(() => new Map(Object.entries(playCounts)), [playCounts]);
-
   const getPlayCount = useCallback(
     (trackId: string) => {
       return playCountMap.get(trackId) ?? 0;

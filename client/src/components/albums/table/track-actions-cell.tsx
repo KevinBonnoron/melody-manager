@@ -1,3 +1,8 @@
+import type { Track } from '@melody-manager/shared';
+import { Heart, HeartOff, MoreVertical, Share2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { tracksClient } from '@/clients/tracks.client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -6,11 +11,6 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { useTrackDislikes } from '@/hooks/use-track-dislikes';
 import { useTrackLikes } from '@/hooks/use-track-likes';
 import { cn } from '@/lib/utils';
-import type { Track } from '@melody-manager/shared';
-import { Heart, HeartOff, MoreVertical, Share2, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Button } from '../../ui/button';
 import { ShareTrackDialog } from './share-track-dialog';
 
@@ -26,11 +26,9 @@ export function TrackActionsCell({ track }: Props) {
   const isAdmin = user.role === 'admin';
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const liked = isLiked(track.id);
   const disliked = isDisliked(track.id);
   const canShare = !!track.metadata?.localPath || track.expand?.provider?.type === 'local';
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {

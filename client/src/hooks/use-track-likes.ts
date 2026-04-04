@@ -1,14 +1,13 @@
-import { trackLikeCollection } from '@/collections/track-like.collection';
-import { trackCollection } from '@/collections/track.collection';
 import type { Track, TrackLike } from '@melody-manager/shared';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
+import { trackCollection } from '@/collections/track.collection';
+import { trackLikeCollection } from '@/collections/track-like.collection';
 import { useAuthUser } from './use-auth-user';
 
 export function useTrackLikes() {
   const user = useAuthUser();
   const { data: trackLikes = [] } = useLiveQuery((q) => q.from({ trackLikes: trackLikeCollection }).where(({ trackLikes }) => eq(trackLikes.user, user.id)));
-
   const isLiked = useCallback(
     (trackId: string) => {
       return trackLikes.some((like) => like.track === trackId);

@@ -45,7 +45,6 @@ function ButtonGroupText({
   asChild?: boolean
 }) {
   const Comp = asChild ? Slot : "div"
-
   return (
     <Comp
       className={cn(

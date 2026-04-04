@@ -35,7 +35,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const routeInfo = routeTitles[location.pathname] || routeTitles[location.pathname.replace(/\/$/, '')];
   const isRootPath = !!routeInfo;
-
   return (
     <SidebarProvider>
       <AppSidebar />

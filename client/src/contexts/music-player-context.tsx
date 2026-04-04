@@ -1,13 +1,13 @@
-import { trackPlayCollection } from '@/collections/track-play.collection';
-import i18n from '@/i18n';
-import { config } from '@/lib/config';
-import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { Capacitor } from '@capacitor/core';
 import type { Device, PlayerState, Track, TrackPlay } from '@melody-manager/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useAuth } from 'pocketbase-react-hooks';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { trackPlayCollection } from '@/collections/track-play.collection';
+import i18n from '@/i18n';
+import { config } from '@/lib/config';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
 
@@ -49,7 +49,6 @@ interface MusicPlayerContextValue {
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
-
 interface MusicPlayerProviderProps {
   children: ReactNode;
 }
@@ -69,7 +68,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const playCompletedForTrackIdRef = useRef<string | null>(null);
   const listenedTimeRef = useRef(0);
   const lastTimeUpdateRef = useRef(0);
-
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
   const [audioFormat, setAudioFormat] = useState<AudioFormat>('source');
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +83,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   });
 
   const isNativePlatform = Capacitor.isNativePlatform();
-
   currentTrackIdRef.current = playerState.currentTrack?.id ?? null;
 
   useEffect(() => {
@@ -129,6 +126,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           setPlayerState((prev) => ({ ...prev, isPlaying: false }));
           setIsLoading(false);
         }
+
         return;
       }
 
@@ -145,6 +143,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         if (error.name === 'AbortError') {
           return;
         }
+
         console.error('Playback failed:', error);
         toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
@@ -186,6 +185,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         if (delta > 0 && delta < 2) {
           listenedTimeRef.current += delta;
         }
+
         lastTimeUpdateRef.current = currentTime;
 
         const trackId = currentTrackIdRef.current;
@@ -208,6 +208,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       if (trackId === null || trackId === endedHandledForTrackIdRef.current) {
         return;
       }
+
       endedHandledForTrackIdRef.current = trackId;
 
       setTimeout(() => {
@@ -221,6 +222,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
             if (otherTracks.length > 0) {
               setTimeout(() => playTrackRef.current(otherTracks[Math.floor(Math.random() * otherTracks.length)]), 0);
             }
+
             return prev;
           } else if (prev.repeatMode === 'all') {
             const currentIndex = prev.queue.findIndex((t) => t.id === prev.currentTrack?.id);
@@ -239,6 +241,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           } else {
             return { ...prev, currentTrack: null, isPlaying: false };
           }
+
           return prev;
         });
       }, 0);
@@ -312,12 +315,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         console.error('Sonos pause failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       }
+
       return;
     }
 
     if (!audioRef.current) {
       return;
     }
+
     audioRef.current.pause();
   }, [activeDevice]);
 
@@ -330,16 +335,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         console.error('Sonos play failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       }
+
       return;
     }
 
     if (!audioRef.current) {
       return;
     }
+
     audioRef.current.play().catch((error) => {
       if (error.name === 'AbortError') {
         return;
       }
+
       console.error('Playback failed:', error);
       const title = playerState.currentTrack?.title;
       toast.error(title ? i18n.t('MusicPlayer.playbackError', { title }) : i18n.t('MusicPlayer.playbackErrorGeneric'));
@@ -363,6 +371,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         console.error('Sonos next failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       }
+
       return;
     }
 
@@ -371,15 +380,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       if (otherTracks.length > 0) {
         playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]);
       }
+
       return;
     }
 
     const currentIndex = playerState.queue.findIndex((t) => t.id === playerState.currentTrack?.id);
-
     if (currentIndex === -1 || currentIndex === playerState.queue.length - 1) {
       if (playerState.repeatMode === 'all' && playerState.queue.length > 0) {
         playTrack(playerState.queue[0]);
       }
+
       return;
     }
 
@@ -394,6 +404,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         console.error('Sonos previous failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       }
+
       return;
     }
 
@@ -402,15 +413,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       if (otherTracks.length > 0) {
         playTrack(otherTracks[Math.floor(Math.random() * otherTracks.length)]);
       }
+
       return;
     }
 
     const currentIndex = playerState.queue.findIndex((t) => t.id === playerState.currentTrack?.id);
-
     if (currentIndex === -1 || currentIndex === 0) {
       if (playerState.repeatMode === 'all' && playerState.queue.length > 0) {
         playTrack(playerState.queue[playerState.queue.length - 1]);
       }
+
       return;
     }
 
@@ -427,12 +439,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           console.error('Sonos seek failed:', error);
           toast.error(i18n.t('MusicPlayer.deviceError'));
         }
+
         return;
       }
 
       if (!audioRef.current) {
         return;
       }
+
       audioRef.current.currentTime = time;
       setPlayerState((prev) => ({ ...prev, currentTime: time }));
     },
@@ -450,12 +464,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           console.error('Sonos setVolume failed:', error);
           toast.error(i18n.t('MusicPlayer.deviceError'));
         }
+
         return;
       }
 
       if (!audioRef.current) {
         return;
       }
+
       audioRef.current.volume = volume;
       setPlayerState((prev) => ({ ...prev, volume }));
     },
@@ -504,7 +520,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     (trackId: string) => {
       setPlayerState((prev) => {
         const newQueue = prev.queue.filter((t) => t.id !== trackId);
-
         if (prev.currentTrack?.id === trackId && newQueue.length > 0) {
           const currentIndex = prev.queue.findIndex((t) => t.id === trackId);
           const nextTrack = newQueue[Math.min(currentIndex, newQueue.length - 1)];
@@ -552,7 +567,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     const track = playerState.currentTrack;
-
     if (isNativePlatform) {
       nativeAudioService.initialize({
         onPlay: () => play(),
@@ -660,7 +674,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
         const { state, track, volume } = response.data;
         const isPlaying = state === 'PLAYING';
-
         let currentTime = 0;
         if (track && typeof track === 'object' && 'RelTime' in track && typeof track.RelTime === 'string') {
           const timeParts = track.RelTime.split(':');
@@ -719,7 +732,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
 export function useMusicPlayer() {
   const context = useContext(MusicPlayerContext);
-
   if (context === undefined) {
     throw new Error('useMusicPlayer must be used within a MusicPlayerProvider');
   }

@@ -11,7 +11,6 @@ export function LoginForm() {
   const { t } = useTranslation();
   const { signIn } = useAuth();
   const navigate = useNavigate();
-
   const form = useAppForm({
     defaultValues: {
       email: '',

@@ -23,7 +23,6 @@ export function EditConnectionButton({ title, description, connectionId }: Props
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const [open, setOpen] = useState(false);
-
   const { data: connection } = useLiveQuery(
     (q) =>
       q
@@ -47,11 +46,11 @@ export function EditConnectionButton({ title, description, connectionId }: Props
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = type ? (providerInfo[type] ?? null) : null;
   const initialConfig = useMemo(() => (connection?.config ? { ...connection.config } : type ? getDefaultConfigForType(manifests, type, true) : {}) as ConfigFormData, [connection?.config, type, manifests]);
-
   const handleSubmit = async (config: ConfigFormData) => {
     if (!connection || !info) {
       return;
     }
+
     try {
       connectionCollection.update(connectionId, (draft) => {
         draft.config = config;
@@ -70,6 +69,7 @@ export function EditConnectionButton({ title, description, connectionId }: Props
     if (!connection || !info) {
       return;
     }
+
     try {
       connectionCollection.update(connectionId, (draft) => {
         draft.enabled = true;
@@ -83,9 +83,7 @@ export function EditConnectionButton({ title, description, connectionId }: Props
   };
 
   const handleCancel = () => setOpen(false);
-
   const canShowForm = connection && type && category;
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

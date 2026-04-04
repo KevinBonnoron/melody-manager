@@ -52,21 +52,6 @@ WORKDIR /app
 COPY server/dist ./server/dist
 COPY client/dist /usr/share/nginx/html
 COPY shared/dist ./shared/dist
-COPY plugins/sdk/dist ./plugins/sdk/dist
-COPY plugins/youtube/dist ./plugins/youtube/dist
-COPY plugins/spotify/dist ./plugins/spotify/dist
-COPY plugins/soundcloud/dist ./plugins/soundcloud/dist
-COPY plugins/bandcamp/dist ./plugins/bandcamp/dist
-COPY plugins/local/dist ./plugins/local/dist
-COPY plugins/sonos/dist ./plugins/sonos/dist
-
-# Copy plugin manifests (needed by the plugin loader at runtime)
-COPY plugins/youtube/manifest.json ./plugins/youtube/
-COPY plugins/spotify/manifest.json ./plugins/spotify/
-COPY plugins/soundcloud/manifest.json ./plugins/soundcloud/
-COPY plugins/bandcamp/manifest.json ./plugins/bandcamp/
-COPY plugins/local/manifest.json ./plugins/local/
-COPY plugins/sonos/manifest.json ./plugins/sonos/
 
 # Copy DB hooks and migrations (pb_data is created at runtime)
 COPY db/pb_hooks ./db/pb_hooks

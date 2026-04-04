@@ -13,13 +13,13 @@ export function TrackInfo({ track }: Props) {
   const titleRef = useRef<HTMLParagraphElement>(null);
   const [shouldScroll, setShouldScroll] = useState(false);
   const prevTitleRef = useRef(track.title);
-
   useLayoutEffect(() => {
     if (prevTitleRef.current !== track.title) {
       prevTitleRef.current = track.title;
       setShouldScroll(false);
       return;
     }
+
     if (!shouldScroll && titleRef.current) {
       if (titleRef.current.scrollWidth > titleRef.current.clientWidth) {
         setShouldScroll(true);

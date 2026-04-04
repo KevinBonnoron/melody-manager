@@ -1,0 +1,31 @@
+import type { PluginManifest } from '@melody-manager/shared';
+
+export const spotifyManifest: PluginManifest = {
+  id: 'spotify',
+  name: 'Spotify',
+  description: 'Search and import music from Spotify',
+  version: '1.0.0',
+  icon: 'spotify',
+  entry: '',
+  scope: 'personal',
+  features: ['search', 'import'],
+  searchTypes: ['track'],
+  importTypes: ['track'],
+  urlPatterns: ['spotify.com', 'spotify:'],
+  connectionSchema: [
+    {
+      name: 'clientId',
+      type: 'string',
+      label: 'Client ID',
+      description: 'Spotify application client ID',
+      required: true,
+    },
+    {
+      name: 'clientSecret',
+      type: 'secret',
+      label: 'Client Secret',
+      description: 'Spotify application client secret',
+      required: true,
+    },
+  ],
+};

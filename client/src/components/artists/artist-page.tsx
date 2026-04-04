@@ -1,5 +1,9 @@
+import { useNavigate } from '@tanstack/react-router';
+import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { artistsClient } from '@/clients/artists.client';
-import { getArtistImageUrl } from '@/lib/cover-url';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
@@ -7,11 +11,7 @@ import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { useArtistTracks } from '@/hooks/use-tracks';
-import { useNavigate } from '@tanstack/react-router';
-import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { getArtistImageUrl } from '@/lib/cover-url';
 import { AlbumCard } from '../albums/album-card';
 import { Button } from '../ui/button';
 
@@ -31,7 +31,6 @@ export function ArtistPage({ artistId }: Props) {
   const isAdmin = user.role === 'admin';
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handlePlayAll = () => {
     if (tracks.length > 0) {
       setQueue(tracks);

@@ -7,7 +7,6 @@ export function BackButton() {
   const { t } = useTranslation();
   const router = useRouter();
   const canGoBack = useCanGoBack();
-
   function handleClick() {
     if (canGoBack) {
       router.history.back();

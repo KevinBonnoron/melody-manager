@@ -1,10 +1,10 @@
-import { deviceClient } from '@/clients/device.client';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { Device } from '@melody-manager/shared';
 import { Monitor, Speaker } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { deviceClient } from '@/clients/device.client';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Props {
   activeDevice: Device | null;
@@ -15,7 +15,6 @@ interface Props {
 export function DeviceSelector({ activeDevice, onDeviceChange, onDevicesLoad }: Props) {
   const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
-
   const loadDevices = useCallback(async () => {
     try {
       const response = await deviceClient.list();
@@ -44,6 +43,7 @@ export function DeviceSelector({ activeDevice, onDeviceChange, onDevicesLoad }: 
     if (!device || device.type === 'browser') {
       return <Monitor className="h-4 w-4" />;
     }
+
     return <Speaker className="h-4 w-4" />;
   };
 

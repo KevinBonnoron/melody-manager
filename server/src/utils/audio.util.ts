@@ -1,4 +1,4 @@
-import { ffmpeg } from '@melody-manager/plugin-sdk';
+import { ffmpeg } from './ffmpeg';
 
 export interface SilenceBoundaries {
   trimStart: number;
@@ -29,12 +29,12 @@ export async function detectSilenceBoundaries(filePath: string, options?: { thre
   // Parse silence regions from silencedetect filter output
   const silenceStarts: number[] = [];
   const silenceEnds: number[] = [];
-
   for (const line of stderr.split('\n')) {
     const startMatch = line.match(/silence_start:\s*([\d.]+)/);
     if (startMatch) {
       silenceStarts.push(Number.parseFloat(startMatch[1]));
     }
+
     const endMatch = line.match(/silence_end:\s*([\d.]+)/);
     if (endMatch) {
       silenceEnds.push(Number.parseFloat(endMatch[1]));
@@ -95,12 +95,12 @@ export async function detectAllSilenceRegions(filePath: string, options?: { thre
 
   const regions: SilenceRegion[] = [];
   const silenceStarts: number[] = [];
-
   for (const line of stderr.split('\n')) {
     const startMatch = line.match(/silence_start:\s*([\d.]+)/);
     if (startMatch) {
       silenceStarts.push(Number.parseFloat(startMatch[1]));
     }
+
     const endMatch = line.match(/silence_end:\s*([\d.]+)/);
     if (endMatch) {
       const end = Number.parseFloat(endMatch[1]);

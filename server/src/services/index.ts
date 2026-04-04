@@ -1,5 +1,6 @@
 export { albumService } from './album.service';
 export { artistService } from './artist.service';
+export { cacheService } from './cache.service';
 export { deviceSourceService } from './device-source.service';
 export { importPersistService } from './import-persist.service';
 export { metadataEnrichmentService } from './metadata-enrichment.service';
@@ -8,5 +9,5 @@ export { shareLinkService } from './share-link.service';
 export { statsService } from './stats.service';
 export { streamService } from './stream.service';
 export { taskService } from './task.service';
-export { trackSourceService } from './track-source.service';
 export { trackService } from './track.service';
+export { trackSourceService } from './track-source.service';

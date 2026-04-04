@@ -1,9 +1,9 @@
-import { useMusicPlayer } from '@/contexts/music-player-context';
 import type { Track, TrackProvider } from '@melody-manager/shared';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Music2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMusicPlayer } from '@/contexts/music-player-context';
 import { TrackCard } from './track-card';
 
 interface Props {
@@ -16,9 +16,7 @@ export function TrackGrid({ tracks, provider }: Props) {
   const { playTrack, togglePlayPause, currentTrack, isPlaying, isLoading, setQueue } = useMusicPlayer();
   const [columns, setColumns] = useState(4);
   const containerRef = useRef<HTMLDivElement>(null);
-
   const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.provider === provider.id)), [tracks, provider]);
-
   const handlePlayTrack = useCallback(
     (track: Track) => {
       if (currentTrack?.id === track.id) {
@@ -59,6 +57,7 @@ export function TrackGrid({ tracks, provider }: Props) {
     for (let i = 0; i < filteredTracks.length; i += columns) {
       result.push(filteredTracks.slice(i, i + columns));
     }
+
     return result;
   }, [filteredTracks, columns]);
 
@@ -80,7 +79,6 @@ export function TrackGrid({ tracks, provider }: Props) {
   }
 
   const virtualItems = virtualizer.getVirtualItems();
-
   return (
     <div ref={containerRef}>
       <div

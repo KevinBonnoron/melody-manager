@@ -72,6 +72,7 @@ function CommandInput({
       if (e.key === "Home" || e.key === "End") {
         e.stopPropagation()
       }
+
       onKeyDown?.(e)
     },
     [onKeyDown]

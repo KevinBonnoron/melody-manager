@@ -1,6 +1,6 @@
-import { tasksClient } from '@/clients/tasks.client';
 import type { Task } from '@melody-manager/shared';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { tasksClient } from '@/clients/tasks.client';
 
 interface TaskContextValue {
   tasks: Task[];
@@ -19,7 +19,6 @@ const TaskContext = createContext<TaskContextValue>({
 export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const initializedRef = useRef(false);
-
   const upsertTask = useCallback((task: Task) => {
     setTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === task.id);
@@ -28,6 +27,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         updated[idx] = task;
         return updated;
       }
+
       return [task, ...prev];
     });
   }, []);
@@ -36,6 +36,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) {
       return;
     }
+
     initializedRef.current = true;
 
     const unsub = tasksClient.events((task) => {
@@ -49,7 +50,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }, [upsertTask]);
 
   const activeTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'running');
-
   const clearCompleted = useCallback(() => {
     setTasks((prev) => prev.filter((t) => t.status === 'pending' || t.status === 'running'));
     tasksClient.clearCompleted();

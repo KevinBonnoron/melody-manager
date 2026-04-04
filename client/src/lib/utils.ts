@@ -10,11 +10,11 @@ export function formatDuration(seconds: number, format: 'short' | 'long' = 'shor
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const secs = totalSeconds % 60;
-
   if (format === 'short') {
     if (hours > 0) {
       return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
+
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   }
 
@@ -22,9 +22,11 @@ export function formatDuration(seconds: number, format: 'short' | 'long' = 'shor
   if (hours) {
     parts.push(`${hours}h`);
   }
+
   if (minutes) {
     parts.push(`${minutes}min`);
   }
+
   parts.push(`${secs}sec`);
   return parts.join(' ');
 }
@@ -37,7 +39,6 @@ const PROVIDER_COLORS: Record<string, { default: string; contrast: string }> = {
 };
 
 const PROVIDER_COLORS_FALLBACK = { default: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20', contrast: 'bg-gray-600 text-white border-0' };
-
 export function getProviderColor(provider: string, variant: 'default' | 'contrast' = 'default') {
   return (PROVIDER_COLORS[provider] ?? PROVIDER_COLORS_FALLBACK)[variant];
 }
@@ -58,16 +59,18 @@ export function formatTimeAgo(date: Date): { value: number; unit: 'now' | 'minut
   const diffMinutes = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
   if (diffMinutes < 1) {
     return { value: 0, unit: 'now' };
   }
+
   if (diffMinutes < 60) {
     return { value: diffMinutes, unit: 'minutes' };
   }
+
   if (diffHours < 24) {
     return { value: diffHours, unit: 'hours' };
   }
+
   return { value: diffDays, unit: 'days' };
 }
 

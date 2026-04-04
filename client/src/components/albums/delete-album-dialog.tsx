@@ -17,7 +17,6 @@ export function DeleteAlbumDialog({ album, trigger }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {

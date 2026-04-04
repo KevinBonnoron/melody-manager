@@ -23,7 +23,6 @@ export function AlbumCard({ album }: Props) {
   const isCurrentAlbum = currentTrack?.album === album.id;
   const { status: downloadStatus } = getAlbumDownloadStatus(tracks);
   const coverUrl = getAlbumCoverUrl(album);
-
   return (
     <Link to="/albums/$albumId" params={{ albumId: album.id }}>
       <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isCurrentAlbum ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}>

@@ -1,8 +1,8 @@
+import { useEffect, useRef, useState } from 'react';
+import WaveSurfer from 'wavesurfer.js';
 import { tracksClient } from '@/clients/tracks.client';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useEffect, useRef, useState } from 'react';
-import WaveSurfer from 'wavesurfer.js';
 
 export function ProgressBar() {
   const { currentTrack, currentTime, seek, audioElement } = useMusicPlayer();
@@ -11,11 +11,11 @@ export function ProgressBar() {
   const seekRef = useRef(seek);
   seekRef.current = seek;
   const [peaks, setPeaks] = useState<number[] | null>(null);
-
   useEffect(() => {
     if (!currentTrack) {
       return;
     }
+
     let stale = false;
     setPeaks(null);
     tracksClient
@@ -53,7 +53,6 @@ export function ProgressBar() {
     };
     const primaryColor = getColor('text-primary') ?? '#6366f1';
     const mutedColor = getColor('text-muted-foreground') ?? '#9ca3af';
-
     const ws = WaveSurfer.create({
       container: containerRef.current,
       media: audioElement,
@@ -87,7 +86,6 @@ export function ProgressBar() {
   }
 
   const chapters = currentTrack.metadata?.chapters ?? [];
-
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -96,7 +94,6 @@ export function ProgressBar() {
   };
 
   const progressPercent = currentTrack.duration > 0 ? (currentTime / currentTrack.duration) * 100 : 0;
-
   const handleSimpleBarClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;

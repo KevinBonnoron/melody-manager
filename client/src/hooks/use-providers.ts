@@ -5,10 +5,10 @@ export function useProviders(options?: { category?: string; enabled?: boolean })
   return useLiveQuery(
     (q) => {
       let query = q.from({ providers: providerCollection });
-
       if (options?.category !== undefined) {
         query = query.where(({ providers }) => eq(providers.category, options.category));
       }
+
       if (options?.enabled !== undefined) {
         query = query.where(({ providers }) => eq(providers.enabled, options.enabled));
       }

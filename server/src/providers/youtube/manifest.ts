@@ -1,0 +1,34 @@
+import type { PluginManifest } from '@melody-manager/shared';
+
+export const youtubeManifest: PluginManifest = {
+  id: 'youtube',
+  name: 'YouTube',
+  description: 'Search, stream and import music from YouTube videos and playlists',
+  version: '1.0.0',
+  icon: 'youtube',
+  entry: '',
+  scope: 'personal',
+  features: ['search', 'stream', 'import'],
+  searchTypes: ['track', 'album', 'artist', 'playlist'],
+  importTypes: ['track', 'album', 'artist', 'playlist'],
+  urlPatterns: ['youtube.com', 'youtu.be', 'youtube:'],
+  configSchema: [
+    {
+      name: 'downloadPath',
+      type: 'string',
+      label: 'Download path',
+      description: 'Server path where YouTube audio files will be downloaded (e.g. /music/youtube)',
+      required: true,
+    },
+  ],
+  connectionSchema: [
+    {
+      name: 'cookies',
+      type: 'textarea',
+      label: 'Cookies (optional)',
+      description: 'YouTube cookies in Netscape format. Only needed if YouTube blocks requests. Export from your browser with the « Get cookies.txt LOCALLY » extension or via: yt-dlp --cookies-from-browser chrome --skip-download <url>',
+      placeholder: '# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t...',
+      required: false,
+    },
+  ],
+};

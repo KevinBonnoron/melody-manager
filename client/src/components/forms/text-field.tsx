@@ -1,6 +1,6 @@
-import { useFieldContext } from '@/lib/forms';
 import { useStore } from '@tanstack/react-form';
 import { useId } from 'react';
+import { useFieldContext } from '@/lib/forms';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
@@ -17,7 +17,6 @@ export function TextField({ label, type = 'text', placeholder = '', autoComplete
   const inputId = useId();
   const field = useFieldContext<string>();
   const hasError = useStore(field.store, (state) => state.meta.isTouched && state.meta.errors.length > 0);
-
   return (
     <div className="grid gap-3">
       <div className="grid gap-3">

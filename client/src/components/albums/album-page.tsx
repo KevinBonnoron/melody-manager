@@ -30,6 +30,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
     if (!raw) {
       return null;
     }
+
     try {
       const parsed = new URL(raw);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : null;

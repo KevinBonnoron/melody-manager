@@ -14,16 +14,13 @@ import { formatTimeAgo } from '@/lib/utils';
 
 export function HistoryPage() {
   const { t } = useTranslation();
-
   const { data: trackPlays = [] } = useLiveQuery((q) => q.from({ trackPlays: trackPlayCollection }));
   const { data: tracks = [] } = useLiveQuery((q) => q.from({ tracks: trackCollection }));
   const { data: albums = [] } = useLiveQuery((q) => q.from({ albums: albumCollection }));
   const { data: artists = [] } = useLiveQuery((q) => q.from({ artists: artistCollection }));
-
   const trackMap = useMemo(() => new Map((tracks as Track[]).map((tr) => [tr.id, tr])), [tracks]);
   const albumMap = useMemo(() => new Map((albums as Album[]).map((a) => [a.id, a])), [albums]);
   const artistMap = useMemo(() => new Map((artists as Artist[]).map((a) => [a.id, a])), [artists]);
-
   const recentlyPlayed = useMemo(() => {
     return [...(trackPlays as TrackPlay[])]
       .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
@@ -35,7 +32,6 @@ export function HistoryPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const visibleItems = recentlyPlayed.slice(0, visibleCount);
   const hasMore = visibleCount < recentlyPlayed.length;
-
   if (recentlyPlayed.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -75,10 +71,8 @@ function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; tra
     .filter(Boolean)
     .join(', ');
   const isCurrentTrack = currentTrack?.id === track.id;
-
   const { value, unit } = formatTimeAgo(new Date(play.created));
   const timeAgo = unit === 'now' ? t('HistoryPage.justNow') : t(`HistoryPage.${unit}Ago`, { count: value });
-
   const handleClick = () => {
     if (isCurrentTrack) {
       togglePlayPause();

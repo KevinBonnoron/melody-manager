@@ -1,5 +1,4 @@
 import { createEnv } from '@melody-manager/shared';
-import { join } from 'node:path';
 
 const env = createEnv((name) => process.env[name]);
 
@@ -17,8 +16,5 @@ export const config = {
     dir: env('CACHE_DIR').string('/tmp/melody-manager-cache'),
     maxFiles: env('CACHE_MAX_FILES').number(500),
     maxSize: env('CACHE_MAX_SIZE').number(5 * 1024 * 1024 * 1024),
-  },
-  plugins: {
-    dir: env('PLUGINS_DIR').string(join(process.cwd(), '..', 'plugins')),
   },
 };

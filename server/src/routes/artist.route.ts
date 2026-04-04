@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { adminMiddleware } from '../lib/auth';
 import { logger } from '../lib/logger';
+import { adminMiddleware } from '../middlewares';
 import { artistService, trackSourceService } from '../services';
 
 const id = z.object({

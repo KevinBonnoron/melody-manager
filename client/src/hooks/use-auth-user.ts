@@ -8,7 +8,6 @@ import { useAuth } from 'pocketbase-react-hooks';
  */
 export function useAuthUser(): User {
   const { user } = useAuth<User>();
-
   if (!user) {
     throw new Error('User must be authenticated. This hook should only be used in protected routes.');
   }

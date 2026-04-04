@@ -19,7 +19,6 @@ import { pb } from '@/lib/pocketbase';
 import { formatListeningTime, formatMonth } from '@/lib/utils';
 
 const CHART_COLORS = ['#7c3aed', '#c026d3', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f97316'];
-
 interface StatsData {
   totalPlays: number;
   totalSeconds: number;
@@ -39,17 +38,14 @@ export function StatsPage() {
   const [expandedTracks, setExpandedTracks] = useState(false);
   const [expandedArtists, setExpandedArtists] = useState(false);
   const [expandedAlbums, setExpandedAlbums] = useState(false);
-
   const { data: tracks = [] } = useLiveQuery((q) => q.from({ tracks: trackCollection }));
   const { data: albums = [] } = useLiveQuery((q) => q.from({ albums: albumCollection }));
   const { data: artists = [] } = useLiveQuery((q) => q.from({ artists: artistCollection }));
   const { data: genres = [] } = useLiveQuery((q) => q.from({ genres: genreCollection }));
-
   const trackMap = useMemo(() => new Map(tracks.map((track) => [track.id, track])), [tracks]);
   const albumMap = useMemo(() => new Map(albums.map((album) => [album.id, album])), [albums]);
   const artistMap = useMemo(() => new Map(artists.map((artist) => [artist.id, artist])), [artists]);
   const genreMap = useMemo(() => new Map(genres.map((genre) => [genre.id, genre])), [genres]);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -69,7 +65,6 @@ export function StatsPage() {
 
     const collections = ['track_plays', 'tracks'];
     const unsubscribes = collections.map((col) => pb.collection(col).subscribe('*', () => fetchStats()));
-
     return () => {
       for (const unsub of unsubscribes) {
         unsub.then((fn) => fn());
@@ -87,9 +82,7 @@ export function StatsPage() {
 
   const { hours, minutes } = formatListeningTime(stats.totalSeconds);
   const formattedTime = hours > 0 ? `${hours}${t('StatsPage.hourShort')} ${minutes}${t('StatsPage.minuteShort')}` : `${minutes}${t('StatsPage.minuteShort')}`;
-
   const genreData = stats.topGenres.map(({ genreId, count }) => ({ name: genreMap.get(genreId)?.name ?? genreId, value: count })).filter((d) => d.name);
-
   const monthlyData = stats.playsByMonth.map(({ month, count }) => ({
     month: formatMonth(month, i18n.language),
     count,
@@ -148,6 +141,7 @@ export function StatsPage() {
                 if (!track) {
                   return null;
                 }
+
                 return <TrackRow key={trackId} rank={i + 1} track={track} count={count} albumMap={albumMap} artistMap={artistMap} />;
               })}
             </div>
@@ -177,6 +171,7 @@ export function StatsPage() {
                   if (!artist) {
                     return null;
                   }
+
                   return <ArtistRow key={artistId} rank={i + 1} artist={artist} count={count} />;
                 })}
               </div>
@@ -208,6 +203,7 @@ export function StatsPage() {
                 if (!album) {
                   return null;
                 }
+
                 return <AlbumRow key={albumId} rank={i + 1} album={album} count={count} artistMap={artistMap} />;
               })}
             </div>
@@ -254,7 +250,6 @@ function TrackRow({ rank, track, count, albumMap, artistMap }: { rank: number; t
     .filter(Boolean)
     .join(', ');
   const isCurrentTrack = currentTrack?.id === track.id;
-
   const handleClick = () => {
     if (isCurrentTrack) {
       togglePlayPause();
@@ -317,7 +312,6 @@ function AlbumRow({ rank, album, count, artistMap }: { rank: number; album: Albu
 
 function GenreChart({ data }: { data: { name: string; value: number }[] }) {
   const coloredData = data.map((d, i) => ({ ...d, fill: CHART_COLORS[i % CHART_COLORS.length] }));
-
   return (
     <div className="flex flex-col lg:flex-row items-center gap-4">
       <ResponsiveContainer width="100%" height={220}>
@@ -340,7 +334,6 @@ function GenreChart({ data }: { data: { name: string; value: number }[] }) {
 
 function StatsEmptyState() {
   const { t } = useTranslation();
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
       <div className="rounded-full bg-muted p-6 mb-6">

@@ -1,7 +1,7 @@
 import { EventSource } from 'eventsource';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { authMiddleware } from './lib/auth';
+import { authMiddleware } from './middlewares';
 import { albumRoute, artistRoute, deviceRoute, metadataRoute, playlistRoute, pluginRoute, searchRoute, shareRoute, statsRoute, taskRoute, trackRoute } from './routes';
 
 // @ts-expect-error - EventSource is not typed

@@ -1,13 +1,12 @@
-import { artistLikeCollection } from '@/collections/artist-like.collection';
 import type { ArtistLike } from '@melody-manager/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
+import { artistLikeCollection } from '@/collections/artist-like.collection';
 import { useAuthUser } from './use-auth-user';
 
 export function useArtistLikes() {
   const user = useAuthUser();
   const { data: artistLikes = [] } = useLiveQuery((q) => q.from({ artistLikes: artistLikeCollection }));
-
   const isLiked = useCallback(
     (artistId: string) => {
       return artistLikes.some((like) => like.artist === artistId);

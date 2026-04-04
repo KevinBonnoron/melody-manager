@@ -10,9 +10,7 @@ export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
   const user = useAuthUser();
-
   const avatarUrl = user?.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -26,12 +24,12 @@ export function BottomNav() {
     if (href === '/') {
       return location.pathname === '/';
     }
+
     return location.pathname.startsWith(href);
   };
 
   const profileActive = isActive('/profile');
   const sharesActive = isActive('/shares');
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
       <div className="relative flex h-14 items-center">

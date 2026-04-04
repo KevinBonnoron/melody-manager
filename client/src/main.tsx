@@ -7,7 +7,6 @@ import { routeTree } from './routeTree.gen';
 
 async function initializeApp() {
   const router = createRouter({ routeTree });
-
   const rootElement = document.getElementById('root');
   if (!rootElement) {
     throw new Error("Root element not found. Check if it's in your index.html or if the id is correct.");

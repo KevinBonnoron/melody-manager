@@ -30,15 +30,19 @@ function mapSchemaTypeToFieldType(schema: ConfigSchemaItem): FieldConfig['type']
   if (schema.type === 'boolean') {
     return 'checkbox';
   }
+
   if (schema.type === 'secret') {
     return 'password';
   }
+
   if (schema.type === 'textarea' || schema.type === 'string-list') {
     return 'textarea';
   }
+
   if (schema.type === 'number') {
     return 'number';
   }
+
   return 'text';
 }
 
@@ -47,6 +51,7 @@ function resolveI18n(t: TFunction, key: string, fallback: string | undefined): s
   if (translated && translated !== key && translated !== '') {
     return translated;
   }
+
   return fallback ?? '';
 }
 
@@ -63,10 +68,8 @@ function buildFieldsFromSchema(t: TFunction, manifest: PluginManifest, schema: C
 
 export function getProviderInfoFromManifests(t: TFunction, manifests: PluginManifest[]): Record<string, ProviderInfo> {
   const result: Record<string, ProviderInfo> = {};
-
   for (const manifest of manifests) {
     const isDevice = manifest.features.includes('device');
-
     result[manifest.id] = {
       title: resolveI18n(t, `ProviderCard.${manifest.id}.title`, manifest.name),
       description: resolveI18n(t, `ProviderCard.${manifest.id}.description`, manifest.description),

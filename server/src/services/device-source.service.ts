@@ -1,7 +1,7 @@
 import type { Device, DeviceProvider } from '@melody-manager/shared';
 import { config } from '../lib/config';
-import { pluginRegistry } from '../plugins';
-import type { DeviceProvider as DeviceProviderPlugin, PlayOptions } from '../plugins/types';
+import { deviceRegistry } from '../providers';
+import type { DeviceProvider as DeviceProviderPlugin, PlayOptions } from '../providers/types';
 import { providerRepository, trackRepository } from '../repositories';
 import { buildStreamUrl, getMimeType } from '../utils';
 
@@ -47,7 +47,7 @@ class DeviceSourceService {
   }
 
   private getDevicePlugin(device: Device): DeviceProviderPlugin {
-    const plugin = pluginRegistry.getDeviceProvider(device.type);
+    const plugin = deviceRegistry.getProvider(device.type);
     if (!plugin) {
       throw new Error(`No plugin available for device type: ${device.type}`);
     }
@@ -67,7 +67,7 @@ class DeviceSourceService {
     const providers = (await providerRepository.getAllBy('category = "device" && enabled = true')) as DeviceProvider[];
     const devices = await Promise.all(
       providers.map(async (provider) => {
-        const plugin = pluginRegistry.getDeviceProvider(provider.type);
+        const plugin = deviceRegistry.getProvider(provider.type);
         if (plugin) {
           return plugin.discoverDevices();
         }
@@ -85,7 +85,7 @@ class DeviceSourceService {
     const providers = (await providerRepository.getAllBy('category = "device" && enabled = true')) as DeviceProvider[];
     const devices = await Promise.all(
       providers.map(async (provider) => {
-        const plugin = pluginRegistry.getDeviceProvider(provider.type);
+        const plugin = deviceRegistry.getProvider(provider.type);
         if (plugin) {
           return plugin.getKnownDevices();
         }

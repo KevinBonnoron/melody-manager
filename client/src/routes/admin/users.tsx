@@ -11,7 +11,6 @@ export const Route = createFileRoute('/admin/users')({
 function RouteComponent() {
   const { t } = useTranslation();
   const { users, loading } = useUsers();
-
   if (loading) {
     return <p className="text-muted-foreground text-sm">{t('Admin.usersLoading')}</p>;
   }

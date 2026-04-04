@@ -2,10 +2,8 @@ import { useCallback, useSyncExternalStore } from 'react';
 
 const STORAGE_KEY = 'melody-manager-search-history';
 const MAX_HISTORY = 10;
-
 let listeners: Array<() => void> = [];
 let cachedSnapshot: string[] | null = null;
-
 function emitChange() {
   cachedSnapshot = null;
   for (const listener of listeners) {
@@ -21,6 +19,7 @@ function getSnapshot(): string[] {
       cachedSnapshot = [];
     }
   }
+
   return cachedSnapshot as string[];
 }
 
@@ -33,7 +32,6 @@ function subscribe(listener: () => void) {
 
 export function useSearchHistory() {
   const history = useSyncExternalStore(subscribe, getSnapshot);
-
   const addEntry = useCallback((query: string) => {
     const trimmed = query.trim();
     if (!trimmed) {

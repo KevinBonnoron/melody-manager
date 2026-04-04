@@ -1,15 +1,14 @@
-import { trackDislikeCollection } from '@/collections/track-dislike.collection';
-import { useMusicPlayer } from '@/contexts/music-player-context';
 import type { TrackDislike } from '@melody-manager/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
+import { trackDislikeCollection } from '@/collections/track-dislike.collection';
+import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAuthUser } from './use-auth-user';
 
 export function useTrackDislikes() {
   const user = useAuthUser();
   const { removeFromQueue } = useMusicPlayer();
   const { data: trackDislikes = [] } = useLiveQuery((q) => q.from({ trackDislikes: trackDislikeCollection }));
-
   const isDisliked = useCallback(
     (trackId: string) => {
       return trackDislikes.some((dislike) => dislike.track === trackId);
