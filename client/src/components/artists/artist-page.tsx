@@ -60,35 +60,34 @@ export function ArtistPage({ artistId }: Props) {
         </div>
       ) : artist ? (
         <>
-          <div className="flex flex-col md:flex-row gap-8 mb-8">
+          <div className="flex flex-row gap-4 md:gap-8 mb-8">
             <div className="flex-shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
+              <div className="w-20 h-20 md:w-32 md:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
                 {(() => {
                   const imageUrl = getArtistImageUrl(artist);
-                  return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-10 w-10 md:h-14 md:w-14 xl:h-16 xl:w-16 text-primary/60" />;
+                  return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-1/3 w-1/3 text-primary/60" />;
                 })()}
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col justify-end">
-              <p className="text-sm text-muted-foreground mb-2">{t('ArtistPage.artistLabel')}</p>
-              <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-4">{artist.name}</h1>
-              {artist.bio && <p className="text-lg text-muted-foreground mb-6">{artist.bio}</p>}
-              <div className="flex items-center gap-4">
-                <Button size="lg" onClick={handlePlayAll} disabled={tracks.length === 0}>
-                  <Play className="h-5 w-5 mr-2" fill="currentColor" />
-                  {t('ArtistPage.playAll')}
+            <div className="flex-1 flex flex-col justify-center md:justify-end min-w-0">
+              <h1 className="text-2xl md:text-4xl xl:text-5xl font-bold mb-1 md:mb-4 truncate">{artist.name}</h1>
+              {artist.bio && <p className="hidden md:block text-lg text-muted-foreground mb-6">{artist.bio}</p>}
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 flex-wrap">
+                <Button size="icon" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 md:h-10" onClick={handlePlayAll} disabled={tracks.length === 0}>
+                  <Play className="h-4 w-4 md:h-5 md:w-5 sm:mr-2" fill="currentColor" />
+                  <span className="hidden sm:inline">{t('ArtistPage.playAll')}</span>
                 </Button>
-                <Button variant={isLiked(artist.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(artist.id)}>
+                <Button variant={isLiked(artist.id) ? 'secondary' : 'outline'} size="icon" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3" onClick={() => toggleLike(artist.id)}>
                   {isLiked(artist.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <UserPlus className="h-4 w-4 sm:mr-2" />}
                   <span className="hidden sm:inline">{isLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}</span>
                 </Button>
                 {isAdmin && (
-                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label={t('ArtistPage.delete')} onClick={() => setDeleteDialogOpen(true)}>
+                  <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" aria-label={t('ArtistPage.delete')} onClick={() => setDeleteDialogOpen(true)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {albums.length} {t('ArtistPage.albums', { count: albums.length })} · {tracks.length} {t('ArtistPage.tracks', { count: tracks.length })}
                 </p>
               </div>
@@ -98,7 +97,7 @@ export function ArtistPage({ artistId }: Props) {
           {albums.length > 0 && (
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">{t('ArtistPage.albumsSectionTitle')}</h2>
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
                 {albums.map((album) => (
                   <AlbumCard key={album.id} album={album} />
                 ))}
