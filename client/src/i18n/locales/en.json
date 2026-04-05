@@ -282,6 +282,7 @@
     "description": "Sign in to your account to continue"
   },
   "LoginForm": {
+    "error": "Invalid email or password",
     "success": "Welcome back!"
   },
   "MusicPlayer": {

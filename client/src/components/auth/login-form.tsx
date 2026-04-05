@@ -18,13 +18,16 @@ export function LoginForm() {
     },
     onSubmit: async ({ value }) => {
       try {
-        await signIn.email(value.email, value.password);
+        const user = await signIn.email(value.email, value.password);
+        if (!user) {
+          toast.error(t('LoginForm.error'));
+          return;
+        }
+
         toast.success(t('LoginForm.success'));
         navigate({ to: '/' });
-      } catch (error) {
-        console.error(error);
-        const message = error instanceof Error ? error.message : 'Failed to login';
-        toast.error(message);
+      } catch {
+        toast.error(t('LoginForm.error'));
       }
     },
     validators: {
