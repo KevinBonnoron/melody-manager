@@ -282,6 +282,7 @@
     "description": "Connectez-vous à votre compte pour continuer"
   },
   "LoginForm": {
+    "error": "Email ou mot de passe invalide",
     "success": "Vous êtes connecté !"
   },
   "MusicPlayer": {
