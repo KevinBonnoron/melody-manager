@@ -20,7 +20,7 @@ export function ArtistCard({ artist }: Props) {
   return (
     <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
       <div className="relative aspect-square w-full overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-        {imageUrl ? <img src={imageUrl} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-6 w-6 sm:h-10 sm:w-10 text-primary/60" />}
+        {imageUrl ? <img src={imageUrl} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-1/3 w-1/3 text-primary/60" />}
       </div>
       <div className="flex flex-col items-center gap-0 text-center w-full px-1">
         <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{artist.name}</h3>
