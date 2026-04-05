@@ -1,4 +1,4 @@
-import type { Album, Artist } from '@melody-manager/shared';
+import type { Album, Artist, Playlist } from '@melody-manager/shared';
 import { pb } from './pocketbase';
 
 export function getAlbumCoverUrl(album: Album): string | undefined {
@@ -15,4 +15,12 @@ export function getArtistImageUrl(artist: Artist): string | undefined {
   }
 
   return artist.imageUrl;
+}
+
+export function getPlaylistCoverUrl(playlist: Playlist): string | undefined {
+  if (playlist.cover) {
+    return pb.files.getURL(playlist, playlist.cover, { thumb: '500x500' });
+  }
+
+  return playlist.coverUrl;
 }

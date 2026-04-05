@@ -4,20 +4,23 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlbumCard } from '@/components/albums/album-card';
 import { ArtistCard } from '@/components/artists/artist-card';
+import { PlaylistCard } from '@/components/playlists/playlist-card';
 import { TrackGrid } from '@/components/tracks/track-grid';
 import { Button } from '@/components/ui/button';
 import { useAlbumsByIds } from '@/hooks/use-album';
 import { useLikedAlbumIds } from '@/hooks/use-album-likes';
 import { useArtistsByIds } from '@/hooks/use-artists';
 import { useLikedArtistIds } from '@/hooks/use-liked-artist-ids';
+import { usePlaylists } from '@/hooks/use-playlists';
 import { useLikedTracks } from '@/hooks/use-track-likes';
 
 const PREVIEW_LIMIT = 6;
-type ExpandedSection = 'artists' | 'albums' | 'tracks' | null;
+type ExpandedSection = 'artists' | 'albums' | 'playlists' | 'tracks' | null;
 
 export function LibraryPage() {
   const { t } = useTranslation();
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
+  const { data: playlists = [] } = usePlaylists();
   const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);
@@ -30,16 +33,18 @@ export function LibraryPage() {
   };
 
   const showSection = (section: ExpandedSection) => expandedSection === null || expandedSection === section;
-  const totalItems = likedArtists.length + likedAlbums.length + likedTracks.length;
+  const totalItems = likedArtists.length + likedAlbums.length + playlists.length + likedTracks.length;
   if (totalItems === 0) {
     return <LibraryEmptyState />;
   }
 
   const artistsExpanded = expandedSection === 'artists';
   const albumsExpanded = expandedSection === 'albums';
+  const playlistsExpanded = expandedSection === 'playlists';
   const tracksExpanded = expandedSection === 'tracks';
   const displayArtists = artistsExpanded ? likedArtists : likedArtists.slice(0, PREVIEW_LIMIT);
   const displayAlbums = albumsExpanded ? likedAlbums : likedAlbums.slice(0, PREVIEW_LIMIT);
+  const displayPlaylists = playlistsExpanded ? playlists : playlists.slice(0, PREVIEW_LIMIT);
   const displayTracks = tracksExpanded ? likedTracks : likedTracks.slice(0, PREVIEW_LIMIT * 2);
   return (
     <div className="space-y-10 pb-48">
@@ -57,9 +62,20 @@ export function LibraryPage() {
       {showSection('albums') && likedAlbums.length > 0 && (
         <section>
           <SectionHeader title={t('LibraryPage.albums')} count={likedAlbums.length} hasMore={likedAlbums.length > PREVIEW_LIMIT} isExpanded={albumsExpanded} onToggle={() => toggleSection('albums')} />
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
             {displayAlbums.map((album) => (
               <AlbumCard key={album.id} album={album} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showSection('playlists') && playlists.length > 0 && (
+        <section>
+          <SectionHeader title={t('LibraryPage.playlists')} count={playlists.length} hasMore={playlists.length > PREVIEW_LIMIT} isExpanded={playlistsExpanded} onToggle={() => toggleSection('playlists')} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
+            {displayPlaylists.map((playlist) => (
+              <PlaylistCard key={playlist.id} playlist={playlist} />
             ))}
           </div>
         </section>

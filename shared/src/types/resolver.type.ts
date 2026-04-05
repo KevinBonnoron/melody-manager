@@ -26,6 +26,9 @@ export interface ResolvedArtist {
 
 export interface ResolvedPlaylist {
   name: string;
+  description?: string;
+  coverUrl?: string;
+  sourceUrl?: string;
   tracks: ResolvedTrack[];
 }
 

@@ -341,6 +341,28 @@ export async function extractTrackInfo(url: string, options?: { withComments?: b
   }
 }
 
+export interface PlaylistInfo {
+  title: string;
+  thumbnail?: string;
+  trackCount: number;
+}
+
+export async function extractPlaylistInfo(playlistUrl: string, cookiesFile?: string): Promise<PlaylistInfo | null> {
+  try {
+    const cookies = cookiesArgs(cookiesFile);
+    const result = await $`yt-dlp --dump-single-json --flat-playlist ${cookies} --extractor-args "youtube:player_client=default" ${playlistUrl}`.text();
+    const data = JSON.parse(result);
+    return {
+      title: data.title ?? 'Unknown Playlist',
+      thumbnail: data.thumbnails?.length ? data.thumbnails[data.thumbnails.length - 1].url : undefined,
+      trackCount: data.entries?.length ?? 0,
+    };
+  } catch (error) {
+    handleYtDlpError(error, 'extract playlist info');
+    throw error;
+  }
+}
+
 export async function extractPlaylistTracks(playlistUrl: string, cookiesFile?: string): Promise<YtDlpTrackInfo[]> {
   try {
     const cookies = cookiesArgs(cookiesFile);

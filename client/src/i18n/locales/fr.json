@@ -33,11 +33,22 @@
     "recentArtists": "Artistes récents",
     "recentAlbums": "Albums récents"
   },
+  "PlaylistPage": {
+    "tracks_one": "titre",
+    "tracks_other": "titres",
+    "addToLibrary": "Ajouter à la bibliothèque",
+    "inLibrary": "Dans la bibliothèque",
+    "noTracks": "Aucun titre dans cette playlist",
+    "notFound": "Playlist introuvable",
+    "openExternal": "Voir la source",
+    "play": "Lire la playlist"
+  },
   "LibraryPage": {
     "title": "Bibliothèque",
     "description": "Votre collection musicale sauvegardée",
     "artists": "Artistes",
     "albums": "Albums",
+    "playlists": "Playlists",
     "tracks": "Titres",
     "seeAll": "Tout voir",
     "seeMore": "Voir plus",

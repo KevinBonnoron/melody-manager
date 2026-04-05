@@ -146,7 +146,7 @@ function isYoutubeUrl(query: string): boolean {
 }
 
 function isYoutubePlaylistUrl(query: string): boolean {
-  return query.includes('youtube.com/playlist');
+  return query.includes('youtube.com/playlist') || (query.includes('youtube.com') && query.includes('list='));
 }
 
 function normalizeYoutubeUrl(url: string): string {
@@ -222,6 +222,7 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
   }
 
   public async search(query: string, type: SearchType, provider: TrackProvider): Promise<SearchResult[]> {
+    const rawQuery = query;
     query = normalizeYoutubeUrl(query);
 
     switch (type) {
@@ -232,7 +233,7 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
       case 'artist':
         return this.searchArtists(query, provider);
       case 'playlist':
-        return this.searchPlaylists(query, provider);
+        return this.searchPlaylists(rawQuery, provider);
       default:
         return [];
     }
@@ -372,8 +373,12 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
 
   public async resolvePlaylist(url: string, provider: TrackProvider): Promise<ResolvedPlaylist> {
     return this.withCookies(provider, async (cookiesFile) => {
-      const tracks = await this.fetchPlaylistTracks(url, cookiesFile);
-      return { name: 'YouTube Playlist', tracks };
+      const [info, tracks] = await Promise.all([ytDlp.extractPlaylistInfo(url, cookiesFile), this.fetchPlaylistTracks(url, cookiesFile)]);
+      return {
+        name: info?.title ?? 'YouTube Playlist',
+        coverUrl: info?.thumbnail,
+        tracks,
+      };
     });
   }
 
@@ -491,8 +496,56 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
     });
   }
 
-  private async searchPlaylists(_query: string, _provider: TrackProvider): Promise<PlaylistSearchResult[]> {
-    return [];
+  private async searchPlaylists(query: string, provider: TrackProvider): Promise<PlaylistSearchResult[]> {
+    if (!isYoutubePlaylistUrl(query)) {
+      return [];
+    }
+
+    const playlistUrl = this.extractPlaylistUrl(query);
+    if (!playlistUrl) {
+      return [];
+    }
+
+    return this.withCookies(provider, async (cookiesFile) => {
+      try {
+        const info = await ytDlp.extractPlaylistInfo(playlistUrl, cookiesFile);
+        if (!info) {
+          return [];
+        }
+
+        return [
+          {
+            type: 'playlist',
+            provider: 'youtube',
+            name: info.title,
+            coverUrl: info.thumbnail,
+            externalUrl: playlistUrl,
+            trackCount: info.trackCount,
+          },
+        ];
+      } catch (error) {
+        if (isBotDetectionError(error)) {
+          throw new ProviderAuthError('COOKIES_REQUIRED', 'youtube', `YouTube bot detection: ${error}`);
+        }
+
+        logger.error(`Error searching YouTube playlists: ${error}`);
+        return [];
+      }
+    });
+  }
+
+  private extractPlaylistUrl(query: string): string | null {
+    try {
+      const parsed = new URL(query);
+      const listId = parsed.searchParams.get('list');
+      if (listId) {
+        return `https://www.youtube.com/playlist?list=${listId}`;
+      }
+    } catch {
+      // Not a valid URL
+    }
+
+    return null;
   }
 
   // --- Private helpers ---

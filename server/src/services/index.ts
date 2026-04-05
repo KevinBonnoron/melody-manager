@@ -4,6 +4,7 @@ export { cacheService } from './cache.service';
 export { deviceSourceService } from './device-source.service';
 export { importPersistService } from './import-persist.service';
 export { metadataEnrichmentService } from './metadata-enrichment.service';
+export { playlistService } from './playlist.service';
 export { searchService } from './search.service';
 export { shareLinkService } from './share-link.service';
 export { statsService } from './stats.service';

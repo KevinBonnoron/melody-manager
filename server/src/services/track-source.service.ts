@@ -70,7 +70,7 @@ class SourceService {
       `Import playlist from ${provider.type}`,
       async () => {
         const resolved = await resolver.resolvePlaylist(url, provider);
-        return importPersistService.persistPlaylist(provider, resolved);
+        return importPersistService.persistPlaylist(provider, { ...resolved, sourceUrl: resolved.sourceUrl ?? url }, userId);
       },
       userId,
     );
