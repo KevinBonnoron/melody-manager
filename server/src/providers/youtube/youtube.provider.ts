@@ -194,7 +194,7 @@ function sanitizeFilename(name: string): string {
 function cleanChapterTitle(title: string): string {
   const trim = (s: string) => s.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
   let t = trim(title);
-  const m = t.match(/^(\d+)[\s\u3000.]+(.+)$/);
+  const m = t.match(/^(\d+(?:-\d+)?)[\s\u3000.]+(.+)$/);
   if (m?.[2]) {
     t = trim(m[2]);
   }

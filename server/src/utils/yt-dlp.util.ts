@@ -53,8 +53,8 @@ export function parseChaptersFromText(text: string, duration: number): YtDlpChap
   const rawLines = text.split('\n').filter((line) => line.trim() !== '');
   const trim = (str: string) => str.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
 
-  // Pattern: "NN. Title TIMESTAMP" or "Title TIMESTAMP" (timestamp at end of line)
-  const trailingTimestampPattern = /^(?:\d+[.)]\s*)?(.+?)\s*?(\d+:\d{2}(?::\d{2})?)$/;
+  // Pattern: "NN. Title TIMESTAMP", "N-NN Title TIMESTAMP", or "Title TIMESTAMP" (timestamp at end of line)
+  const trailingTimestampPattern = /^(?:\d+(?:[.)]\s*|-\d+\s+))?(.+?)\s*?(\d+:\d{2}(?::\d{2})?)$/;
 
   // Patterns: "NN. Title: TIMESTAMP" or "Title: TIMESTAMP" (colon separator)
   const titlePatterns = [/^\d+\.\s+(.+?):\s+(\d+:\d{2}(?::\d{2})?)$/, /^(.+?):\s+(\d+:\d{2}(?::\d{2})?)$/];
@@ -258,7 +258,7 @@ export async function extractTrackInfo(url: string, options?: { withComments?: b
     const cleanTitle = (title: string): string => {
       const trim = (str: string) => str.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
       let cleaned = trim(title);
-      const trackNumberMatch = cleaned.match(/^(\d+)[\s\u3000.]+(.+)$/);
+      const trackNumberMatch = cleaned.match(/^(\d+(?:-\d+)?)[\s\u3000.]+(.+)$/);
       if (trackNumberMatch?.[2]) {
         cleaned = trim(trackNumberMatch[2]);
       }

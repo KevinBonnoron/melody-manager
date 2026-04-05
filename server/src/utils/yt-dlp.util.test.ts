@@ -94,6 +94,29 @@ First Movement: 3:45`;
       expect(chapters[2]).toMatchObject({ title: 'Tutorial & Kakariko Crypt (Peaceful)', start_time: 131 });
     });
 
+    it('parses "N-NN Title TIMESTAMP" (dash-separated track numbers)', () => {
+      const text = `1-01 Main Theme 0:00
+1-02 Opening [Episode One]  01:10
+1-03 The Book [First Episode]  01:52
+1-04 Captain Toad Marches Forth! [Plucky Pass Beginnings]  03:45
+1-05 Ruins [Day Time]  06:37
+1-06 Ruins [Night Time]  08:48
+1-07 Clear!  11:38
+1-08 Toad Camps Out  11:44
+1-09 Bonus Chance   12:03`;
+      const chapters = parseChaptersFromText(text, 800);
+      expect(chapters).toHaveLength(9);
+      expect(chapters[0]).toMatchObject({ title: 'Main Theme', start_time: 0 });
+      expect(chapters[1]).toMatchObject({ title: 'Opening [Episode One]', start_time: 70 });
+      expect(chapters[2]).toMatchObject({ title: 'The Book [First Episode]', start_time: 112 });
+      expect(chapters[3]).toMatchObject({ title: 'Captain Toad Marches Forth! [Plucky Pass Beginnings]', start_time: 225 });
+      expect(chapters[4]).toMatchObject({ title: 'Ruins [Day Time]', start_time: 397 });
+      expect(chapters[5]).toMatchObject({ title: 'Ruins [Night Time]', start_time: 528 });
+      expect(chapters[6]).toMatchObject({ title: 'Clear!', start_time: 698 });
+      expect(chapters[7]).toMatchObject({ title: 'Toad Camps Out', start_time: 704 });
+      expect(chapters[8]).toMatchObject({ title: 'Bonus Chance', start_time: 723, end_time: 800 });
+    });
+
     it('parses trailing H:MM:SS timestamps', () => {
       const text = `28. Temple of Storms (Combat) [Glockenspiel Ver.] 1:01:08
 29. Gleeokenspiel Boss Battle 1:03:33`;
