@@ -1,11 +1,11 @@
+import type { Expand } from './pocketbase.type';
 import type { Track } from './track.type';
 
-export interface Playlist {
-  id: string;
+export interface Playlist extends Expand<{ tracks: Track[] }> {
   name: string;
   description?: string;
+  cover?: string;
   coverUrl?: string;
-  tracks: Track[];
-  createdAt: string;
-  updatedAt: string;
+  sourceUrl?: string;
+  tracks: string[];
 }

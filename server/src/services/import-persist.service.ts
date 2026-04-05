@@ -2,7 +2,7 @@ import type { ResolvedAlbum, ResolvedArtist, ResolvedPlaylist, ResolvedTrack, Tr
 import { normalizeTrackTitle } from '@melody-manager/shared';
 import { uploadImageToRecord } from '../lib/image-upload';
 import { pbFilter } from '../lib/pocketbase';
-import { albumRepository, artistRepository, genreRepository, trackRepository } from '../repositories';
+import { albumRepository, artistRepository, genreRepository, playlistLikeRepository, playlistRepository, trackRepository } from '../repositories';
 
 async function resolveArtistIds(artistName: string): Promise<string[]> {
   const artistNames = artistName
@@ -141,7 +141,41 @@ export const importPersistService = {
     return importPersistService.persistTracks(provider, artist.tracks);
   },
 
-  persistPlaylist: async (provider: TrackProvider, playlist: ResolvedPlaylist): Promise<Track[]> => {
-    return importPersistService.persistTracks(provider, playlist.tracks);
+  persistPlaylist: async (provider: TrackProvider, playlist: ResolvedPlaylist, userId?: string | null): Promise<Track[]> => {
+    const tracks = await importPersistService.persistTracks(provider, playlist.tracks);
+
+    if (tracks.length > 0) {
+      const trackIds = tracks.map((t) => t.id);
+      const filter = playlist.sourceUrl ? pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl: playlist.sourceUrl }) : pbFilter('name = {:name}', { name: playlist.name });
+      const playlistRecord = await playlistRepository.getOrCreate(
+        {
+          name: playlist.name,
+          description: playlist.description,
+          coverUrl: playlist.coverUrl,
+          sourceUrl: playlist.sourceUrl,
+          tracks: trackIds,
+        },
+        filter,
+      );
+
+      if (playlist.coverUrl && !playlistRecord.cover) {
+        await uploadImageToRecord('playlists', playlistRecord.id, 'cover', playlist.coverUrl);
+      }
+
+      if (userId) {
+        const likeFilter = pbFilter('user = {:userId} && playlist = {:playlistId}', { userId, playlistId: playlistRecord.id });
+        const existingLike = await playlistLikeRepository.getOneBy(likeFilter);
+
+        if (!existingLike) {
+          try {
+            await playlistLikeRepository.create({ user: userId, playlist: playlistRecord.id });
+          } catch {
+            // Ignore duplicate — concurrent request may have created it
+          }
+        }
+      }
+    }
+
+    return tracks;
   },
 };

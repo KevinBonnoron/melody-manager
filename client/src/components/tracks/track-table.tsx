@@ -9,11 +9,11 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useTrackDislikes } from '@/hooks/use-track-dislikes';
 import { useTrackPlays } from '@/hooks/use-track-plays';
 import { cn } from '@/lib/utils';
-import { TrackActionsCell } from './table/track-actions-cell';
-import { TrackArtistsCell } from './table/track-artists-cell';
-import { TrackDurationCell } from './table/track-duration-cell';
-import { TrackIndexButton } from './table/track-index-button';
-import { TrackTitleCell } from './table/track-title-cell';
+import { TrackActionsCell } from '../albums/table/track-actions-cell';
+import { TrackArtistsCell } from '../albums/table/track-artists-cell';
+import { TrackDurationCell } from '../albums/table/track-duration-cell';
+import { TrackIndexButton } from '../albums/table/track-index-button';
+import { TrackTitleCell } from '../albums/table/track-title-cell';
 
 type TrackColumnDef = ColumnDef<Track> & {
   meta?: {
@@ -26,7 +26,7 @@ interface Props {
   tracks: Track[];
 }
 
-export function AlbumTable({ tracks }: Props) {
+export function TrackTable({ tracks }: Props) {
   const { t } = useTranslation();
   const { playTrackWithContext, togglePlayPause, currentTrack, isPlaying } = useMusicPlayer();
   const { isDisliked } = useTrackDislikes();

@@ -33,11 +33,22 @@
     "recentArtists": "Recent Artists",
     "recentAlbums": "Recent Albums"
   },
+  "PlaylistPage": {
+    "tracks_one": "track",
+    "tracks_other": "tracks",
+    "addToLibrary": "Add to library",
+    "inLibrary": "In library",
+    "noTracks": "No tracks in this playlist",
+    "notFound": "Playlist not found",
+    "openExternal": "Open in provider",
+    "play": "Play Playlist"
+  },
   "LibraryPage": {
     "title": "Library",
     "description": "Your saved music collection",
     "artists": "Artists",
     "albums": "Albums",
+    "playlists": "Playlists",
     "tracks": "Tracks",
     "seeAll": "See all",
     "seeMore": "See more",

@@ -22,6 +22,7 @@ import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as HistoryIndexRouteImport } from './routes/history/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as PlaylistsPlaylistIdRouteImport } from './routes/playlists/$playlistId'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists/$artistId'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums/$albumId'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -92,6 +93,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaylistsPlaylistIdRoute = PlaylistsPlaylistIdRouteImport.update({
+  id: '/playlists/$playlistId',
+  path: '/playlists/$playlistId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
   id: '/artists/$artistId',
   path: '/artists/$artistId',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/admin': typeof AdminIndexRoute
   '/history': typeof HistoryIndexRoute
   '/library': typeof LibraryIndexRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/admin': typeof AdminIndexRoute
   '/history': typeof HistoryIndexRoute
   '/library': typeof LibraryIndexRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/admin/': typeof AdminIndexRoute
   '/history/': typeof HistoryIndexRoute
   '/library/': typeof LibraryIndexRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/playlists/$playlistId'
     | '/admin'
     | '/history'
     | '/library'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/playlists/$playlistId'
     | '/admin'
     | '/history'
     | '/library'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/playlists/$playlistId'
     | '/admin/'
     | '/history/'
     | '/library/'
@@ -243,6 +255,7 @@ export interface RootRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
+  PlaylistsPlaylistIdRoute: typeof PlaylistsPlaylistIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playlists/$playlistId': {
+      id: '/playlists/$playlistId'
+      path: '/playlists/$playlistId'
+      fullPath: '/playlists/$playlistId'
+      preLoaderRoute: typeof PlaylistsPlaylistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/artists/$artistId': {
       id: '/artists/$artistId'
       path: '/artists/$artistId'
@@ -387,6 +407,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
+  PlaylistsPlaylistIdRoute: PlaylistsPlaylistIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   LibraryIndexRoute: LibraryIndexRoute,

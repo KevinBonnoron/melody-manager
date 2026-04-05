@@ -8,9 +8,9 @@ import { formatDuration } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { PlayButton } from '../tracks/play-button';
+import { TrackTable } from '../tracks/track-table';
 import { AlbumActionsMenu } from './album-actions-menu';
-import { AlbumTable } from './album-table';
-import { PlayAlbumButton } from './play-album-button';
 
 interface Props {
   album: Album;
@@ -80,7 +80,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
         </div>
 
         <div className="col-span-2 xl:col-span-1 flex flex-wrap items-center gap-3 xl:gap-4">
-          <PlayAlbumButton tracks={tracks} />
+          <PlayButton tracks={tracks} label={t('AlbumPage.playAlbum')} />
           <Button variant={isLiked(album.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(album.id)} aria-label={isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}>
             {isLiked(album.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <Library className="h-4 w-4 sm:mr-2" />}
             <span className="hidden sm:inline">{isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}</span>
@@ -105,7 +105,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
           <p className="text-lg">{t('AlbumPage.noTracksInAlbum')}</p>
         </div>
       ) : (
-        <AlbumTable tracks={tracks} />
+        <TrackTable tracks={tracks} />
       )}
     </>
   );

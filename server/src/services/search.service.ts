@@ -1,8 +1,8 @@
-import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, ProviderError, SearchResponse, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
+import type { AlbumSearchResult, ArtistSearchResult, LibraryStatus, PlaylistSearchResult, ProviderError, SearchResponse, SearchResult, SearchType, TrackProvider, TrackSearchResult } from '@melody-manager/shared';
 import { logger } from '../lib/logger';
 import { pbFilter } from '../lib/pocketbase';
 import { providerRegistry } from '../providers';
-import { albumRepository, artistRepository, connectionRepository, providerRepository, trackRepository } from '../repositories';
+import { albumRepository, artistRepository, connectionRepository, playlistRepository, providerRepository, trackRepository } from '../repositories';
 import { ProviderAuthError } from '../utils';
 import { trackSourceService } from './track-source.service';
 
@@ -91,6 +91,10 @@ class SearchService {
     if (type === 'artist') {
       return Promise.all((results as ArtistSearchResult[]).map((r) => this.addArtistLibraryStatus(r)));
     }
+    if (type === 'playlist') {
+      return Promise.all((results as PlaylistSearchResult[]).map((r) => this.addPlaylistLibraryStatus(r)));
+    }
+
     return results.map((r) => ({
       ...r,
       libraryStatus: { isInLibrary: false },
@@ -148,6 +152,50 @@ class SearchService {
         tracksInLibrary: tracks.length,
         totalTracks: result.trackCount || tracks.length,
       };
+      return { ...result, libraryStatus };
+    } catch {
+      return {
+        ...result,
+        libraryStatus: {
+          isInLibrary: false,
+          tracksInLibrary: 0,
+          totalTracks: result.trackCount,
+        },
+      };
+    }
+  }
+
+  private async addPlaylistLibraryStatus(result: PlaylistSearchResult): Promise<PlaylistSearchResult> {
+    try {
+      if (!result.externalUrl) {
+        return {
+          ...result,
+          libraryStatus: {
+            isInLibrary: false,
+            tracksInLibrary: 0,
+            totalTracks: result.trackCount,
+          },
+        };
+      }
+
+      const playlist = await playlistRepository.getOneBy(pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl: result.externalUrl }));
+      if (!playlist) {
+        return {
+          ...result,
+          libraryStatus: {
+            isInLibrary: false,
+            tracksInLibrary: 0,
+            totalTracks: result.trackCount,
+          },
+        };
+      }
+
+      const libraryStatus: LibraryStatus = {
+        isInLibrary: result.trackCount ? playlist.tracks.length >= result.trackCount : playlist.tracks.length > 0,
+        tracksInLibrary: playlist.tracks.length,
+        totalTracks: result.trackCount || playlist.tracks.length,
+      };
+
       return { ...result, libraryStatus };
     } catch {
       return {
