@@ -26,7 +26,7 @@ export function HomePage() {
         title={t('HomePage.recentArtists')}
         items={sortedArtists}
         isLoading={isLoadingArtists}
-        gridClassName="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-4"
+        gridClassName="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-4"
         skeletonVariant="circular"
         renderItem={(artist) => <ArtistCard key={artist.id} artist={artist} />}
       />
@@ -65,7 +65,7 @@ function RecentSection<T>({ title, items, isLoading, renderItem, gridClassName, 
           </Button>
         )}
       </div>
-      {isLoading ? <CardSkeletonGrid count={RECENT_LIMIT} gridClassName={gridClassName} variant={skeletonVariant} /> : <div className={gridClassName ?? 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3'}>{displayItems.map(renderItem)}</div>}
+      {isLoading ? <CardSkeletonGrid count={RECENT_LIMIT} gridClassName={gridClassName} variant={skeletonVariant} /> : <div className={gridClassName ?? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3'}>{displayItems.map(renderItem)}</div>}
     </section>
   );
 }

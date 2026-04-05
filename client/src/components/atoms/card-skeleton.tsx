@@ -39,7 +39,7 @@ interface GridProps {
 
 export function CardSkeletonGrid({ count = 10, variant = 'default', gridClassName }: GridProps) {
   return (
-    <div className={gridClassName ?? 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3'}>
+    <div className={gridClassName ?? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3'}>
       {Array.from({ length: count }, (_, i) => `skeleton-${i}`).map((id) => (
         <CardSkeleton key={id} variant={variant} />
       ))}
