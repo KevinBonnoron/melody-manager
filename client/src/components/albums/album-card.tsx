@@ -27,7 +27,7 @@ export function AlbumCard({ album }: Props) {
     <Link to="/albums/$albumId" params={{ albumId: album.id }}>
       <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isCurrentAlbum ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-          {coverUrl ? <img src={coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-8 w-8 sm:h-12 sm:w-12 text-primary/60" />}
+          {coverUrl ? <img src={coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-1/3 w-1/3 text-primary/60" />}
 
           {provider && (
             <div className="absolute top-2 right-2">
