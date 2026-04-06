@@ -55,8 +55,8 @@ export class SoundcloudProvider implements SearchProvider {
         title: info.title ?? 'Unknown Title',
         artist: info.artist ?? info.uploader,
         album: info.album,
-        thumbnail: info.thumbnail,
-        externalUrl: info.webpage_url,
+        coverUrl: info.thumbnail,
+        sourceUrl: info.webpage_url,
         duration: info.duration ? Math.floor(info.duration) : undefined,
       }));
     } catch (error) {

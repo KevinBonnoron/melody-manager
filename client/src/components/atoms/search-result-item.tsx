@@ -15,7 +15,7 @@ export interface LibraryStatus {
 }
 
 interface SearchResultItemProps {
-  externalUrl: string;
+  sourceUrl: string;
   provider: string;
   image: string;
   Icon: LucideIcon;
@@ -26,7 +26,7 @@ interface SearchResultItemProps {
   onAdd: () => void;
 }
 
-function SearchResultItem({ externalUrl, provider, image, Icon, title, subtitle, status, isAdding, onAdd }: SearchResultItemProps) {
+function SearchResultItem({ sourceUrl, provider, image, Icon, title, subtitle, status, isAdding, onAdd }: SearchResultItemProps) {
   const { t } = useTranslation();
   const isComplete = status.isInLibrary && !status.tracksInLibrary;
   const isPartial = status.tracksInLibrary && status.totalTracks && status.tracksInLibrary < status.totalTracks;
@@ -60,7 +60,7 @@ function SearchResultItem({ externalUrl, provider, image, Icon, title, subtitle,
           title={t('GlobalSearch.openExternal')}
           onClick={(e) => {
             e.stopPropagation();
-            window.open(externalUrl, '_blank');
+            window.open(sourceUrl, '_blank', 'noopener,noreferrer');
           }}
           className="transition-colors w-9 h-9 p-0 cursor-pointer"
         >
@@ -114,9 +114,9 @@ export interface TrackResultItemProps {
 export function TrackResultItem({ result, status, isAdding, onAdd }: TrackResultItemProps) {
   return (
     <SearchResultItem
-      externalUrl={result.externalUrl}
+      sourceUrl={result.sourceUrl}
       provider={result.provider}
-      image={result.thumbnail ?? ''}
+      image={result.coverUrl ?? ''}
       Icon={Music}
       title={result.title}
       subtitle={<Subtitle left={[result.artist, result.album].filter(Boolean).join(' • ')} right={result.duration ? formatDuration(result.duration) : undefined} />}
@@ -137,7 +137,7 @@ export interface AlbumResultItemProps {
 export function AlbumResultItem({ result, status, isAdding, onAdd }: AlbumResultItemProps) {
   const { t } = useTranslation();
   const right = [result.trackCount ? t('GlobalSearch.tracksCount', { count: result.trackCount }) : null, result.releaseYear].filter(Boolean).join(' • ') || undefined;
-  return <SearchResultItem externalUrl={result.externalUrl} provider={result.provider} image={result.coverUrl ?? ''} Icon={Disc} title={result.name} subtitle={<Subtitle left={result.artist ?? ''} right={right} />} status={status} isAdding={isAdding} onAdd={onAdd} />;
+  return <SearchResultItem sourceUrl={result.sourceUrl} provider={result.provider} image={result.coverUrl ?? ''} Icon={Disc} title={result.name} subtitle={<Subtitle left={result.artist ?? ''} right={right} />} status={status} isAdding={isAdding} onAdd={onAdd} />;
 }
 
 export interface ArtistResultItemProps {
@@ -150,7 +150,7 @@ export interface ArtistResultItemProps {
 export function ArtistResultItem({ result, status, isAdding, onAdd }: ArtistResultItemProps) {
   const { t } = useTranslation();
   const right = [result.albumCount ? t('GlobalSearch.albumsCount', { count: result.albumCount }) : null, result.trackCount ? t('GlobalSearch.tracksCount', { count: result.trackCount }) : null].filter(Boolean).join(' • ') || undefined;
-  return <SearchResultItem externalUrl={result.externalUrl} provider={result.provider} image={result.imageUrl ?? ''} Icon={User} title={result.name} subtitle={<Subtitle left={result.genres?.join(', ') ?? ''} right={right} />} status={status} isAdding={isAdding} onAdd={onAdd} />;
+  return <SearchResultItem sourceUrl={result.sourceUrl} provider={result.provider} image={result.coverUrl ?? ''} Icon={User} title={result.name} subtitle={<Subtitle left={result.genres?.join(', ') ?? ''} right={right} />} status={status} isAdding={isAdding} onAdd={onAdd} />;
 }
 
 export interface PlaylistResultItemProps {
@@ -164,7 +164,7 @@ export function PlaylistResultItem({ result, status, isAdding, onAdd }: Playlist
   const { t } = useTranslation();
   return (
     <SearchResultItem
-      externalUrl={result.externalUrl}
+      sourceUrl={result.sourceUrl}
       provider={result.provider}
       image={result.coverUrl ?? ''}
       Icon={Library}

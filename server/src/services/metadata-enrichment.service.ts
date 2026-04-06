@@ -93,8 +93,7 @@ class MetadataEnrichmentService {
     }
 
     const knownMbid = artist.metadata?.mbid;
-
-    if (knownMbid && artist.image) {
+    if (knownMbid && artist.cover) {
       return;
     }
 
@@ -112,7 +111,7 @@ class MetadataEnrichmentService {
       await artistRepository.update(artistId, { metadata: { ...artist.metadata, mbid: mbArtist.mbid } });
     }
 
-    if (!artist.image) {
+    if (!artist.cover) {
       let imageUrl: string | null = null;
 
       if (mbArtist?.wikidataId) {
@@ -128,7 +127,7 @@ class MetadataEnrichmentService {
       }
 
       if (imageUrl) {
-        await uploadImageToRecord('artists', artistId, 'image', imageUrl);
+        await uploadImageToRecord('artists', artistId, 'cover', imageUrl);
       } else {
         logger.info(`[enrichment] No image found for "${artist.name}"`);
       }

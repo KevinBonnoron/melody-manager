@@ -9,7 +9,7 @@ export interface LibraryStatus {
 interface BaseSearchResult {
   type: SearchType;
   provider: string;
-  externalUrl: string;
+  sourceUrl: string;
   libraryStatus?: LibraryStatus;
 }
 
@@ -18,7 +18,7 @@ export interface TrackSearchResult extends BaseSearchResult {
   title: string;
   artist?: string;
   album?: string;
-  thumbnail?: string;
+  coverUrl?: string;
   duration?: number;
 }
 
@@ -34,7 +34,7 @@ export interface AlbumSearchResult extends BaseSearchResult {
 export interface ArtistSearchResult extends BaseSearchResult {
   type: 'artist';
   name: string;
-  imageUrl?: string;
+  coverUrl?: string;
   genres?: string[];
   albumCount?: number;
   trackCount?: number;

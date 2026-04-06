@@ -82,7 +82,7 @@ class SearchService {
       const existingUrls = new Set(existingTracks.map((t) => t.sourceUrl));
       return (results as TrackSearchResult[]).map((r) => ({
         ...r,
-        libraryStatus: { isInLibrary: existingUrls.has(r.externalUrl) },
+        libraryStatus: { isInLibrary: existingUrls.has(r.sourceUrl) },
       }));
     }
     if (type === 'album') {
@@ -167,7 +167,7 @@ class SearchService {
 
   private async addPlaylistLibraryStatus(result: PlaylistSearchResult): Promise<PlaylistSearchResult> {
     try {
-      if (!result.externalUrl) {
+      if (!result.sourceUrl) {
         return {
           ...result,
           libraryStatus: {
@@ -178,7 +178,7 @@ class SearchService {
         };
       }
 
-      const playlist = await playlistRepository.getOneBy(pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl: result.externalUrl }));
+      const playlist = await playlistRepository.getOneBy(pbFilter('sourceUrl = {:sourceUrl}', { sourceUrl: result.sourceUrl }));
       if (!playlist) {
         return {
           ...result,

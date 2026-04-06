@@ -4,7 +4,7 @@ import { User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumsForArtist } from '@/hooks/use-album';
 import { useArtistTracks } from '@/hooks/use-tracks';
-import { getArtistImageUrl } from '@/lib/cover-url';
+import { getArtistCoverUrl } from '@/lib/cover-url';
 
 interface Props {
   artist: Artist;
@@ -16,7 +16,7 @@ export function ArtistCard({ artist }: Props) {
   const { data: albums = [] } = useAlbumsForArtist(artist.id);
   const trackCount = tracks.length;
   const albumCount = albums.length;
-  const imageUrl = getArtistImageUrl(artist);
+  const imageUrl = getArtistCoverUrl(artist);
   return (
     <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
       <div className="relative aspect-square w-full overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">

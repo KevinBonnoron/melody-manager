@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { config } from '@/lib/config';
-import { getAlbumCoverUrl, getArtistImageUrl } from '@/lib/cover-url';
+import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { pb } from '@/lib/pocketbase';
 import { formatListeningTime, formatMonth } from '@/lib/utils';
 
@@ -275,10 +275,11 @@ function TrackRow({ rank, track, count, albumMap, artistMap }: { rank: number; t
 }
 
 function ArtistRow({ rank, artist, count }: { rank: number; artist: Artist; count: number }) {
+  const coverUrl = getArtistCoverUrl(artist);
   return (
     <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="flex items-center gap-3 hover:bg-muted/50 rounded-lg p-2 transition-colors">
       <span className="text-xs font-medium text-muted-foreground w-5 text-right shrink-0">{rank}</span>
-      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">{getArtistImageUrl(artist) ? <img src={getArtistImageUrl(artist)} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-muted-foreground" />}</div>
+      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">{coverUrl ? <img src={coverUrl} alt={artist.name} className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-muted-foreground" />}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{artist.name}</p>
       </div>
