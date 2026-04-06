@@ -20,7 +20,7 @@ import { useProviders } from '@/hooks/use-providers';
 import { useSearchHistory } from '@/hooks/use-search-history';
 import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
-import { getAlbumCoverUrl, getArtistImageUrl } from '@/lib/cover-url';
+import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
 import { hasActiveFilters, type SearchFilters, SearchFiltersBar } from './search-filters';
 
@@ -201,8 +201,8 @@ export function GlobalSearchButton() {
                   className="flex items-center gap-3 p-3 transition-colors"
                 >
                   <div className="flex-shrink-0">
-                    {getArtistImageUrl(artist) ? (
-                      <img src={getArtistImageUrl(artist)} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                    {getArtistCoverUrl(artist) ? (
+                      <img src={getArtistCoverUrl(artist)} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                         <User className="h-5 w-5 text-muted-foreground" />

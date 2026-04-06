@@ -400,8 +400,8 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
               title: trackInfo.title ?? 'Unknown Title',
               artist: trackInfo.artist ?? trackInfo.uploader ?? trackInfo.channel,
               album: trackInfo.album,
-              thumbnail: trackInfo.thumbnail,
-              externalUrl: trackInfo.webpage_url,
+              coverUrl: trackInfo.thumbnail,
+              sourceUrl: trackInfo.webpage_url,
               duration: trackInfo.duration ? Math.floor(trackInfo.duration) : undefined,
             },
           ];
@@ -414,8 +414,8 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
           title: info.title ?? 'Unknown Title',
           artist: info.artist ?? info.uploader ?? info.channel,
           album: info.album,
-          thumbnail: info.thumbnail,
-          externalUrl: info.webpage_url,
+          coverUrl: info.thumbnail,
+          sourceUrl: info.webpage_url,
           duration: info.duration ? Math.floor(info.duration) : undefined,
         }));
       } catch (error) {
@@ -443,7 +443,7 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
                   name: trackInfo.title ?? 'Unknown Album',
                   artist: trackInfo.artist ?? trackInfo.uploader ?? trackInfo.channel,
                   coverUrl: trackInfo.thumbnail?.startsWith('data:') ? undefined : trackInfo.thumbnail,
-                  externalUrl: trackInfo.webpage_url,
+                  sourceUrl: trackInfo.webpage_url,
                   trackCount: trackInfo.chapters.length,
                 },
               ];
@@ -460,7 +460,7 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
           name: info.title ?? 'Unknown Album',
           artist: info.artist ?? info.uploader ?? info.channel,
           coverUrl: info.thumbnail,
-          externalUrl: info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`,
+          sourceUrl: info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`,
           trackCount: undefined,
         }));
       } catch (error) {
@@ -486,8 +486,8 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
           type: 'artist' as const,
           provider: 'youtube' as const,
           name: (info.channel || info.uploader || info.title)?.replace(' - Topic', '') ?? 'Unknown Artist',
-          imageUrl: info.thumbnail,
-          externalUrl: (info.channel_url || info.uploader_url || info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`) as string,
+          coverUrl: info.thumbnail,
+          sourceUrl: (info.channel_url || info.uploader_url || info.webpage_url || `https://www.youtube.com/watch?v=${info.id}`) as string,
         }));
       } catch (error) {
         logger.error(`Error searching YouTube artists: ${error}`);
@@ -519,7 +519,7 @@ export class YoutubeProvider implements SearchProvider, DownloadProvider {
             provider: 'youtube',
             name: info.title,
             coverUrl: info.thumbnail,
-            externalUrl: playlistUrl,
+            sourceUrl: playlistUrl,
             trackCount: info.trackCount,
           },
         ];

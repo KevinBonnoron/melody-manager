@@ -11,7 +11,7 @@ import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { useArtistTracks } from '@/hooks/use-tracks';
-import { getArtistImageUrl } from '@/lib/cover-url';
+import { getArtistCoverUrl } from '@/lib/cover-url';
 import { AlbumCard } from '../albums/album-card';
 import { Button } from '../ui/button';
 
@@ -64,7 +64,7 @@ export function ArtistPage({ artistId }: Props) {
             <div className="flex-shrink-0">
               <div className="w-20 h-20 md:w-32 md:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
                 {(() => {
-                  const imageUrl = getArtistImageUrl(artist);
+                  const imageUrl = getArtistCoverUrl(artist);
                   return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-1/3 w-1/3 text-primary/60" />;
                 })()}
               </div>

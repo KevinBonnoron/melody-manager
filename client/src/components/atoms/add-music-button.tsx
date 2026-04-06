@@ -79,30 +79,30 @@ export function AddMusicButton() {
   }, [query, t]);
 
   const handleAdd = async (result: SearchResult) => {
-    setAddingUrls((prev) => new Set(prev).add(result.externalUrl));
+    setAddingUrls((prev) => new Set(prev).add(result.sourceUrl));
     try {
       let title = '';
       let count = 0;
       if (isTrackResult(result)) {
-        await tracksClient.addFromUrl(result.externalUrl);
+        await tracksClient.addFromUrl(result.sourceUrl);
         title = result.title;
         count = 1;
       } else if (isAlbumResult(result)) {
-        const response = (await albumsClient.addFromUrl(result.externalUrl)) as { count: number };
+        const response = (await albumsClient.addFromUrl(result.sourceUrl)) as { count: number };
         title = result.name;
         count = response.count || 0;
       } else if (isArtistResult(result)) {
-        const response = (await artistsClient.addFromUrl(result.externalUrl)) as { count: number };
+        const response = (await artistsClient.addFromUrl(result.sourceUrl)) as { count: number };
         title = result.name;
         count = response.count || 0;
       } else if (isPlaylistResult(result)) {
-        const response = (await playlistsClient.addFromUrl(result.externalUrl)) as { count: number };
+        const response = (await playlistsClient.addFromUrl(result.sourceUrl)) as { count: number };
         title = result.name;
         count = response.count || 0;
       }
 
-      setAddedUrls((prev) => new Set(prev).add(result.externalUrl));
-      setResults((prev) => prev.map((r) => (r.externalUrl === result.externalUrl ? { ...r, libraryStatus: { ...r.libraryStatus, isInLibrary: true } } : r)));
+      setAddedUrls((prev) => new Set(prev).add(result.sourceUrl));
+      setResults((prev) => prev.map((r) => (r.sourceUrl === result.sourceUrl ? { ...r, libraryStatus: { ...r.libraryStatus, isInLibrary: true } } : r)));
 
       const message = count > 1 ? t('GlobalSearch.addedTracks', { count, title }) : t('GlobalSearch.addedSuccessfully', { title });
       toast.success(message);
@@ -112,7 +112,7 @@ export function AddMusicButton() {
     } finally {
       setAddingUrls((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(result.externalUrl);
+        newSet.delete(result.sourceUrl);
         return newSet;
       });
     }
@@ -120,7 +120,7 @@ export function AddMusicButton() {
 
   const getLibraryStatus = (result: SearchResult): LibraryStatus => {
     const status = result.libraryStatus || { isInLibrary: false };
-    if (addedUrls.has(result.externalUrl)) {
+    if (addedUrls.has(result.sourceUrl)) {
       return { ...status, isInLibrary: true };
     }
 
@@ -212,7 +212,7 @@ export function AddMusicButton() {
               {filteredTracks.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.tracks')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredTracks.map((result) => (
-                    <TrackResultItem key={`track-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                    <TrackResultItem key={`track-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -220,7 +220,7 @@ export function AddMusicButton() {
               {filteredAlbums.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.albums')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredAlbums.map((result) => (
-                    <AlbumResultItem key={`album-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                    <AlbumResultItem key={`album-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -228,7 +228,7 @@ export function AddMusicButton() {
               {filteredPlaylists.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.playlists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredPlaylists.map((result) => (
-                    <PlaylistResultItem key={`playlist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                    <PlaylistResultItem key={`playlist-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -236,7 +236,7 @@ export function AddMusicButton() {
               {filteredArtists.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.artists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredArtists.map((result) => (
-                    <ArtistResultItem key={`artist-${result.externalUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.externalUrl)} onAdd={() => handleAdd(result)} />
+                    <ArtistResultItem key={`artist-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}

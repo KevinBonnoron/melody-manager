@@ -44,8 +44,8 @@ export class SpotifyProvider implements SearchProvider {
         title: track.name,
         artist: track.artists?.map((a) => a.name).join(', '),
         album: track.album?.name,
-        thumbnail: track.album?.images?.[0]?.url,
-        externalUrl: track.external_urls?.spotify ?? `spotify:track:${track.id}`,
+        coverUrl: track.album?.images?.[0]?.url,
+        sourceUrl: track.external_urls?.spotify ?? `spotify:track:${track.id}`,
         duration: track.duration_ms ? Math.floor(track.duration_ms / 1000) : undefined,
       }));
     } catch (error) {
