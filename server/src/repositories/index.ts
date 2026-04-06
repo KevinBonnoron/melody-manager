@@ -6,5 +6,7 @@ export { playlistLikeRepository } from './playlist-like.repository';
 export { playlistRepository } from './playlist.repository';
 export { providerRepository } from './provider.repository';
 export { shareLinkRepository } from './share-link.repository';
+export { trackDislikeRepository } from './track-dislike.repository';
+export { trackLikeRepository } from './track-like.repository';
 export { trackPlayRepository } from './track-play.repository';
 export { trackRepository } from './track.repository';

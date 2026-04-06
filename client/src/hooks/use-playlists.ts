@@ -21,6 +21,18 @@ export function usePlaylist(playlistId: string) {
   );
 }
 
+export function useSmartPlaylists() {
+  const { data: playlists = [], isLoading } = usePlaylists();
+  const smartPlaylists = useMemo(() => playlists.filter((p) => p.type === 'smart' && p.tracks.length > 0), [playlists]);
+  return { data: smartPlaylists, isLoading };
+}
+
+export function useManualPlaylists() {
+  const { data: playlists = [], isLoading } = usePlaylists();
+  const manualPlaylists = useMemo(() => playlists.filter((p) => p.type !== 'smart'), [playlists]);
+  return { data: manualPlaylists, isLoading };
+}
+
 export function useLikedPlaylistIds() {
   const { data: joinResult = [] } = useLiveQuery((q) =>
     q

@@ -30,8 +30,18 @@
   "HomePage": {
     "title": "Accueil",
     "description": "Derniers ajouts sur le serveur",
+    "smartPlaylists": "Playlists intelligentes",
+    "noSmartPlaylists": "Créez une playlist intelligente pour obtenir des mix personnalisés selon vos habitudes d'écoute.",
     "recentArtists": "Artistes récents",
     "recentAlbums": "Albums récents"
+  },
+  "SmartPlaylist": {
+    "most-played": "Les plus écoutés",
+    "liked-tracks": "Titres likés",
+    "discovery": "Découverte"
+  },
+  "PlaylistCard": {
+    "smartBadge": "Intelligente"
   },
   "PlaylistPage": {
     "tracks_one": "titre",

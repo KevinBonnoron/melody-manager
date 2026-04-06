@@ -1,6 +1,7 @@
 export { albumRoute } from './album.route';
 export { artistRoute } from './artist.route';
 export { deviceRoute } from './device.route';
+export { internalRoute } from './internal.route';
 export { metadataRoute } from './metadata.route';
 export { playlistRoute } from './playlist.route';
 export { pluginRoute } from './plugin.route';
