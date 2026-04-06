@@ -150,8 +150,8 @@ export const importPersistService = {
       const playlistRecord = await playlistRepository.getOrCreate(
         {
           name: playlist.name,
+          type: 'manual',
           description: playlist.description,
-          coverUrl: playlist.coverUrl,
           sourceUrl: playlist.sourceUrl,
           tracks: trackIds,
         },

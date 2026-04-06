@@ -1,13 +1,15 @@
-import type { Album, Artist } from '@melody-manager/shared';
+import type { Album, Artist, Playlist } from '@melody-manager/shared';
 import { ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlbumCard } from '@/components/albums/album-card';
 import { ArtistCard } from '@/components/artists/artist-card';
 import { CardSkeletonGrid } from '@/components/atoms/card-skeleton';
+import { PlaylistCard } from '@/components/playlists/playlist-card';
 import { Button } from '@/components/ui/button';
 import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
+import { useSmartPlaylists } from '@/hooks/use-playlists';
 
 const RECENT_LIMIT = 6;
 function sortByCreatedDesc<T extends { created: string }>(items: T[]): T[] {
@@ -18,10 +20,14 @@ export function HomePage() {
   const { t } = useTranslation();
   const { data: allArtists = [], isLoading: isLoadingArtists } = useArtists();
   const { data: allAlbums = [], isLoading: isLoadingAlbums } = useAlbums();
+  const { data: smartPlaylists = [], isLoading: isLoadingPlaylists } = useSmartPlaylists();
   const sortedArtists = useMemo(() => sortByCreatedDesc(allArtists), [allArtists]);
   const sortedAlbums = useMemo(() => sortByCreatedDesc(allAlbums), [allAlbums]);
+  const sortedSmartPlaylists = useMemo(() => sortByCreatedDesc(smartPlaylists), [smartPlaylists]);
   return (
     <div className="space-y-10 pb-48">
+      <RecentSection<Playlist> title={t('HomePage.smartPlaylists')} items={sortedSmartPlaylists} isLoading={isLoadingPlaylists} renderItem={(playlist) => <PlaylistCard key={playlist.id} playlist={playlist} />} />
+
       <RecentSection<Artist>
         title={t('HomePage.recentArtists')}
         items={sortedArtists}

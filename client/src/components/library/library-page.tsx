@@ -11,7 +11,7 @@ import { useAlbumsByIds } from '@/hooks/use-album';
 import { useLikedAlbumIds } from '@/hooks/use-album-likes';
 import { useArtistsByIds } from '@/hooks/use-artists';
 import { useLikedArtistIds } from '@/hooks/use-liked-artist-ids';
-import { usePlaylists } from '@/hooks/use-playlists';
+import { useManualPlaylists } from '@/hooks/use-playlists';
 import { useLikedTracks } from '@/hooks/use-track-likes';
 
 const PREVIEW_LIMIT = 6;
@@ -20,7 +20,7 @@ type ExpandedSection = 'artists' | 'albums' | 'playlists' | 'tracks' | null;
 export function LibraryPage() {
   const { t } = useTranslation();
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
-  const { data: playlists = [] } = usePlaylists();
+  const { data: playlists = [] } = useManualPlaylists();
   const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);

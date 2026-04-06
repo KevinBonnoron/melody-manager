@@ -30,8 +30,18 @@
   "HomePage": {
     "title": "Home",
     "description": "Latest additions to your server",
+    "smartPlaylists": "Smart Playlists",
+    "noSmartPlaylists": "Create a smart playlist to get personalized mixes based on your listening habits.",
     "recentArtists": "Recent Artists",
     "recentAlbums": "Recent Albums"
+  },
+  "SmartPlaylist": {
+    "most-played": "Most Played",
+    "liked-tracks": "Liked Tracks",
+    "discovery": "Discovery"
+  },
+  "PlaylistCard": {
+    "smartBadge": "Smart"
   },
   "PlaylistPage": {
     "tracks_one": "track",
