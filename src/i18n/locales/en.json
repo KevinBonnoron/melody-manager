@@ -146,6 +146,10 @@
       "running": "In progress",
       "completed": "Completed",
       "failed": "Failed"
+    },
+    "result": {
+      "tracks_one": "{{count}} track",
+      "tracks_other": "{{count}} tracks"
     }
   },
   "AppLayout": {
@@ -255,7 +259,6 @@
     "searchingTypes": "Searching {{type}}...",
     "noTypesFound": "No {{type}} found",
     "searchResults": "Search Results",
-    "addedTracks": "Added {{count}} tracks from \"{{title}}\"",
     "addedSuccessfully": "\"{{title}}\" added successfully",
     "failedToAdd": "Failed to add",
     "searchFor": "Add",
@@ -431,7 +434,8 @@
     "providerUpdatedSuccess": "{{title}} provider updated successfully",
     "providerSaveError": "Failed to save {{title}} provider",
     "providerDisconnectedSuccess": "{{title}} provider disconnected",
-    "providerDisconnectError": "Failed to disconnect {{title}} provider"
+    "providerDisconnectError": "Failed to disconnect {{title}} provider",
+    "schemaUnavailable": "Provider options could not be loaded. Reload the page and try again."
   },
   "ProviderGrants": {
     "manageAccess": "Access",

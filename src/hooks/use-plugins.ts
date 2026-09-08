@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { config } from '@/lib/config';
+import { pluginsClient } from '@/clients/plugins.client';
 import type { PluginManifest } from '@/shared';
 
 let cachedManifests: PluginManifest[] | null = null;
@@ -13,14 +13,10 @@ export function usePlugins() {
     }
 
     if (!cachedManifestsPromise) {
-      cachedManifestsPromise = fetch(`${config.server.url}/plugins`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error('Failed to fetch plugins');
-          }
-
-          return res.json();
-        })
+      // Through the shared client, which attaches the auth token: /api/plugins
+      // sits behind the same authentication as the rest of the API.
+      cachedManifestsPromise = pluginsClient
+        .list()
         .then((data: PluginManifest[]) => {
           cachedManifests = data;
           return data;

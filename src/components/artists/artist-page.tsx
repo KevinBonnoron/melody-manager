@@ -3,7 +3,7 @@ import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { artistsClient } from '@/clients/artists.client';
+import { artistCollection } from '@/collections/artist.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
@@ -41,7 +41,7 @@ export function ArtistPage({ artistId }: Props) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await artistsClient.delete(artistId);
+      await artistCollection.delete(artistId).isPersisted.promise;
       toast.success(t('ArtistPage.deleteSuccess', { name: artist?.name }));
       navigate({ to: '/library' });
     } catch {

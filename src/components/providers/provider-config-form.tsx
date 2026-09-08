@@ -94,6 +94,13 @@ export function ProviderConfigForm(props: Props) {
     );
   }
 
+  // Without the manifest there is no schema, so the form would render empty and
+  // happily save nothing — which is how a provider ended up configured with no
+  // configuration at all.
+  if (!fields) {
+    return <p className="text-muted-foreground text-sm">{t('ProviderCardActions.schemaUnavailable')}</p>;
+  }
+
   return (
     <form
       onSubmit={(e) => {

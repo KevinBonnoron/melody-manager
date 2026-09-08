@@ -7,6 +7,8 @@ export interface Task {
   name: string;
   status: TaskStatus;
   progress?: number;
+  count?: number;
+  error?: string;
   createdAt: string;
   updatedAt: string;
 }

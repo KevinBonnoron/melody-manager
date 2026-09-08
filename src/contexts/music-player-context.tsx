@@ -7,6 +7,7 @@ import { trackPlayCollection } from '@/collections/track-play.collection';
 import i18n from '@/i18n';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
+import { getStreamToken } from '@/lib/stream-token';
 import type { Device, PlayerState, Track, TrackPlay } from '@/shared';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
@@ -135,9 +136,20 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       }
 
       setIsLoading(true);
-      const transcodeParam = audioFormat !== 'source' ? `?transcode=${audioFormat}` : '';
-      const audioSrc = `${config.server.url}/tracks/stream/${track.id}${transcodeParam}`;
-      audioRef.current.src = audioSrc;
+      const params = new URLSearchParams();
+      if (audioFormat !== 'source') {
+        params.set('transcode', audioFormat);
+      }
+      try {
+        params.set('token', await getStreamToken());
+      } catch (error) {
+        console.error('Stream token failed:', error);
+        toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
+        setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+        setIsLoading(false);
+        return;
+      }
+      audioRef.current.src = `${config.server.url}/tracks/stream/${track.id}?${params.toString()}`;
 
       audioRef.current.play().catch((error) => {
         if (error.name === 'AbortError') {

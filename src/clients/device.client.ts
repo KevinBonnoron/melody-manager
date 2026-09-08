@@ -1,5 +1,5 @@
 import { universalClient, withMethods } from 'universal-client';
-import { withHttpDelegate, withSseDelegate } from '@/lib/client';
+import { sseAuth, withHttpDelegate, withSseDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
 import type { Device } from '@/shared';
 
@@ -20,7 +20,7 @@ export const deviceClient = universalClient(
             console.error('Failed to parse SSE device data:', error);
           }
         });
-        sse.open({ url: '/devices/events' });
+        sse.open({ url: '/devices/events', ...sseAuth() });
         return () => {
           unsub();
           sse.close();
