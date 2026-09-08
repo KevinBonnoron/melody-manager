@@ -15,7 +15,7 @@ import (
 var snapshotJSON []byte
 
 // Initial schema for the Go backend. Consolidates the provider/connection
-// redesign (docs/design/connections-and-providers.md), the custom users fields,
+// redesign (docs/guide/configuration.md), the custom users fields,
 // the legacy domain collections, and the provider_settings seed into a single
 // migration. Each step is idempotent so it applies cleanly to both a fresh DB
 // and one created during development.
@@ -174,6 +174,24 @@ func init() {
 			c.AddIndex(idx.name, false, idx.cols, "")
 			if len(c.Indexes) != before {
 				if err := app.Save(c); err != nil {
+					return err
+				}
+			}
+		}
+
+		// playlists smart-playlist fields (added by a later legacy migration)
+		if playlists, err := app.FindCollectionByNameOrId("playlists"); err == nil {
+			plChanged := false
+			if playlists.Fields.GetByName("type") == nil {
+				playlists.Fields.Add(&core.SelectField{Name: "type", Required: true, MaxSelect: 1, Values: []string{"manual", "smart"}})
+				plChanged = true
+			}
+			if playlists.Fields.GetByName("metadata") == nil {
+				playlists.Fields.Add(&core.JSONField{Name: "metadata", MaxSize: 2_000_000})
+				plChanged = true
+			}
+			if plChanged {
+				if err := app.Save(playlists); err != nil {
 					return err
 				}
 			}

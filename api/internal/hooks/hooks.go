@@ -2,10 +2,15 @@
 package hooks
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+
+	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
+	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 )
 
 // Register wires the lifecycle hooks onto the app.
@@ -45,6 +50,15 @@ func Register(app core.App) {
 		return e.Next()
 	})
 
+	// Refresh a user's smart playlists after a play or like (auto-creates the
+	// default ones once thresholds are met). Runs async so it never blocks.
+	app.OnRecordAfterCreateSuccess("track_plays", "track_likes").BindFunc(func(e *core.RecordEvent) error {
+		if uid := e.Record.GetString("user"); uid != "" {
+			go services.RefreshSmartPlaylists(e.App, uid)
+		}
+		return e.Next()
+	})
+
 	// Bootstrap a superuser from env if none exists (headless/docker). Unlike
 	// the JS hook it no-ops instead of failing when the env is unset, so
 	// `task dev` works without it.
@@ -70,6 +84,23 @@ func Register(app core.App) {
 		return e.App.Save(rec)
 	})
 
+	// The manifest says which settings a provider cannot work without, but
+	// PocketBase rules cannot express that, so nothing stopped a config being
+	// saved without them — and the failure only surfaced much later, when a
+	// download asked for a path that was never set.
+	app.OnRecordCreateRequest("provider_settings").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := validateProviderConfig(e.Record); err != nil {
+			return err
+		}
+		return e.Next()
+	})
+	app.OnRecordUpdateRequest("provider_settings").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := validateProviderConfig(e.Record); err != nil {
+			return err
+		}
+		return e.Next()
+	})
+
 	// provider_settings.config carries server-level settings including secrets
 	// (the Spotify client secret), but the collection has to stay readable so
 	// the UI can show which sources exist and whether they are configured.
@@ -91,4 +122,28 @@ func isAdminRequest(info *core.RequestInfo) bool {
 		return true
 	}
 	return info.Auth.GetString("role") == "admin"
+}
+
+// validateProviderConfig rejects a provider_settings record missing a value the
+// manifest marks required. Only enforced when the provider is enabled: an
+// operator must be able to turn a source off without filling its settings in.
+func validateProviderConfig(rec *core.Record) error {
+	if !rec.GetBool("enabled") {
+		return nil
+	}
+	mf, ok := providers.ManifestFor(rec.GetString("type"))
+	if !ok {
+		return nil
+	}
+	var config map[string]any
+	_ = rec.UnmarshalJSONField("config", &config)
+	for _, field := range mf.ConfigSchema {
+		if !field.Required {
+			continue
+		}
+		if v, ok := config[field.Name].(string); !ok || strings.TrimSpace(v) == "" {
+			return apis.NewBadRequestError(fmt.Sprintf("%s is required for %s", field.Label, mf.ID), nil)
+		}
+	}
+	return nil
 }

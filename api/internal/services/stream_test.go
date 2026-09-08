@@ -47,6 +47,29 @@ func TestWithinRoot(t *testing.T) {
 	}
 }
 
+func TestLocalInputAcceptsAnyConfiguredRoot(t *testing.T) {
+	music := t.TempDir()
+	downloads := t.TempDir()
+	elsewhere := t.TempDir()
+
+	inDownloads := filepath.Join(downloads, "track.mp3")
+	if err := os.WriteFile(inDownloads, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stray := filepath.Join(elsewhere, "track.mp3")
+	if err := os.WriteFile(stray, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	roots := []string{music, downloads}
+	if got := localInput(domain.TrackMetadata{LocalPath: inDownloads}, "", roots); got == "" {
+		t.Error("a file under the download path was rejected")
+	}
+	if got := localInput(domain.TrackMetadata{LocalPath: stray}, "", roots); got != "" {
+		t.Errorf("a file outside every configured root resolved to %q", got)
+	}
+}
+
 func TestLocalInputRejectsPathsOutsideRoot(t *testing.T) {
 	root := t.TempDir()
 	inside := filepath.Join(root, "track.mp3")
@@ -54,13 +77,13 @@ func TestLocalInputRejectsPathsOutsideRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := localInput(domain.TrackMetadata{LocalPath: inside}, "", root); got == "" {
+	if got := localInput(domain.TrackMetadata{LocalPath: inside}, "", []string{root}); got == "" {
 		t.Error("localInput rejected a file inside the configured root")
 	}
-	if got := localInput(domain.TrackMetadata{LocalPath: "/etc/shadow"}, "", root); got != "" {
+	if got := localInput(domain.TrackMetadata{LocalPath: "/etc/shadow"}, "", []string{root}); got != "" {
 		t.Errorf("localInput(/etc/shadow) = %q, want \"\"", got)
 	}
-	if got := localInput(domain.TrackMetadata{}, "file:///etc/shadow", root); got != "" {
+	if got := localInput(domain.TrackMetadata{}, "file:///etc/shadow", []string{root}); got != "" {
 		t.Errorf("localInput(file:///etc/shadow) = %q, want \"\"", got)
 	}
 }
