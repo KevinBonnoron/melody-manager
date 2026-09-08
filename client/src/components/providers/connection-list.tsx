@@ -18,17 +18,17 @@ export function ConnectionList() {
     return manifest?.scope === 'personal';
   });
 
-  const personalProviderIds = personalProviders.map((p) => p.id);
+  const personalProviderTypes = personalProviders.map((p) => p.type);
   const { data: connections = [] } = useLiveQuery(
     (q) =>
       q
         .from({ connections: connectionCollection })
         .where(({ connections }) => eq(connections.user, user.id))
-        .where(({ connections }) => inArray(connections.provider, personalProviderIds)),
-    [user.id, personalProviderIds.join(',')],
+        .where(({ connections }) => inArray(connections.type, personalProviderTypes)),
+    [user.id, personalProviderTypes.join(',')],
   );
 
-  const connectedProviderIds = new Set(connections.map((c) => c.provider));
+  const connectedProviderTypes = new Set(connections.map((c) => c.type));
   if (personalProviders.length === 0) {
     return <p className="text-muted-foreground text-sm">{t('Admin.noProvidersInCategory')}</p>;
   }
@@ -36,8 +36,8 @@ export function ConnectionList() {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {personalProviders.map((p) => {
-        const connection = connections.find((c) => c.provider === p.id);
-        if (connectedProviderIds.has(p.id) && connection) {
+        const connection = connections.find((c) => c.type === p.type);
+        if (connectedProviderTypes.has(p.type) && connection) {
           return <ConnectionCard key={p.id} connectionId={connection.id} />;
         }
 

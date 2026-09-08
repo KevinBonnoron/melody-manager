@@ -18,13 +18,8 @@ export interface DeviceProvider extends BaseProvider {
 export type Provider = TrackProvider | DeviceProvider;
 
 export interface Connection extends PocketBaseRecord {
-  provider: string;
+  type: string;
   user: string;
   config?: Record<string, unknown>;
   enabled?: boolean;
-}
-
-export interface ProviderGrant extends PocketBaseRecord {
-  provider: string;
-  user: string;
 }

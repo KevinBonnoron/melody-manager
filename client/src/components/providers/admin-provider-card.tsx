@@ -3,16 +3,13 @@ import { CheckCircle2, Circle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { connectionCollection } from '@/collections/connection.collection';
 import { providerCollection } from '@/collections/provider.collection';
-import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { usePlugins } from '@/hooks/use-plugins';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Card, CardAction, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { AdminProviderEditButton } from './admin-provider-edit-button';
-import { ProviderGrantsManager } from './provider-grants-manager';
 import { getProviderInfoFromManifests } from './provider-info';
 import { getProviderTypeColors } from './provider-type-colors';
 
@@ -24,19 +21,9 @@ function DeleteSharedProviderButton({ providerId, title }: { providerId: string;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.provider, providerId)), [providerId]);
-  const { data: grants = [] } = useLiveQuery((q) => q.from({ grants: providerGrantsCollection }).where(({ grants }) => eq(grants.provider, providerId)), [providerId]);
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      for (const c of connections) {
-        connectionCollection.delete(c.id);
-      }
-
-      for (const g of grants) {
-        providerGrantsCollection.delete(g.id);
-      }
-
       providerCollection.delete(providerId);
       toast.success(t('ProviderCardActions.providerDeletedSuccess', { title }));
       setOpen(false);
@@ -116,7 +103,6 @@ export function AdminProviderCard({ providerId }: Props) {
       </CardHeader>
       <CardFooter className="mt-auto gap-2 border-t p-0 pt-4">
         {hasConfig && <AdminProviderEditButton providerId={providerId} title={info.title} description={info.description} />}
-        {isShared && <ProviderGrantsManager providerId={providerId} />}
         <DeleteSharedProviderButton providerId={providerId} title={info.title} />
       </CardFooter>
     </Card>

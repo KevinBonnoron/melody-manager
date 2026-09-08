@@ -8,7 +8,7 @@ export const trackCollection = createCollection(
   pocketbaseCollectionOptions({
     recordService,
     options: {
-      expand: 'provider,artists,album,genres',
+      expand: 'artists,album,genres',
     },
   }),
 );

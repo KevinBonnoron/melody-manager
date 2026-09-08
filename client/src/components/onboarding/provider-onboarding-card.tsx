@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { connectionCollection } from '@/collections/connection.collection';
 import { providerCollection } from '@/collections/provider.collection';
-import { providerGrantsCollection } from '@/collections/provider-grants.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { usePlugins } from '@/hooks/use-plugins';
 import { getDefaultConfigForType } from '../providers/available-provider-types';
@@ -46,8 +45,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
     [manifest.id],
   );
 
-  const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.provider, provider?.id ?? '')), [provider?.id]);
-  const { data: grants = [] } = useLiveQuery((q) => q.from({ grants: providerGrantsCollection }).where(({ grants }) => eq(grants.provider, provider?.id ?? '')), [provider?.id]);
+  const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.type, manifest.id)), [manifest.id]);
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[manifest.id];
   const colors = getProviderTypeColors(manifest.id);
@@ -95,7 +93,7 @@ export function ProviderOnboardingCard({ manifest }: Props) {
       } else {
         const tx = connectionCollection.insert({
           id: generateId(),
-          provider: provider.id,
+          type: manifest.id,
           user: user.id,
           config,
           enabled: true,
@@ -119,7 +117,6 @@ export function ProviderOnboardingCard({ manifest }: Props) {
     setIsDeleting(true);
     try {
       await Promise.all(connections.map((c) => connectionCollection.delete(c.id).isPersisted.promise));
-      await Promise.all(grants.map((g) => providerGrantsCollection.delete(g.id).isPersisted.promise));
       await providerCollection.delete(provider.id).isPersisted.promise;
       toast.success(t('ProviderCardActions.providerDeletedSuccess', { title: info?.title }));
       setDeleteOpen(false);

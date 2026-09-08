@@ -55,6 +55,35 @@ Audio files from external sources (YouTube, SoundCloud, etc.) are cached locally
 
 When the cache exceeds its limits, the oldest files are evicted automatically.
 
+## Sources
+
+A source is configured in two halves, which never overlap.
+
+**Server settings** (admin, one row per source type) hold what belongs to the
+installation: the local library path, the YouTube download path, the Spotify
+application credentials. They also carry a server-wide on/off switch. Their
+values are readable by administrators only.
+
+**Connections** (one per user and source type) hold what belongs to a person:
+YouTube cookies, a Spotify OAuth token. An empty connection is simply an opt-in,
+which is all SoundCloud and Bandcamp need. A user only ever reads their own.
+
+| Source | Server settings | User connection |
+|---|---|---|
+| Local | `path` (required) | — server library, admin only |
+| YouTube | `downloadPath` | opt-in, optional cookies |
+| SoundCloud | — | opt-in |
+| Bandcamp | — | opt-in |
+| Spotify | `clientId` / `clientSecret` | opt-in, OAuth token |
+| Sonos | — | — autodiscovered on the local network |
+
+A source is usable when it is enabled server-wide and, for the ones a user can
+connect, when that user has an enabled connection for it.
+
+Spotify is a catalogue source: it supplies tracks, albums and playlists, but not
+audio, which yt-dlp cannot extract. Playback for a Spotify result is resolved
+through a streamable source instead.
+
 ## Local Music Library
 
 To make local audio files available, mount a directory containing your music into the container:

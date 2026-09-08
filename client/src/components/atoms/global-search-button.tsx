@@ -51,7 +51,7 @@ const artistFuseOptions: IFuseOptions<Artist> = {
 
 function applyTrackFilters(tracks: Track[], filters: SearchFilters): Track[] {
   return tracks.filter((track) => {
-    if (filters.provider && track.provider !== filters.provider) {
+    if (filters.provider && track.source !== filters.provider) {
       return false;
     }
 
@@ -304,9 +304,9 @@ export function GlobalSearchButton() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs text-muted-foreground">{formatDuration(track.duration)}</span>
-                    {track.expand?.provider?.type && (
-                      <Badge variant="outline" className={`text-xs ${getProviderColor(track.expand.provider.type)}`}>
-                        {track.expand.provider.type}
+                    {track.source && (
+                      <Badge variant="outline" className={`text-xs ${getProviderColor(track.source)}`}>
+                        {track.source}
                       </Badge>
                     )}
                     <button

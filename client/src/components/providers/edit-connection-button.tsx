@@ -36,9 +36,9 @@ export function EditConnectionButton({ title, description, connectionId }: Props
     (q) =>
       q
         .from({ providers: providerCollection })
-        .where(({ providers }) => eq(providers.id, connection?.provider ?? ''))
+        .where(({ providers }) => eq(providers.type, connection?.type ?? ''))
         .findOne(),
-    [connection?.provider],
+    [connection?.type],
   );
 
   const type = provider?.type;

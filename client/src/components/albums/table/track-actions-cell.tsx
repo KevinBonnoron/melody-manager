@@ -28,7 +28,7 @@ export function TrackActionsCell({ track }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
   const liked = isLiked(track.id);
   const disliked = isDisliked(track.id);
-  const canShare = !!track.metadata?.localPath || track.expand?.provider?.type === 'local';
+  const canShare = !!track.metadata?.localPath || track.source === 'local';
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
