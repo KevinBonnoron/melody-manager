@@ -36,12 +36,12 @@ export function TaskNotifications() {
             <DropdownMenuItem key={task.id} className="flex items-start gap-3 py-2 cursor-default" onSelect={(e) => e.preventDefault()}>
               <TaskStatusIcon status={task.status} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {t(`Tasks.types.${task.type}`)} — {task.name}
-                </p>
+                <p className="text-sm font-medium truncate">{task.name ? `${t(`Tasks.types.${task.type}`)} — ${task.name}` : t(`Tasks.types.${task.type}`)}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {t(`Tasks.status.${task.status}`)} · {new Date(task.updatedAt).toLocaleTimeString()}
+                  {t(`Tasks.status.${task.status}`)}
+                  {task.count ? ` · ${t('Tasks.result.tracks', { count: task.count })}` : ''} · {new Date(task.updatedAt).toLocaleTimeString()}
                 </p>
+                {task.status === 'failed' && task.error && <p className="text-xs text-destructive mt-0.5 break-words">{task.error}</p>}
                 {task.status === 'running' && task.progress !== undefined && (
                   <div className="mt-1 h-1 w-full bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} />

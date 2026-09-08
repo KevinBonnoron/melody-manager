@@ -1,5 +1,5 @@
 import { universalClient, withMethods } from 'universal-client';
-import { withHttpDelegate, withSseDelegate } from '@/lib/client';
+import { sseAuth, withHttpDelegate, withSseDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
 import type { Task } from '@/shared';
 
@@ -21,7 +21,7 @@ export const tasksClient = universalClient(
             }
           }
         });
-        sse.open({ url: '/tasks/events' });
+        sse.open({ url: '/tasks/events', ...sseAuth() });
         return () => {
           unsub();
           sse.close();

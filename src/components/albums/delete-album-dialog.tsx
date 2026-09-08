@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { albumsClient } from '@/clients/albums.client';
+import { albumCollection } from '@/collections/album.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Album } from '@/shared';
 
@@ -20,7 +20,7 @@ export function DeleteAlbumDialog({ album, trigger }: Props) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await albumsClient.delete(album.id);
+      await albumCollection.delete(album.id).isPersisted.promise;
       toast.success(t('AlbumActionsMenu.deleteSuccess', { name: album.name }));
       navigate({ to: '/library' });
     } catch {

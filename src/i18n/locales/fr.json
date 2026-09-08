@@ -146,6 +146,10 @@
       "running": "En cours",
       "completed": "Terminé",
       "failed": "Échoué"
+    },
+    "result": {
+      "tracks_one": "{{count}} piste",
+      "tracks_other": "{{count}} pistes"
     }
   },
   "AppLayout": {
@@ -255,7 +259,6 @@
     "searchingTypes": "Recherche de {{type}}...",
     "noTypesFound": "Aucun {{type}} trouvé",
     "searchResults": "Résultats de recherche",
-    "addedTracks": "{{count}} titres ajoutés depuis \"{{title}}\"",
     "addedSuccessfully": "\"{{title}}\" ajouté avec succès",
     "failedToAdd": "Erreur lors de l'ajout",
     "searchFor": "Ajouter",
@@ -431,7 +434,8 @@
     "providerUpdatedSuccess": "Service {{title}} mis à jour avec succès",
     "providerSaveError": "Impossible d'enregistrer le service {{title}}",
     "providerDisconnectedSuccess": "Service {{title}} déconnecté",
-    "providerDisconnectError": "Impossible de déconnecter le service {{title}}"
+    "providerDisconnectError": "Impossible de déconnecter le service {{title}}",
+    "schemaUnavailable": "Les options de la source n'ont pas pu être chargées. Rechargez la page et réessayez."
   },
   "ProviderGrants": {
     "manageAccess": "Accès",

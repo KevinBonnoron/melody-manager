@@ -81,31 +81,27 @@ export function AddMusicButton() {
   const handleAdd = async (result: SearchResult) => {
     setAddingUrls((prev) => new Set(prev).add(result.sourceUrl));
     try {
+      // Every /add route queues a task and returns it, so no track count is
+      // known yet — progress shows up in the tasks panel.
       let title = '';
-      let count = 0;
       if (isTrackResult(result)) {
         await tracksClient.addFromUrl(result.sourceUrl);
         title = result.title;
-        count = 1;
       } else if (isAlbumResult(result)) {
-        const response = (await albumsClient.addFromUrl(result.sourceUrl)) as { count: number };
+        await albumsClient.addFromUrl(result.sourceUrl);
         title = result.name;
-        count = response.count || 0;
       } else if (isArtistResult(result)) {
-        const response = (await artistsClient.addFromUrl(result.sourceUrl)) as { count: number };
+        await artistsClient.addFromUrl(result.sourceUrl);
         title = result.name;
-        count = response.count || 0;
       } else if (isPlaylistResult(result)) {
-        const response = (await playlistsClient.addFromUrl(result.sourceUrl)) as { count: number };
+        await playlistsClient.addFromUrl(result.sourceUrl);
         title = result.name;
-        count = response.count || 0;
       }
 
       setAddedUrls((prev) => new Set(prev).add(result.sourceUrl));
       setResults((prev) => prev.map((r) => (r.sourceUrl === result.sourceUrl ? { ...r, libraryStatus: { ...r.libraryStatus, isInLibrary: true } } : r)));
 
-      const message = count > 1 ? t('GlobalSearch.addedTracks', { count, title }) : t('GlobalSearch.addedSuccessfully', { title });
-      toast.success(message);
+      toast.success(t('GlobalSearch.addedSuccessfully', { title }));
     } catch (error) {
       const message = error instanceof Error ? error.message : t('GlobalSearch.failedToAdd');
       toast.error(message);

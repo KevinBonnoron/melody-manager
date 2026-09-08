@@ -2,7 +2,7 @@ import { Heart, HeartOff, MoreVertical, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { tracksClient } from '@/clients/tracks.client';
+import { trackCollection } from '@/collections/track.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,7 +32,7 @@ export function TrackActionsCell({ track }: Props) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await tracksClient.delete(track.id);
+      await trackCollection.delete(track.id).isPersisted.promise;
       toast.success(t('TrackActionsMenu.deleteSuccess', { title: track.title }));
     } catch {
       toast.error(t('TrackActionsMenu.deleteError'));
