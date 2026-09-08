@@ -118,6 +118,40 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusAccepted, task)
 	})
 
+	g.POST("/albums/{id}/download", func(e *core.RequestEvent) error {
+		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
+			return e.ForbiddenError("admin only", nil)
+		}
+		task := deps.Tasks.Create("download", "Download album")
+		id := e.Request.PathValue("id")
+		go services.DownloadAlbum(context.Background(), e.App, deps.Tasks, deps.Cache, task.ID, id)
+		return e.JSON(http.StatusAccepted, task)
+	})
+
+	g.POST("/albums/{id}/resync", func(e *core.RequestEvent) error {
+		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
+			return e.ForbiddenError("admin only", nil)
+		}
+		task := deps.Tasks.Create("resync", "Resync album")
+		id := e.Request.PathValue("id")
+		go services.ResyncAlbum(context.Background(), e.App, deps.Tasks, deps.Cache, task.ID, id)
+		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
+	})
+
+	g.POST("/metadata/enrich", func(e *core.RequestEvent) error {
+		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
+			return e.ForbiddenError("admin only", nil)
+		}
+		task := deps.Tasks.Create("enrichment", "Enriching metadata")
+		go services.EnrichAll(context.Background(), e.App, deps.Tasks, task.ID)
+		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
+	})
+
+	g.DELETE("/tracks/{id}", deleteHandler("tracks", true))
+	g.DELETE("/albums/{id}", deleteHandler("albums", true))
+	g.DELETE("/artists/{id}", deleteHandler("artists", true))
+	g.DELETE("/playlists/{id}", deleteHandler("playlists", false))
+
 	g.GET("/stats/overview", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, services.Overview(e.App, userID(e)))
 	})
@@ -152,6 +186,71 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.NotFoundError("playlist not found", err)
 		}
 		return e.JSON(http.StatusOK, r)
+	})
+
+	g.PUT("/playlists/{id}", func(e *core.RequestEvent) error {
+		rec, errResp := ownedPlaylist(e)
+		if errResp != nil {
+			return errResp
+		}
+		var body struct {
+			Name        *string   `json:"name"`
+			Description *string   `json:"description"`
+			Tracks      *[]string `json:"tracks"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("invalid body", err)
+		}
+		if body.Name != nil {
+			rec.Set("name", *body.Name)
+		}
+		if body.Description != nil {
+			rec.Set("description", *body.Description)
+		}
+		if body.Tracks != nil {
+			rec.Set("tracks", *body.Tracks)
+		}
+		if err := e.App.Save(rec); err != nil {
+			return e.InternalServerError("update failed", err)
+		}
+		return e.JSON(http.StatusOK, rec)
+	})
+
+	g.POST("/playlists/{id}/tracks", func(e *core.RequestEvent) error {
+		rec, errResp := ownedPlaylist(e)
+		if errResp != nil {
+			return errResp
+		}
+		var body struct {
+			TrackIDs []string `json:"trackIds"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("invalid body", err)
+		}
+		rec.Set("tracks", union(rec.GetStringSlice("tracks"), body.TrackIDs))
+		if err := e.App.Save(rec); err != nil {
+			return e.InternalServerError("add tracks failed", err)
+		}
+		return e.JSON(http.StatusOK, rec)
+	})
+
+	g.DELETE("/playlists/{id}/tracks/{trackId}", func(e *core.RequestEvent) error {
+		rec, errResp := ownedPlaylist(e)
+		if errResp != nil {
+			return errResp
+		}
+		trackID := e.Request.PathValue("trackId")
+		kept := make([]string, 0)
+		for _, t := range rec.GetStringSlice("tracks") {
+			if t != trackID {
+				kept = append(kept, t)
+			}
+		}
+		rec.Set("tracks", kept)
+		if err := e.App.Save(rec); err != nil {
+			return e.InternalServerError("remove track failed", err)
+		}
+		return e.JSON(http.StatusOK, rec)
 	})
 
 	g.GET("/tasks", func(e *core.RequestEvent) error {
@@ -261,6 +360,36 @@ func userID(e *core.RequestEvent) string {
 		return e.Auth.Id
 	}
 	return ""
+}
+
+// ownedPlaylist loads the playlist if the current user owns it (likes it),
+// otherwise returns the appropriate error response.
+func ownedPlaylist(e *core.RequestEvent) (*core.Record, error) {
+	uid := userID(e)
+	if uid == "" {
+		return nil, e.UnauthorizedError("authentication required", nil)
+	}
+	id := e.Request.PathValue("id")
+	if _, err := e.App.FindFirstRecordByFilter("playlist_likes", "user = {:u} && playlist = {:p}", dbx.Params{"u": uid, "p": id}); err != nil {
+		return nil, e.ForbiddenError("not your playlist", nil)
+	}
+	rec, err := e.App.FindRecordById("playlists", id)
+	if err != nil {
+		return nil, e.NotFoundError("playlist not found", err)
+	}
+	return rec, nil
+}
+
+func union(a, b []string) []string {
+	seen := make(map[string]bool, len(a))
+	out := make([]string, 0, len(a)+len(b))
+	for _, v := range append(append([]string{}, a...), b...) {
+		if !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // toSearchResponse maps internal results to the client's SearchResponse shape

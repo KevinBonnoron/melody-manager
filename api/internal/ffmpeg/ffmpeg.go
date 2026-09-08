@@ -3,12 +3,15 @@
 package ffmpeg
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 // Format describes a transcode target (mirrors shared/configs/transcode.config).
@@ -90,11 +93,14 @@ func ProbeDuration(ctx context.Context, input string) (float64, error) {
 
 // Peaks decodes mono s16le PCM and reduces it to num normalised peaks [0,1].
 func Peaks(ctx context.Context, input string, num int) ([]float64, error) {
-	cmd := exec.CommandContext(ctx, "ffmpeg", "-i", input, "-ac", "1", "-f", "s16le", "-ar", "8000", "pipe:1")
-	cmd.Stderr = io.Discard
+	cmd := exec.CommandContext(ctx, "ffmpeg", "-v", "error", "-i", input, "-ac", "1", "-f", "s16le", "-ar", "8000", "pipe:1")
+	// Keep ffmpeg's own diagnostics: without them a failure surfaces as a bare
+	// "exit status 8" and says nothing about why.
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 
 	total := len(out) / 2
@@ -124,6 +130,51 @@ func Peaks(ctx context.Context, input string, num int) ([]float64, error) {
 		peaks = append(peaks, max)
 	}
 	return peaks, nil
+}
+
+// SaveSegment writes input (a local file or URL) to outPath as MP3. When
+// end > start it extracts only that [start, end] window (seconds) — used to cut
+// chapter tracks out of a single downloaded source. end <= start downloads the
+// whole file.
+func SaveSegment(ctx context.Context, input string, start, end float64, outPath string) error {
+	args := []string{"-y"}
+	if start > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(start, 'f', -1, 64))
+	}
+	args = append(args, "-i", input)
+	if end > start {
+		args = append(args, "-t", strconv.FormatFloat(end-start, 'f', -1, 64))
+	}
+	args = append(args, "-vn", "-c:a", "libmp3lame", "-q:a", "2", outPath)
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
+// SaveSegmentCopy writes [start, end] of input to outPath without re-encoding.
+// The container is taken from outPath's extension, so callers keep the source
+// extension: copying preserves quality and is far faster than an encode.
+func SaveSegmentCopy(ctx context.Context, input string, start, end float64, outPath string) error {
+	args := []string{"-y"}
+	if start > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(start, 'f', -1, 64))
+	}
+	args = append(args, "-i", input)
+	if end > start {
+		args = append(args, "-t", strconv.FormatFloat(end-start, 'f', -1, 64))
+	}
+	args = append(args, "-vn", "-c:a", "copy", outPath)
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
 }
 
 func trimSpace(s string) string {

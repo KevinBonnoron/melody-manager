@@ -46,7 +46,7 @@ func Import(ctx context.Context, app core.App, reg *providers.Registry, url stri
 	out := make([]*core.Record, 0, len(resolved))
 	for _, rt := range resolved {
 		rt.Source = providerID
-		rec, err := persistTrack(app, rt)
+		rec, err := persistTrack(ctx, app, rt)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func autoLikeAlbums(app core.App, userID string, tracks []*core.Record) {
 	}
 }
 
-func persistTrack(app core.App, rt domain.ResolvedTrack) (*core.Record, error) {
+func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*core.Record, error) {
 	artist, err := getOrCreate(app, "artists", "name = {:n}", dbx.Params{"n": rt.ArtistName}, func(r *core.Record) {
 		r.Set("name", rt.ArtistName)
 	})
@@ -137,6 +137,10 @@ func persistTrack(app core.App, rt domain.ResolvedTrack) (*core.Record, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	// The provider resolved a cover; without this the library came out blank.
+	if rt.CoverURL != "" && album.GetString("cover") == "" {
+		setCoverFromURL(ctx, app, album, rt.CoverURL)
 	}
 
 	// Chaptered tracks share a sourceUrl with siblings, so when this is a

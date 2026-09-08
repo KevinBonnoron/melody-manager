@@ -132,12 +132,12 @@ export interface FileRoutesByFullPath {
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
-  '/admin': typeof AdminIndexRoute
-  '/history': typeof HistoryIndexRoute
-  '/library': typeof LibraryIndexRoute
-  '/providers': typeof ProvidersIndexRoute
-  '/shares': typeof SharesIndexRoute
-  '/stats': typeof StatsIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/history/': typeof HistoryIndexRoute
+  '/library/': typeof LibraryIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
+  '/shares/': typeof SharesIndexRoute
+  '/stats/': typeof StatsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -195,12 +195,12 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/artists/$artistId'
     | '/playlists/$playlistId'
-    | '/admin'
-    | '/history'
-    | '/library'
-    | '/providers'
-    | '/shares'
-    | '/stats'
+    | '/admin/'
+    | '/history/'
+    | '/library/'
+    | '/providers/'
+    | '/shares/'
+    | '/stats/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -318,42 +318,42 @@ declare module '@tanstack/react-router' {
     '/stats/': {
       id: '/stats/'
       path: '/stats'
-      fullPath: '/stats'
+      fullPath: '/stats/'
       preLoaderRoute: typeof StatsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shares/': {
       id: '/shares/'
       path: '/shares'
-      fullPath: '/shares'
+      fullPath: '/shares/'
       preLoaderRoute: typeof SharesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/providers/': {
       id: '/providers/'
       path: '/providers'
-      fullPath: '/providers'
+      fullPath: '/providers/'
       preLoaderRoute: typeof ProvidersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library/': {
       id: '/library/'
       path: '/library'
-      fullPath: '/library'
+      fullPath: '/library/'
       preLoaderRoute: typeof LibraryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history/': {
       id: '/history/'
       path: '/history'
-      fullPath: '/history'
+      fullPath: '/history/'
       preLoaderRoute: typeof HistoryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
       path: '/admin'
-      fullPath: '/admin'
+      fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
