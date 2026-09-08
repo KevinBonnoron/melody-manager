@@ -1,20 +1,264 @@
 package routes
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/KevinBonnoron/melody-manager/api/internal/app"
+	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
+	"github.com/KevinBonnoron/melody-manager/api/internal/services"
+	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
 
-// Register mounts the custom /api routes on the PocketBase router. PocketBase
-// already serves /api/health, /api/collections/*, /api/realtime, /api/files/*
-// and auth out of the box — these are the melody-specific endpoints.
-func Register(se *core.ServeEvent) {
+// Register mounts the melody-specific endpoints. PocketBase already serves
+// /api/health, /api/collections/* (used by the client to read library data),
+// /api/realtime, /api/files/* and auth.
+func Register(se *core.ServeEvent, deps *app.Deps) {
+	// Endpoints that cannot carry an Authorization header: the player assigns
+	// the stream URL to an <audio> element and a Sonos speaker fetches it
+	// itself. They authenticate with the short-lived token minted by
+	// GET /api/stream-token. Share links are opened by anonymous recipients.
+	se.Router.GET("/api/tracks/stream/{id}", func(e *core.RequestEvent) error {
+		uid, errResp := streamUserID(e)
+		if errResp != nil {
+			return errResp
+		}
+		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, e.Request.PathValue("id"), e.Request.URL.Query().Get("transcode"), uid)
+	})
+	se.Router.GET("/api/tracks/peaks/{id}", func(e *core.RequestEvent) error {
+		uid, errResp := streamUserID(e)
+		if errResp != nil {
+			return errResp
+		}
+		peaks, err := services.TrackPeaks(e.Request.Context(), e.App, deps.Registry, deps.Cache, e.Request.PathValue("id"), uid)
+		if err != nil {
+			return e.InternalServerError("peaks", err)
+		}
+		return e.JSON(http.StatusOK, peaks)
+	})
+	se.Router.GET("/api/share/stream/{token}", func(e *core.RequestEvent) error {
+		link, err := e.App.FindFirstRecordByFilter("share_links", "token = {:t}", dbx.Params{"t": e.Request.PathValue("token")})
+		if err != nil {
+			return e.NotFoundError("invalid share link", err)
+		}
+		if expiry := link.GetDateTime("expiresAt"); !expiry.IsZero() && expiry.Time().Before(time.Now()) {
+			return e.NotFoundError("share link expired", nil)
+		}
+		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, link.GetString("track"), e.Request.URL.Query().Get("transcode"), "")
+	})
+
 	g := se.Router.Group("/api")
+	g.Bind(apis.RequireAuth())
+
+	g.GET("/stream-token", func(e *core.RequestEvent) error {
+		token, err := streamToken(e.Auth)
+		if err != nil {
+			return e.InternalServerError("stream token", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"token": token, "expiresIn": int(streamTokenTTL.Seconds())})
+	})
 
 	g.GET("/plugins", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, providers.Manifests())
 	})
+
+	g.POST("/search", func(e *core.RequestEvent) error {
+		var body struct {
+			Query  string `json:"query"`
+			Type   string `json:"type"`
+			Source string `json:"source"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("invalid body", err)
+		}
+		if body.Source == "library" {
+			return e.JSON(http.StatusOK, map[string]any{"results": services.SearchLibrary(e.App, body.Query), "providerErrors": []services.ProviderError{}})
+		}
+		typ := domain.SearchResultType(body.Type)
+		if typ == "" {
+			typ = domain.ResultTrack
+		}
+		// The request context, so an aborted search stops the yt-dlp processes
+		// it spawned instead of running them to completion.
+		results, provErrs := services.SearchProviders(e.Request.Context(), e.App, deps.Registry, body.Query, typ, userID(e))
+		return e.JSON(http.StatusOK, map[string]any{"results": results, "providerErrors": provErrs})
+	})
+
+	for _, kind := range []services.ImportKind{services.KindAlbum, services.KindArtist, services.KindTrack, services.KindPlaylist} {
+		g.POST("/"+string(kind)+"/add", importHandler(deps, kind))
+	}
+
+	g.POST("/local/scan", func(e *core.RequestEvent) error {
+		if e.Auth.GetString("role") != "admin" {
+			return e.ForbiddenError("admin only", nil)
+		}
+		task := deps.Tasks.Create("scan", "Local library scan")
+		go func() {
+			deps.Tasks.Update(task.ID, func(t *tasks.Task) { t.Status = tasks.Running; t.Progress = 10 })
+			n, err := services.ScanLocal(context.Background(), e.App)
+			deps.Tasks.Update(task.ID, func(t *tasks.Task) {
+				if err != nil {
+					t.Status = tasks.Failed
+					t.Error = err.Error()
+					return
+				}
+				t.Status = tasks.Completed
+				t.Progress = 100
+				t.Name = fmt.Sprintf("Local scan: %d tracks added", n)
+			})
+		}()
+		return e.JSON(http.StatusAccepted, task)
+	})
+
+	g.GET("/stats/overview", func(e *core.RequestEvent) error {
+		return e.JSON(http.StatusOK, services.Overview(e.App, userID(e)))
+	})
+	g.GET("/stats/play-counts", func(e *core.RequestEvent) error {
+		return e.JSON(http.StatusOK, services.PlayCounts(e.App, userID(e)))
+	})
+
+	g.GET("/playlists", func(e *core.RequestEvent) error {
+		uid := userID(e)
+		if uid == "" {
+			return e.UnauthorizedError("authentication required", nil)
+		}
+		likes, err := e.App.FindRecordsByFilter("playlist_likes", "user = {:u}", "", 0, 0, dbx.Params{"u": uid})
+		if err != nil {
+			return e.InternalServerError("playlists", err)
+		}
+		ids := make([]string, 0, len(likes))
+		for _, l := range likes {
+			ids = append(ids, l.GetString("playlist"))
+		}
+		out := make([]*core.Record, 0, len(ids))
+		for _, id := range ids {
+			if r, err := e.App.FindRecordById("playlists", id); err == nil {
+				out = append(out, r)
+			}
+		}
+		return e.JSON(http.StatusOK, out)
+	})
+	g.GET("/playlists/{id}", func(e *core.RequestEvent) error {
+		r, err := e.App.FindRecordById("playlists", e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("playlist not found", err)
+		}
+		return e.JSON(http.StatusOK, r)
+	})
+
+	g.GET("/tasks", func(e *core.RequestEvent) error {
+		return e.JSON(http.StatusOK, deps.Tasks.List())
+	})
+	g.DELETE("/tasks/completed", func(e *core.RequestEvent) error {
+		deps.Tasks.ClearCompleted()
+		return e.NoContent(http.StatusNoContent)
+	})
+	g.GET("/tasks/events", func(e *core.RequestEvent) error {
+		return streamTasks(e, deps)
+	})
+
+}
+
+func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		var body struct {
+			URL string `json:"url"`
+		}
+		if err := e.BindBody(&body); err != nil || body.URL == "" {
+			return e.BadRequestError("missing url", err)
+		}
+		uid := userID(e)
+		task := deps.Tasks.Create("import", body.URL)
+		go func() {
+			deps.Tasks.Update(task.ID, func(t *tasks.Task) { t.Status = tasks.Running; t.Progress = 10 })
+			imported, err := services.Import(context.Background(), e.App, deps.Registry, body.URL, kind, uid)
+			deps.Tasks.Update(task.ID, func(t *tasks.Task) {
+				if err != nil {
+					t.Status = tasks.Failed
+					t.Error = err.Error()
+					return
+				}
+				t.Status = tasks.Completed
+				t.Progress = 100
+				t.Name = fmt.Sprintf("Imported %d tracks", len(imported))
+			})
+		}()
+		return e.JSON(http.StatusAccepted, task)
+	}
+}
+
+func streamTasks(e *core.RequestEvent, deps *app.Deps) error {
+	w := e.Response
+	h := w.Header()
+	h.Set("Content-Type", "text/event-stream")
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	flusher, _ := w.(http.Flusher)
+
+	writeEvent := func(t tasks.Task) {
+		b, _ := json.Marshal(t)
+		fmt.Fprintf(w, "event: task\ndata: %s\n\n", b)
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
+	for _, t := range deps.Tasks.List() {
+		writeEvent(t)
+	}
+
+	ch, unsub := deps.Tasks.Subscribe()
+	defer unsub()
+	ctx := e.Request.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case t, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			writeEvent(t)
+		}
+	}
+}
+
+// streamTokenTTL bounds how long a leaked stream URL stays usable: long enough
+// to outlive a queue, short enough that a copied URL is not a standing grant.
+const streamTokenTTL = 6 * time.Hour
+
+func streamToken(auth *core.Record) (string, error) {
+	return auth.NewStaticAuthToken(streamTokenTTL)
+}
+
+// streamUserID authenticates a stream request from the Authorization header or
+// from the ?token= minted by GET /api/stream-token.
+func streamUserID(e *core.RequestEvent) (string, error) {
+	if e.Auth != nil {
+		return e.Auth.Id, nil
+	}
+	raw := e.Request.URL.Query().Get("token")
+	if raw == "" {
+		return "", e.UnauthorizedError("authentication required", nil)
+	}
+	rec, err := e.App.FindAuthRecordByToken(raw, core.TokenTypeAuth)
+	if err != nil {
+		return "", e.UnauthorizedError("invalid stream token", err)
+	}
+	return rec.Id, nil
+}
+
+func userID(e *core.RequestEvent) string {
+	if e.Auth != nil {
+		return e.Auth.Id
+	}
+	return ""
 }
