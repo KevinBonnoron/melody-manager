@@ -80,7 +80,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.BadRequestError("invalid body", err)
 		}
 		if body.Source == "library" {
-			return e.JSON(http.StatusOK, map[string]any{"results": services.SearchLibrary(e.App, body.Query), "providerErrors": []services.ProviderError{}})
+			return e.JSON(http.StatusOK, toSearchResponse(services.SearchLibrary(e.App, body.Query), nil))
 		}
 		typ := domain.SearchResultType(body.Type)
 		if typ == "" {
@@ -89,7 +89,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		// The request context, so an aborted search stops the yt-dlp processes
 		// it spawned instead of running them to completion.
 		results, provErrs := services.SearchProviders(e.Request.Context(), e.App, deps.Registry, body.Query, typ, userID(e))
-		return e.JSON(http.StatusOK, map[string]any{"results": results, "providerErrors": provErrs})
+		return e.JSON(http.StatusOK, toSearchResponse(results, provErrs))
 	})
 
 	for _, kind := range []services.ImportKind{services.KindAlbum, services.KindArtist, services.KindTrack, services.KindPlaylist} {
@@ -155,7 +155,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 
 	g.GET("/tasks", func(e *core.RequestEvent) error {
-		return e.JSON(http.StatusOK, deps.Tasks.List())
+		return e.JSON(http.StatusOK, map[string]any{"tasks": deps.Tasks.List()})
 	})
 	g.DELETE("/tasks/completed", func(e *core.RequestEvent) error {
 		deps.Tasks.ClearCompleted()
@@ -261,4 +261,50 @@ func userID(e *core.RequestEvent) string {
 		return e.Auth.Id
 	}
 	return ""
+}
+
+// toSearchResponse maps internal results to the client's SearchResponse shape
+// ({ results, providerErrors }) with the field names the TS types expect.
+func toSearchResponse(results []domain.SearchResult, provErrs []services.ProviderError) map[string]any {
+	mapped := make([]map[string]any, 0, len(results))
+	for _, r := range results {
+		m := map[string]any{
+			"type":          string(r.Type),
+			"provider":      r.Source,
+			"sourceUrl":     r.SourceURL,
+			"coverUrl":      r.CoverURL,
+			"libraryStatus": map[string]any{"isInLibrary": r.InLibrary},
+		}
+		if r.Type == domain.ResultTrack {
+			m["title"] = r.Title
+			m["artist"] = r.Subtitle
+			m["duration"] = r.Duration
+		} else {
+			m["name"] = r.Title
+		}
+		mapped = append(mapped, m)
+	}
+	if provErrs == nil {
+		provErrs = []services.ProviderError{}
+	}
+	return map[string]any{"results": mapped, "providerErrors": provErrs}
+}
+
+func deleteHandler(collection string, adminOnly bool) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		if e.Auth == nil {
+			return e.UnauthorizedError("authentication required", nil)
+		}
+		if adminOnly && e.Auth.GetString("role") != "admin" {
+			return e.ForbiddenError("admin only", nil)
+		}
+		rec, err := e.App.FindRecordById(collection, e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("not found", err)
+		}
+		if err := e.App.Delete(rec); err != nil {
+			return e.InternalServerError("delete failed", err)
+		}
+		return e.NoContent(http.StatusNoContent)
+	}
 }

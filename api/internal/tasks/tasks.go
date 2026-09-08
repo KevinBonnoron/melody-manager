@@ -19,15 +19,21 @@ const (
 	Failed    Status = "failed"
 )
 
-// Task is a tracked background job.
+// Task is a tracked background job. JSON shape matches the shared TS Task type
+// consumed by the client (createdAt/updatedAt as RFC3339 strings).
 type Task struct {
 	ID       string `json:"id"`
 	Type     string `json:"type"`
 	Name     string `json:"name"`
 	Status   Status `json:"status"`
 	Progress int    `json:"progress"`
-	Error    string `json:"error,omitempty"`
-	Created  int64  `json:"created"`
+	// Count carries an outcome the client turns into a translated sentence.
+	// Names stay untranslatable subjects (an album, a URL) — prose built here
+	// could only ever be in one language.
+	Count     int    `json:"count,omitempty"`
+	Error     string `json:"error,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }
 
 // Service tracks tasks and notifies subscribers of changes.
@@ -46,8 +52,9 @@ func New() *Service {
 
 // Create registers a new pending task and returns it.
 func (s *Service) Create(typ, name string) *Task {
+	now := time.Now().UTC().Format(time.RFC3339)
 	id := fmt.Sprintf("task_%d_%d", time.Now().UnixNano(), s.counter.Add(1))
-	t := &Task{ID: id, Type: typ, Name: name, Status: Pending, Created: time.Now().UnixMilli()}
+	t := &Task{ID: id, Type: typ, Name: name, Status: Pending, CreatedAt: now, UpdatedAt: now}
 	s.mu.Lock()
 	s.tasks[id] = t
 	s.mu.Unlock()
@@ -61,6 +68,7 @@ func (s *Service) Update(id string, fn func(*Task)) {
 	t, ok := s.tasks[id]
 	if ok {
 		fn(t)
+		t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 	var snap Task
 	if ok {

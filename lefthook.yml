@@ -7,4 +7,4 @@ pre-commit:
 pre-push:
   jobs:
     - name: test
-      run: bun run test
+      run: task test
