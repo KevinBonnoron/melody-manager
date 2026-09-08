@@ -1,10 +1,10 @@
-import type { Artist } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumsForArtist } from '@/hooks/use-album';
 import { useArtistTracks } from '@/hooks/use-tracks';
 import { getArtistCoverUrl } from '@/lib/cover-url';
+import type { Artist } from '@/shared';
 
 interface Props {
   artist: Artist;

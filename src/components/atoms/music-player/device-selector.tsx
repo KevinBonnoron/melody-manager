@@ -1,10 +1,10 @@
-import type { Device } from '@/shared';
 import { Monitor, Speaker } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { deviceClient } from '@/clients/device.client';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import type { Device } from '@/shared';
 
 interface Props {
   activeDevice: Device | null;

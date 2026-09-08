@@ -1,4 +1,3 @@
-import type { Connection, PluginManifest, Provider } from '@/shared';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { CheckCircle2, Circle, Link, Lock, Plus, Settings, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -8,6 +7,7 @@ import { connectionCollection } from '@/collections/connection.collection';
 import { providerCollection } from '@/collections/provider.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { usePlugins } from '@/hooks/use-plugins';
+import type { Connection, PluginManifest, Provider } from '@/shared';
 import { getDefaultConfigForType } from '../providers/available-provider-types';
 import type { ConfigFormData } from '../providers/provider-config-form';
 import { ProviderConfigForm } from '../providers/provider-config-form';

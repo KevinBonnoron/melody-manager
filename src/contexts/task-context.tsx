@@ -1,6 +1,6 @@
-import type { Task } from '@/shared';
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { tasksClient } from '@/clients/tasks.client';
+import type { Task } from '@/shared';
 
 interface TaskContextValue {
   tasks: Task[];
@@ -18,7 +18,6 @@ const TaskContext = createContext<TaskContextValue>({
 
 export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const initializedRef = useRef(false);
   const upsertTask = useCallback((task: Task) => {
     setTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === task.id);
@@ -33,20 +32,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
-
-    initializedRef.current = true;
-
     const unsub = tasksClient.events((task) => {
       upsertTask(task);
     });
 
-    return () => {
-      unsub?.();
-      initializedRef.current = false;
-    };
+    return unsub;
   }, [upsertTask]);
 
   const activeTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'running');

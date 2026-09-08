@@ -1,4 +1,3 @@
-import type { Album, Artist, Track } from '@/shared';
 import { createFileRoute } from '@tanstack/react-router';
 import { Disc3 } from 'lucide-react';
 import { AlbumPage } from '@/components/albums/album-page';
@@ -7,6 +6,7 @@ import { useAlbum } from '@/hooks/use-album';
 import { useArtistsByIds } from '@/hooks/use-artists';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { authGuard } from '@/lib/auth-guard';
+import type { Album, Artist, Track } from '@/shared';
 
 export const Route = createFileRoute('/albums/$albumId')({
   beforeLoad: authGuard,

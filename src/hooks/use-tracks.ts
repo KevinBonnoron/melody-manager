@@ -1,7 +1,7 @@
-import type { Track } from '@/shared';
 import { eq, inArray, useLiveQuery } from '@tanstack/react-db';
 import { useMemo } from 'react';
 import { trackCollection } from '@/collections/track.collection';
+import type { Track } from '@/shared';
 
 export function useTracks() {
   return useLiveQuery((q) => q.from({ tracks: trackCollection }));

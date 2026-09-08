@@ -1,5 +1,5 @@
-import type { User } from '@/shared';
 import { useAuth } from 'pocketbase-react-hooks';
+import type { User } from '@/shared';
 
 /**
  * Hook to get the authenticated user

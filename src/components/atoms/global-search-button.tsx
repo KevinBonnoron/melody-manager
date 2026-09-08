@@ -1,4 +1,3 @@
-import type { Album, Artist, Genre, Track, TrackProvider } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useNavigate } from '@tanstack/react-router';
 import type { IFuseOptions } from 'fuse.js';
@@ -22,6 +21,7 @@ import { useTrackLikes } from '@/hooks/use-track-likes';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { cn, formatDuration, getModifierKey, getProviderColor } from '@/lib/utils';
+import type { Album, Artist, Genre, Track, TrackProvider } from '@/shared';
 import { hasActiveFilters, type SearchFilters, SearchFiltersBar } from './search-filters';
 
 const trackFuseOptions: IFuseOptions<Track> = {

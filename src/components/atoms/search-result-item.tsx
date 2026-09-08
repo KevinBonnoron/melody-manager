@@ -1,4 +1,3 @@
-import type { AlbumSearchResult, ArtistSearchResult, PlaylistSearchResult, TrackSearchResult } from '@/shared';
 import type { LucideIcon } from 'lucide-react';
 import { Check, Disc, ExternalLink, Library, Loader2, Music, Plus, User } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -7,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CommandItem } from '@/components/ui/command';
 import { formatDuration, getProviderColor } from '@/lib/utils';
+import type { AlbumSearchResult, ArtistSearchResult, PlaylistSearchResult, TrackSearchResult } from '@/shared';
 
 export interface LibraryStatus {
   isInLibrary: boolean;

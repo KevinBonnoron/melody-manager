@@ -1,12 +1,12 @@
-import type { Playlist, Track } from '@/shared';
 import { Check, ExternalLink, Library, ListMusic, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { TrackTable } from '@/components/tracks/track-table';
 import { PlayButton } from '@/components/tracks/play-button';
+import { TrackTable } from '@/components/tracks/track-table';
 import { Button } from '@/components/ui/button';
 import { usePlaylistLikes } from '@/hooks/use-playlist-likes';
 import { getPlaylistCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
+import type { Playlist, Track } from '@/shared';
 
 interface Props {
   playlist: Playlist;

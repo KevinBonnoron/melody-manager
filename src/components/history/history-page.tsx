@@ -1,4 +1,3 @@
-import type { Album, Artist, Track, TrackPlay } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { ChevronDown, History, Music2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatTimeAgo } from '@/lib/utils';
+import type { Album, Artist, Track, TrackPlay } from '@/shared';
 
 export function HistoryPage() {
   const { t } = useTranslation();

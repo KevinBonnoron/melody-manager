@@ -1,4 +1,3 @@
-import type { Connection } from '@/shared';
 import { Music2, Speaker } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +5,7 @@ import { toast } from 'sonner';
 import { connectionCollection } from '@/collections/connection.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { usePlugins } from '@/hooks/use-plugins';
+import type { Connection } from '@/shared';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { DropdownMenuItem } from '../ui/dropdown-menu';
 import { getDefaultConfigForType } from './available-provider-types';

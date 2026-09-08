@@ -1,7 +1,7 @@
-import type { ArtistLike } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
 import { artistLikeCollection } from '@/collections/artist-like.collection';
+import type { ArtistLike } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
 export function useArtistLikes() {

@@ -1,8 +1,8 @@
-import type { AlbumLike } from '@/shared';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useCallback, useMemo } from 'react';
 import { albumCollection } from '@/collections/album.collection';
 import { albumLikeCollection } from '@/collections/album-like.collection';
+import type { AlbumLike } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
 export function useAlbumLikes() {

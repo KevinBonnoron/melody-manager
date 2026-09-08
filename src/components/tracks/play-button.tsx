@@ -1,6 +1,6 @@
-import type { Track } from '@/shared';
 import { Play } from 'lucide-react';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { Track } from '@/shared';
 import { Button } from '../ui/button';
 
 interface Props {

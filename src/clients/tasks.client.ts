@@ -1,7 +1,7 @@
-import type { Task } from '@/shared';
 import { universalClient, withMethods } from 'universal-client';
 import { withHttpDelegate, withSseDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
+import type { Task } from '@/shared';
 
 export const tasksClient = universalClient(
   withHttpDelegate(config.server.url),

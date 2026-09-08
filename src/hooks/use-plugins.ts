@@ -1,6 +1,6 @@
-import type { PluginManifest } from '@/shared';
 import { useEffect, useState } from 'react';
 import { config } from '@/lib/config';
+import type { PluginManifest } from '@/shared';
 
 let cachedManifests: PluginManifest[] | null = null;
 let cachedManifestsPromise: Promise<PluginManifest[]> | null = null;

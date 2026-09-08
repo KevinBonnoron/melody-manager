@@ -1,15 +1,15 @@
-import type { Album, Artist, Track } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { Check, Disc3, ExternalLink, Library, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumLikes } from '@/hooks/use-album-likes';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
+import type { Album, Artist, Track } from '@/shared';
+import { PlayButton } from '../tracks/play-button';
+import { TrackTable } from '../tracks/track-table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { PlayButton } from '../tracks/play-button';
-import { TrackTable } from '../tracks/track-table';
 import { AlbumActionsMenu } from './album-actions-menu';
 
 interface Props {

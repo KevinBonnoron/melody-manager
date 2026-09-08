@@ -1,4 +1,3 @@
-import type { Album, Artist, Track } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { Link } from '@tanstack/react-router';
 import { BarChart3, ChevronRight, Clock, Disc3, Headphones, Music2, TrendingUp, User } from 'lucide-react';
@@ -17,6 +16,7 @@ import { config } from '@/lib/config';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { pb } from '@/lib/pocketbase';
 import { formatListeningTime, formatMonth } from '@/lib/utils';
+import type { Album, Artist, Track } from '@/shared';
 
 const CHART_COLORS = ['#7c3aed', '#c026d3', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f97316'];
 interface StatsData {

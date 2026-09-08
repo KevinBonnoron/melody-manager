@@ -1,8 +1,8 @@
-import type { Track, TrackLike } from '@/shared';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
 import { trackCollection } from '@/collections/track.collection';
 import { trackLikeCollection } from '@/collections/track-like.collection';
+import type { Track, TrackLike } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
 export function useTrackLikes() {

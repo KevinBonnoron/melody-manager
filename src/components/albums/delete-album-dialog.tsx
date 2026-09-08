@@ -1,4 +1,3 @@
-import type { Album } from '@/shared';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -6,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { Album } from '@/shared';
 
 interface Props {
   album: Album;

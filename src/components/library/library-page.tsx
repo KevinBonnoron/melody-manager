@@ -1,4 +1,3 @@
-import type { Album, Artist } from '@/shared';
 import { ChevronRight, Library, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,10 +23,10 @@ export function LibraryPage() {
   const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);
-  const likedAlbums = useMemo(() => likedAlbumIds.map((id) => albumsByIds.find((a) => a.id === id)).filter((a): a is Album => a != null), [likedAlbumIds, albumsByIds]);
+  const likedAlbums = useMemo(() => likedAlbumIds.map((id) => albumsByIds.find((a) => a.id === id)).filter((a) => a != null), [likedAlbumIds, albumsByIds]);
   const { data: likedArtistIds = [] } = useLikedArtistIds();
   const { data: artistsByIds = [] } = useArtistsByIds(likedArtistIds);
-  const likedArtists = useMemo(() => likedArtistIds.map((id) => artistsByIds.find((a) => a.id === id)).filter((a): a is Artist => a != null), [likedArtistIds, artistsByIds]);
+  const likedArtists = useMemo(() => likedArtistIds.map((id) => artistsByIds.find((a) => a.id === id)).filter((a) => a != null), [likedArtistIds, artistsByIds]);
   const toggleSection = (section: ExpandedSection) => {
     setExpandedSection((prev) => (prev === section ? null : section));
   };

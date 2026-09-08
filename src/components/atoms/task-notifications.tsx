@@ -1,9 +1,9 @@
-import type { TaskStatus } from '@/shared';
 import { AlertCircle, Bell, CheckCircle2, Loader2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useTasks } from '@/contexts/task-context';
+import type { TaskStatus } from '@/shared';
 
 export function TaskNotifications() {
   const { t } = useTranslation();

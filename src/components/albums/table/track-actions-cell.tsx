@@ -1,4 +1,3 @@
-import type { Track } from '@/shared';
 import { Heart, HeartOff, MoreVertical, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +10,7 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { useTrackDislikes } from '@/hooks/use-track-dislikes';
 import { useTrackLikes } from '@/hooks/use-track-likes';
 import { cn } from '@/lib/utils';
+import type { Track } from '@/shared';
 import { Button } from '../../ui/button';
 import { ShareTrackDialog } from './share-track-dialog';
 

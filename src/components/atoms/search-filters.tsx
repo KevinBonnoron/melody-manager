@@ -1,9 +1,9 @@
-import type { Genre, TrackProvider } from '@/shared';
 import { Music, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getProviderColor } from '@/lib/utils';
+import type { Genre, TrackProvider } from '@/shared';
 
 export interface SearchFilters {
   provider?: string;

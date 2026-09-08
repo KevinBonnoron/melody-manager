@@ -1,6 +1,6 @@
-import type { Track } from '@/shared';
 import { Badge } from '@/components/ui/badge';
 import { getProviderColor } from '@/lib/utils';
+import type { Track } from '@/shared';
 
 interface Props {
   track: Track;

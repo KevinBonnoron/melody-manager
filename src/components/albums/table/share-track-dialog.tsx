@@ -1,4 +1,3 @@
-import type { ShareLink, Track } from '@/shared';
 import { Check, Copy, Link } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { type ReactElement, useState } from 'react';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
+import type { ShareLink, Track } from '@/shared';
 
 interface Props {
   track: Track;

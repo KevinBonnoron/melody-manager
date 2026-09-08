@@ -1,10 +1,10 @@
-import type { Playlist } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { ListMusic, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { getPlaylistCoverUrl } from '@/lib/cover-url';
+import type { Playlist } from '@/shared';
 
 interface Props {
   playlist: Playlist;

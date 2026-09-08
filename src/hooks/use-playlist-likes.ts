@@ -1,7 +1,7 @@
-import type { PlaylistLike } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
 import { playlistLikeCollection } from '@/collections/playlist-like.collection';
+import type { PlaylistLike } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
 export function usePlaylistLikes() {

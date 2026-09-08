@@ -1,4 +1,3 @@
-import type { Device } from '@/shared';
 import { ListMusic } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { Device } from '@/shared';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MobileSettings } from './music-player/mobile-settings';

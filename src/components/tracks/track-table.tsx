@@ -1,4 +1,3 @@
-import type { Track } from '@/shared';
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Clock, Headphones } from 'lucide-react';
@@ -9,6 +8,7 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useTrackDislikes } from '@/hooks/use-track-dislikes';
 import { useTrackPlays } from '@/hooks/use-track-plays';
 import { cn } from '@/lib/utils';
+import type { Track } from '@/shared';
 import { TrackActionsCell } from '../albums/table/track-actions-cell';
 import { TrackArtistsCell } from '../albums/table/track-artists-cell';
 import { TrackDurationCell } from '../albums/table/track-duration-cell';

@@ -1,6 +1,6 @@
-import type { Album } from '@/shared';
 import { Disc3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { Album } from '@/shared';
 import { AlbumCard } from './album-card';
 
 interface Props {
