@@ -26,15 +26,20 @@ tasks:
 
   client:
     desc: Run the Vite client on :5173
-    dir: client
     cmds:
       - bun run dev
 
   superuser:
-    desc: 'Create/update a PocketBase superuser — usage: task superuser -- email password'
+    desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
     dir: api
+    silent: true
     cmds:
-      - go run . superuser upsert {{.CLI_ARGS}}
+      - |
+        if [ -z "{{.CLI_ARGS}}" ]; then
+          echo "Usage: task superuser -- <email> <password>" >&2
+          exit 1
+        fi
+        go run . superuser upsert {{.CLI_ARGS}}
 
   build:
     desc: Build the Go binary and the client bundle
@@ -47,14 +52,12 @@ tasks:
       - go build -o ../bin/melody-api .
 
   build:client:
-    desc: Type-check and build the client (builds shared via project refs)
-    dir: client
+    desc: Type-check and build the client bundle
     cmds:
       - bun run build
 
   type-check:
     desc: Type-check the client
-    dir: client
     cmds:
       - bun run type-check
 
@@ -69,10 +72,10 @@ tasks:
       - bunx biome format --write .
 
   test:
-    desc: Run Go and shared tests
+    desc: Run Go and client tests
     cmds:
       - cd api && go test ./...
-      - cd shared && bun test
+      - bun test
 
   tidy:
     desc: go mod tidy for the API module
@@ -81,7 +84,8 @@ tasks:
       - go mod tidy
 
   docs:
-    desc: Run the VitePress docs dev server
+    desc: Run the VitePress docs dev server (standalone)
     dir: docs
     cmds:
+      - bun install
       - bun run dev

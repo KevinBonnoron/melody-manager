@@ -40,35 +40,32 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build shared package
-        run: bun run --cwd shared build
-
       - name: Build client
-        run: bun run --cwd client build
+        run: bun run build
 
       - name: Generate app icons and splash screens
-        working-directory: client
+        working-directory: .
         run: bun run cap:assets
 
       - name: Sync Capacitor
-        working-directory: client
+        working-directory: .
         run: bunx cap sync android
 
       - name: Ensure gradle.properties has AndroidX enabled
-        working-directory: client/android
+        working-directory: android
         run: |
           if ! grep -q 'android.useAndroidX=true' gradle.properties 2>/dev/null; then
             echo 'android.useAndroidX=true' >> gradle.properties
           fi
 
       - name: Make gradlew executable
-        working-directory: client/android
+        working-directory: android
         run: chmod +x ./gradlew
 
       # Debug build (for branches and PRs)
       - name: Build Debug APK
         if: "!startsWith(github.ref, 'refs/tags/')"
-        working-directory: client/android
+        working-directory: android
         run: ./gradlew assembleDebug -Pandroid.useAndroidX=true
 
       - name: Upload Debug APK
@@ -76,18 +73,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
       # Release build (for version tags)
       - name: Decode Keystore
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > client/android/app/release.keystore
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
       - name: Build Release APK
         if: startsWith(github.ref, 'refs/tags/')
-        working-directory: client/android
+        working-directory: android
         run: ./gradlew assembleRelease
         env:
           KEYSTORE_FILE: release.keystore
@@ -97,7 +94,7 @@ jobs:
 
       - name: Build Release AAB
         if: startsWith(github.ref, 'refs/tags/')
-        working-directory: client/android
+        working-directory: android
         run: ./gradlew bundleRelease
         env:
           KEYSTORE_FILE: release.keystore
@@ -110,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: client/android/app/build/outputs/apk/release/app-release.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 90
 
       - name: Upload Release AAB
@@ -118,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-bundle
-          path: client/android/app/build/outputs/bundle/release/app-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 90
 
       - name: Create GitHub Release
@@ -126,8 +123,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            client/android/app/build/outputs/apk/release/app-release.apk
-            client/android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
           draft: false
           prerelease: false
         env:
