@@ -1,27 +1,27 @@
 # Docker Deployment
 
-The Docker image bundles everything into a single container: nginx (reverse proxy + static files), Hono API server, and PocketBase database. Managed by supervisord.
+The image is a single Go binary in a single container. It embeds PocketBase —
+database, auth, admin UI, REST and realtime — serves the melody-specific `/api`
+endpoints, and ships the built client as static files. No reverse proxy, no
+process manager, no separate database process.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│           Docker Container          │
-│                                     │
-│  ┌─────────┐  :80                   │
-│  │  nginx   │◄─── client requests   │
-│  └────┬─────┘                       │
-│       │                             │
-│       ├── /api/* ──► Hono  :3000    │
-│       ├── /db/*  ──► PocketBase     │
-│       ├── /_/*   ──► :8090          │
-│       └── /*     ──► static files   │
-│                                     │
-│  ┌────────────┐  ┌──────────────┐   │
-│  │ Hono API   │  │  PocketBase  │   │
-│  │ port 3000  │  │  port 8090   │   │
-│  └────────────┘  └──────────────┘   │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│            Docker Container              │
+│                                          │
+│   ┌──────────────────────────────┐       │
+│   │   melody-api        :8090    │◄──────┼── client requests
+│   │                              │       │
+│   │   /api/*   melody endpoints  │       │
+│   │   /_/*     PocketBase admin  │       │
+│   │   /*       client from       │       │
+│   │            /app/pb_public    │       │
+│   └──────────────────────────────┘       │
+│                                          │
+│   ffmpeg · yt-dlp on PATH                │
+└──────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -29,53 +29,46 @@ The Docker image bundles everything into a single container: nginx (reverse prox
 ```bash
 docker run -d \
   --name melody-manager \
-  -p 80:80 \
+  -p 8090:8090 \
   -e PB_SUPERUSER_EMAIL=admin@example.com \
   -e PB_SUPERUSER_PASSWORD=your-secure-password \
-  -v melody-manager-db:/app/db/pb_data \
+  -v melody-manager-data:/app/pb_data \
+  -v melody-manager-cache:/app/cache \
   ghcr.io/kevinbonnoron/melody-manager:latest
 ```
 
 ## Docker Compose
 
 ```yaml
-version: '3.8'
-
 services:
   melody-manager:
     image: ghcr.io/kevinbonnoron/melody-manager:latest
     container_name: melody-manager
     ports:
-      - "80:80"
+      - "8090:8090"
     volumes:
-      - melody-manager-db:/app/db/pb_data
+      - melody-manager-data:/app/pb_data
+      - melody-manager-cache:/app/cache
       # Mount local music (optional)
-      # - /path/to/your/music:/app/music:ro
+      # - /path/to/your/music:/music:ro
     environment:
+      - SERVER_URL=http://localhost:8090
       - PB_SUPERUSER_EMAIL=admin@example.com
       - PB_SUPERUSER_PASSWORD=your-secure-password
-      - NODE_ENV=production
-      - CACHE_DIR=/tmp/melody-manager-cache
       - CACHE_MAX_FILES=500
       - CACHE_MAX_SIZE=5GB
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8090/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
 
 volumes:
-  melody-manager-db:
+  melody-manager-data:
+    driver: local
+  melody-manager-cache:
     driver: local
 ```
 
@@ -87,53 +80,46 @@ docker compose build
 docker compose up -d
 ```
 
-The Dockerfile uses a multi-stage build:
-1. Downloads PocketBase and yt-dlp binaries (platform-aware for amd64/arm64)
-2. Extracts Bun runtime
-3. Builds on nginx:bookworm with ffmpeg and supervisord
+The Dockerfile builds in stages: the client with Bun, the Go binary with
+`CGO_ENABLED=0` (PocketBase uses the pure-Go SQLite driver), and a standalone
+yt-dlp for the target architecture. The final image is `debian:bookworm-slim`
+with ffmpeg, ca-certificates and curl.
 
 ## Volumes
 
 | Mount | Purpose |
 |-------|---------|
-| `melody-manager-db:/app/db/pb_data` | PocketBase database (required for persistence) |
-| `/path/to/music:/app/music:ro` | Local music library (optional) |
+| `melody-manager-data:/app/pb_data` | Database, uploaded covers, auth keys — required for persistence |
+| `melody-manager-cache:/app/cache` | Cached audio from remote sources — safe to drop, refills on demand |
+| `/path/to/music:/music:ro` | Local music library (optional), then point the local source at it |
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PB_SUPERUSER_EMAIL` | — | PocketBase admin email (required on first launch) |
-| `PB_SUPERUSER_PASSWORD` | — | PocketBase admin password (required on first launch) |
-| `NODE_ENV` | `production` | Runtime environment |
-| `PORT` | `3000` | API server port (internal) |
-| `PB_URL` | `http://localhost:8090` | PocketBase URL (internal) |
-| `VITE_PB_URL` | `/db` | PocketBase URL for the client |
-| `VITE_SERVER_URL` | `/api` | API URL for the client |
-| `CACHE_DIR` | `/tmp/melody-manager-cache` | Audio cache directory |
-| `CACHE_MAX_FILES` | `500` | Max cached files |
-| `CACHE_MAX_SIZE` | `5GB` | Max cache size |
+| `SERVER_URL` | `http://localhost:8090` | Public URL of this server. Sonos speakers fetch stream URLs themselves, so it must be reachable from them |
+| `PB_SUPERUSER_EMAIL` | — | Bootstraps a PocketBase superuser on first run |
+| `PB_SUPERUSER_PASSWORD` | — | Password for that superuser |
+| `REGISTRATION_DISABLED` | `false` | Refuses new sign-ups; the first user can always register |
+| `CACHE_DIR` | `/app/cache` | Where cached audio is stored |
+| `CACHE_MAX_FILES` | `500` | Maximum number of cached files |
+| `CACHE_MAX_SIZE` | `5GB` | Maximum total cache size (`512MB`, `5GB`, or a byte count) |
 
-::: tip Runtime Configuration
-`VITE_*` variables are injected at container startup via placeholder replacement in the built JS/HTML files. No rebuild needed to change client configuration.
-:::
+The client is served from the same origin as the API, so it needs no build-time
+or runtime URL configuration.
 
 ## Networking
 
-The container exposes a single port (80). Nginx handles routing:
-
-- `/api/*` → Hono API server (port 3000)
-- `/db/*` and `/_/*` → PocketBase (port 8090)
-- `/*` → Static files (SPA with fallback to `index.html`)
-
-### Using a Reverse Proxy
-
-If running behind a reverse proxy (Traefik, Caddy, nginx), simply proxy to port 80 of the container. If the app is served on a subpath, set `VITE_PB_URL` and `VITE_SERVER_URL` accordingly.
+The container exposes a single port, `8090`, and the binary serves everything on
+it: `/api/*`, the PocketBase admin UI under `/_/*`, and the client for any other
+path. Behind a reverse proxy (Traefik, Caddy, nginx), proxy to that port.
 
 ## Health Check
 
-The container exposes a health check at `/health` that returns `200 OK` when nginx is up.
+`GET /api/health` returns `200 OK` once the server is up; the image declares it
+as its healthcheck.
 
 ## Multi-Platform Support
 
-The Docker image is built for both `linux/amd64` and `linux/arm64` via GitHub Actions, so it runs natively on x86 servers and ARM devices (Raspberry Pi 4+, Apple Silicon).
+The image is built for `linux/amd64` and `linux/arm64` in CI, so it runs on x86
+servers and on ARM devices (Raspberry Pi 4+, Apple Silicon).

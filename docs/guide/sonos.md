@@ -24,9 +24,9 @@ services:
     image: ghcr.io/kevinbonnoron/melody-manager:latest
     container_name: melody-manager
     ports:
-      - "80:80"
+      - "8090:8090"
     volumes:
-      - melody-manager-db:/app/db/pb_data
+      - melody-manager-data:/app/pb_data
     environment:
       - PB_SUPERUSER_EMAIL=admin@example.com
       - PB_SUPERUSER_PASSWORD=your-secure-password

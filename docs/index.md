@@ -21,5 +21,5 @@ features:
   - title: Plugin System
     details: Extensible plugin architecture to add new music sources without modifying the core server.
   - title: Docker Ready
-    details: One-command deployment with Docker. Includes PocketBase, nginx, and the API server — everything in a single container.
+    details: One-command deployment with Docker. A single Go binary embedding PocketBase, the API and the client — one process, one container.
 ---
