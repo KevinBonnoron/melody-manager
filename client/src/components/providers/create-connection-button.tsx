@@ -21,7 +21,7 @@ interface Props {
   description: string;
 }
 
-export function CreateConnectionButton({ providerId, type, category, title, description }: Props) {
+export function CreateConnectionButton({ type, category, title, description }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const user = useAuthUser();
@@ -36,7 +36,7 @@ export function CreateConnectionButton({ providerId, type, category, title, desc
 
     try {
       const tx = connectionCollection.insert({
-        provider: providerId,
+        type,
         user: user.id,
         config,
         enabled: true,
@@ -57,7 +57,7 @@ export function CreateConnectionButton({ providerId, type, category, title, desc
 
     try {
       const tx = connectionCollection.insert({
-        provider: providerId,
+        type,
         user: user.id,
         config: {},
         enabled: true,

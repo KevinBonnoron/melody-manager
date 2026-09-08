@@ -48,7 +48,7 @@ export function ProviderConnectCard({ providerId }: Props) {
     try {
       connectionCollection.insert({
         id: crypto.randomUUID(),
-        provider: providerId,
+        type,
         user: user.id,
         config,
         enabled: true,
@@ -69,7 +69,7 @@ export function ProviderConnectCard({ providerId }: Props) {
     try {
       connectionCollection.insert({
         id: crypto.randomUUID(),
-        provider: providerId,
+        type,
         user: user.id,
         config: {},
         enabled: true,

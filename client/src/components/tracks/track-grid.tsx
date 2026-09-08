@@ -16,7 +16,7 @@ export function TrackGrid({ tracks, provider }: Props) {
   const { playTrack, togglePlayPause, currentTrack, isPlaying, isLoading, setQueue } = useMusicPlayer();
   const [columns, setColumns] = useState(4);
   const containerRef = useRef<HTMLDivElement>(null);
-  const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.provider === provider.id)), [tracks, provider]);
+  const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.source === provider.type)), [tracks, provider]);
   const handlePlayTrack = useCallback(
     (track: Track) => {
       if (currentTrack?.id === track.id) {

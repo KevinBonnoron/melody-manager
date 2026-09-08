@@ -2,7 +2,6 @@ import type { Album } from './album.type';
 import type { Artist } from './artist.type';
 import type { Genre } from './genre.type';
 import type { Expand } from './pocketbase.type';
-import type { Provider, TrackProvider } from './provider.type';
 
 export interface Chapter {
   title: string;
@@ -30,7 +29,7 @@ export interface TrackMetadata {
   localPath?: string;
 }
 
-export interface Track extends Expand<{ artists: Artist[]; album: Album; provider: TrackProvider; genres: Genre[] }> {
+export interface Track extends Expand<{ artists: Artist[]; album: Album; genres: Genre[] }> {
   id: string;
   title: string;
   duration: number;
@@ -38,7 +37,7 @@ export interface Track extends Expand<{ artists: Artist[]; album: Album; provide
   metadata?: TrackMetadata;
   artists: Artist['id'][];
   album: Album['id'];
-  provider: Provider['id'];
+  source: string;
   genres: Genre['id'][];
   created: string;
   updated: string;

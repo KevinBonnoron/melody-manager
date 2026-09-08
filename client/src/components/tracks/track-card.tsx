@@ -14,15 +14,15 @@ interface Props {
 }
 
 export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
-  const { album, artists, provider, genres } = track.expand;
+  const { album, artists, genres } = track.expand;
   return (
     <Card className={`group transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer overflow-hidden p-0 gap-0 relative ${isPlaying || isLoading ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`} onClick={() => onPlay(track)}>
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
         {getAlbumCoverUrl(album) ? <img src={getAlbumCoverUrl(album)} alt={track.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <Music2 className="h-8 w-8 sm:h-12 sm:w-12 text-primary/60" />}
 
         <div className="absolute top-2 right-2 z-10">
-          <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColor(provider.type, 'contrast')}`}>
-            {provider.type}
+          <Badge variant="secondary" className={`text-xs font-medium shadow-lg backdrop-blur-sm ${getProviderColor(track.source, 'contrast')}`}>
+            {track.source}
           </Badge>
         </div>
 
