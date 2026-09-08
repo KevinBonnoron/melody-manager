@@ -12,6 +12,8 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           bun
+          go
+          gopls
           pocketbase
           mailpit
           ffmpeg
