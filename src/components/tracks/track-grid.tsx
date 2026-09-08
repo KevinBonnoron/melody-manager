@@ -1,9 +1,9 @@
-import type { Track, TrackProvider } from '@/shared';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Music2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { Track, TrackProvider } from '@/shared';
 import { TrackCard } from './track-card';
 
 interface Props {

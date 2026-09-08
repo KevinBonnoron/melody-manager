@@ -1,5 +1,4 @@
 import { Capacitor } from '@capacitor/core';
-import type { Device, PlayerState, Track, TrackPlay } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useAuth } from 'pocketbase-react-hooks';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -8,6 +7,7 @@ import { trackPlayCollection } from '@/collections/track-play.collection';
 import i18n from '@/i18n';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
+import type { Device, PlayerState, Track, TrackPlay } from '@/shared';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
 

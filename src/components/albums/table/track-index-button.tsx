@@ -1,7 +1,7 @@
-import type { Track } from '@/shared';
 import { Loader2, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { Track } from '@/shared';
 
 interface Props {
   index: number;

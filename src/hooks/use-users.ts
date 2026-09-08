@@ -1,6 +1,6 @@
-import type { User } from '@/shared';
 import { useEffect, useState } from 'react';
 import { pb } from '@/lib/pocketbase';
+import type { User } from '@/shared';
 
 export function useUsers(options?: { enabled?: boolean }) {
   const [users, setUsers] = useState<User[]>([]);

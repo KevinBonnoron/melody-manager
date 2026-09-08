@@ -1,5 +1,5 @@
-import type { Track } from '@/shared';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { Track } from '@/shared';
 
 interface Props {
   track: Track;

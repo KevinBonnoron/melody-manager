@@ -1,7 +1,7 @@
-import type { SearchResponse, SearchType } from '@/shared';
 import { universalClient, withMethods } from 'universal-client';
 import { withHttpDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
+import type { SearchResponse, SearchType } from '@/shared';
 
 export const searchClient = universalClient(
   withHttpDelegate(config.server.url),

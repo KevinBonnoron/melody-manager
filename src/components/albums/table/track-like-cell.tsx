@@ -1,6 +1,6 @@
-import type { Track } from '@/shared';
 import { useTrackDislikes } from '@/hooks/use-track-dislikes';
 import { useTrackLikes } from '@/hooks/use-track-likes';
+import type { Track } from '@/shared';
 import { DislikeButton } from '../../atoms/dislike-button';
 import { LikeButton } from '../../atoms/like-button';
 

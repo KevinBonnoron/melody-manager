@@ -1,4 +1,3 @@
-import type { Playlist, Track } from '@/shared';
 import { inArray, useLiveQuery } from '@tanstack/react-db';
 import { createFileRoute } from '@tanstack/react-router';
 import { ListMusic } from 'lucide-react';
@@ -7,6 +6,7 @@ import { trackCollection } from '@/collections/track.collection';
 import { PlaylistPage } from '@/components/playlists/playlist-page';
 import { usePlaylist } from '@/hooks/use-playlists';
 import { authGuard } from '@/lib/auth-guard';
+import type { Playlist, Track } from '@/shared';
 
 export const Route = createFileRoute('/playlists/$playlistId')({
   beforeLoad: authGuard,

@@ -1,10 +1,10 @@
-import type { Track } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { Loader2, Music2, Pause, Play, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration, getProviderColor } from '@/lib/utils';
+import type { Track } from '@/shared';
 
 interface Props {
   track: Track;

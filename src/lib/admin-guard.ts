@@ -1,5 +1,5 @@
-import type { User } from '@/shared';
 import { redirect } from '@tanstack/react-router';
+import type { User } from '@/shared';
 import { pb } from './pocketbase';
 
 export function adminGuard() {

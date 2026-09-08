@@ -1,4 +1,3 @@
-import type { Connection } from '@/shared';
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { Circle, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -8,6 +7,7 @@ import { connectionCollection } from '@/collections/connection.collection';
 import { providerCollection } from '@/collections/provider.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { usePlugins } from '@/hooks/use-plugins';
+import type { Connection } from '@/shared';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Card, CardAction, CardFooter, CardHeader, CardTitle } from '../ui/card';

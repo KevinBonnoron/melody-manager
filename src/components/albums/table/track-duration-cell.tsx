@@ -1,5 +1,5 @@
-import type { Track } from '@/shared';
 import { formatDuration } from '@/lib/utils';
+import type { Track } from '@/shared';
 
 interface Props {
   track: Track;

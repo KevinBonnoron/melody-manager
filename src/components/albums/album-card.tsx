@@ -1,4 +1,3 @@
-import type { Album } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { Download, Music2, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +8,7 @@ import { useAlbumTracks } from '@/hooks/use-tracks';
 import { getAlbumDownloadStatus } from '@/lib/album-download-status';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getProviderColor } from '@/lib/utils';
+import type { Album } from '@/shared';
 
 interface Props {
   album: Album;

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -8,12 +8,10 @@
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "client/**/*.ts*",
-      "!client/src/routeTree.gen.ts",
-      "!!client/src/components/ui",
-      "server/**/*.ts",
-      "shared/**/*.ts",
-      "e2e/**/*.ts"
+      "src/**/*.ts*",
+      "!src/routeTree.gen.ts",
+      "!!src/components/ui",
+      "*.ts"
     ]
   },
   "formatter": {
@@ -23,7 +21,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "useImportType": "error",
         "useConsistentMemberAccessibility": {
@@ -43,7 +41,7 @@
         "organizeImports": {
           "level": "on",
           "options": {
-            "groups": [":NODE:", ":PACKAGE:", ":ALIAS:", ":RELATIVE:"]
+            "groups": [":NODE:", ":PACKAGE:", ":ALIAS:", ":PATH:"]
           }
         }
       }

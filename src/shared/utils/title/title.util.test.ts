@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test';
 import { normalizeTrackTitle } from './title.util';
+import { describe, expect, it } from 'bun:test';
 
 describe('normalizeTrackTitle', () => {
   it.each([

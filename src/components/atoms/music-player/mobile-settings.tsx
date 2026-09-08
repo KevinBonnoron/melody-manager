@@ -1,10 +1,10 @@
-import type { Device } from '@/shared';
 import { FileAudio, Monitor, Settings, Speaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { AudioFormat } from '@/contexts/music-player-context';
+import type { Device } from '@/shared';
 
 interface MobileSettingsProps {
   activeDevice: Device | null;

@@ -1,8 +1,8 @@
-import type { TrackDislike } from '@/shared';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useCallback } from 'react';
 import { trackDislikeCollection } from '@/collections/track-dislike.collection';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import type { TrackDislike } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
 export function useTrackDislikes() {

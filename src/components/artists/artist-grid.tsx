@@ -1,8 +1,8 @@
-import type { Artist } from '@/shared';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Artist } from '@/shared';
 import { ArtistCard } from './artist-card';
 
 interface Props {

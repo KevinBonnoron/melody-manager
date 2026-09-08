@@ -1,6 +1,6 @@
-import type { ConfigSchemaItem, PluginManifest } from '@/shared';
 import type { TFunction } from 'i18next';
 import { HardDrive, type LucideIcon, Music2, Speaker } from 'lucide-react';
+import type { ConfigSchemaItem, PluginManifest } from '@/shared';
 
 export interface FieldConfig {
   key: string;

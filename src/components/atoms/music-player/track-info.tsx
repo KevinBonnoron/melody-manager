@@ -1,9 +1,14 @@
-import type { Track } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { Music2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
-import Marquee from 'react-fast-marquee';
+import MarqueeExport from 'react-fast-marquee';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
+import type { Track } from '@/shared';
+
+// react-fast-marquee ships CJS only, and Vite's interop hands back the whole
+// module.exports ({ __esModule, default }) rather than its default export, so
+// the component sits one level deeper than the import suggests.
+const Marquee = (MarqueeExport as unknown as { default?: typeof MarqueeExport }).default ?? MarqueeExport;
 
 interface Props {
   track: Track;

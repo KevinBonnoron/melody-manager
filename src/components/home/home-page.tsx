@@ -1,4 +1,3 @@
-import type { Album, Artist, Playlist } from '@/shared';
 import { ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
 import { useSmartPlaylists } from '@/hooks/use-playlists';
+import type { Album, Artist, Playlist } from '@/shared';
 
 const RECENT_LIMIT = 6;
 function sortByCreatedDesc<T extends { created: string }>(items: T[]): T[] {

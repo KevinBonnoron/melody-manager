@@ -1,7 +1,7 @@
-import type { Device } from '@/shared';
 import { universalClient, withMethods } from 'universal-client';
 import { withHttpDelegate, withSseDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
+import type { Device } from '@/shared';
 
 export const deviceClient = universalClient(
   withHttpDelegate(config.server.url),

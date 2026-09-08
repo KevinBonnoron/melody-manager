@@ -1,9 +1,9 @@
-import type { TrackProvider } from '@/shared';
 import { AlertCircle, CheckCircle2, Music, XCircle } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { useProviders } from '@/hooks/use-providers';
+import type { TrackProvider } from '@/shared';
 
 interface Props<T> {
   selectedProvider: TrackProvider | 'all';

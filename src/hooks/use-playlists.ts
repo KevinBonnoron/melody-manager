@@ -1,8 +1,8 @@
-import type { Playlist } from '@/shared';
 import { eq, inArray, useLiveQuery } from '@tanstack/react-db';
 import { useMemo } from 'react';
 import { playlistCollection } from '@/collections/playlist.collection';
 import { playlistLikeCollection } from '@/collections/playlist-like.collection';
+import type { Playlist } from '@/shared';
 
 export function usePlaylists() {
   const { data: playlistLikes = [] } = useLiveQuery((q) => q.from({ playlistLikes: playlistLikeCollection }));

@@ -1,5 +1,3 @@
-import type { ProviderError, SearchResult, SearchType, TrackProvider } from '@/shared';
-import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
 import { Link } from '@tanstack/react-router';
 import { AlertCircle, Loader2, Plus, Settings } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,6 +14,8 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList } 
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
 import { getModifierKey } from '@/lib/utils';
+import type { ProviderError, SearchResult, SearchType, TrackProvider } from '@/shared';
+import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
 import type { LibraryStatus } from './search-result-item';
 import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem } from './search-result-item';
 
