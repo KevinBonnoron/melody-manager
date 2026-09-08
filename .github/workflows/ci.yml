@@ -1,4 +1,4 @@
-name: Docker
+name: CI
 
 on:
   push:
@@ -15,15 +15,51 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: bun install --frozen-lockfile
+      - name: Biome
+        run: bunx biome check .
+      - name: Type-check
+        run: bun run type-check
+      - name: Test
+        run: bun test
+
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    env:
+      CGO_ENABLED: '0' # PocketBase uses pure-Go modernc.org/sqlite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Formatting
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+
+  # The image rebuilds both sides, so it waits on the cheap checks rather than
+  # spending a multi-arch build on a branch that does not lint.
+  image:
+    needs: [client, api]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -52,7 +88,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
-      - name: Build and push Docker image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
