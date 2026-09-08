@@ -12,9 +12,11 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/app"
+	"github.com/KevinBonnoron/melody-manager/api/internal/devices"
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
+	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
 
@@ -22,10 +24,10 @@ import (
 // /api/health, /api/collections/* (used by the client to read library data),
 // /api/realtime, /api/files/* and auth.
 func Register(se *core.ServeEvent, deps *app.Deps) {
-	// Endpoints that cannot carry an Authorization header: the player assigns
-	// the stream URL to an <audio> element and a Sonos speaker fetches it
-	// itself. They authenticate with the short-lived token minted by
-	// GET /api/stream-token. Share links are opened by anonymous recipients.
+	// Endpoints that cannot carry an Authorization header: <audio> elements set
+	// the URL directly and Sonos speakers fetch it themselves. They authenticate
+	// with a short-lived token in the query string instead (streamUserID), and
+	// share links are meant to be opened by anonymous recipients.
 	se.Router.GET("/api/tracks/stream/{id}", func(e *core.RequestEvent) error {
 		uid, errResp := streamUserID(e)
 		if errResp != nil {
@@ -38,11 +40,14 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if errResp != nil {
 			return errResp
 		}
+		// The waveform is decoration: a source we cannot decode must not turn into
+		// a failed request, it just means no waveform.
 		peaks, err := services.TrackPeaks(e.Request.Context(), e.App, deps.Registry, deps.Cache, e.Request.PathValue("id"), uid)
 		if err != nil {
-			return e.InternalServerError("peaks", err)
+			e.App.Logger().Warn("peaks unavailable", "track", e.Request.PathValue("id"), "error", err)
+			peaks = []float64{}
 		}
-		return e.JSON(http.StatusOK, peaks)
+		return e.JSON(http.StatusOK, map[string]any{"peaks": peaks})
 	})
 	se.Router.GET("/api/share/stream/{token}", func(e *core.RequestEvent) error {
 		link, err := e.App.FindFirstRecordByFilter("share_links", "token = {:t}", dbx.Params{"t": e.Request.PathValue("token")})
@@ -58,6 +63,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g := se.Router.Group("/api")
 	g.Bind(apis.RequireAuth())
 
+	// Mints the token the player and Sonos append to stream URLs.
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
 		token, err := streamToken(e.Auth)
 		if err != nil {
@@ -69,6 +75,73 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g.GET("/plugins", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, providers.Manifests())
 	})
+
+	// --- Devices (Sonos) ---
+	g.GET("/devices", func(e *core.RequestEvent) error {
+		return e.JSON(http.StatusOK, map[string]any{"success": true, "data": deps.Devices.List()})
+	})
+	// POST rather than GET: the SSE client falls back to EventSource for GET,
+	// which cannot carry an Authorization header, and uses fetch otherwise.
+	g.POST("/devices/events", func(e *core.RequestEvent) error { return streamDevices(e, deps) })
+	g.POST("/devices/{id}/play/{trackId}", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
+	g.POST("/devices/{id}/play", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
+	g.POST("/devices/{id}/pause", deviceAction(deps, sonos.Pause))
+	g.POST("/devices/{id}/stop", deviceAction(deps, sonos.Stop))
+	g.POST("/devices/{id}/next", deviceAction(deps, sonos.Next))
+	g.POST("/devices/{id}/previous", deviceAction(deps, sonos.Previous))
+	g.POST("/devices/{id}/seek", func(e *core.RequestEvent) error {
+		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		if !ok {
+			return e.NotFoundError("device not found", nil)
+		}
+		var body struct {
+			Position int `json:"position"`
+		}
+		_ = e.BindBody(&body)
+		if err := sonos.Seek(e.Request.Context(), dev.IPAddress, body.Position); err != nil {
+			return e.InternalServerError("seek failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+	g.POST("/devices/{id}/volume", func(e *core.RequestEvent) error {
+		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		if !ok {
+			return e.NotFoundError("device not found", nil)
+		}
+		var body struct {
+			Volume int `json:"volume"`
+		}
+		_ = e.BindBody(&body)
+		if err := sonos.SetVolume(e.Request.Context(), dev.IPAddress, body.Volume); err != nil {
+			return e.InternalServerError("volume failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+	g.GET("/devices/{id}/state", func(e *core.RequestEvent) error {
+		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		if !ok {
+			return e.NotFoundError("device not found", nil)
+		}
+		ctx := e.Request.Context()
+		return e.JSON(http.StatusOK, map[string]any{"success": true, "data": map[string]any{
+			"state": sonos.GetState(ctx, dev.IPAddress), "track": nil, "volume": sonos.GetVolume(ctx, dev.IPAddress),
+		}})
+	})
+	g.POST("/devices/{id}/queue/{trackId}", func(e *core.RequestEvent) error {
+		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		if !ok {
+			return e.NotFoundError("device not found", nil)
+		}
+		tok, err := streamToken(e.Auth)
+		if err != nil {
+			return e.InternalServerError("stream token", err)
+		}
+		if err := sonos.AddToQueue(e.Request.Context(), dev.IPAddress, deps.Devices.StreamURL(e.Request.PathValue("trackId"), tok)); err != nil {
+			return e.InternalServerError("queue failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+	g.DELETE("/devices/{id}/queue", deviceAction(deps, sonos.ClearQueue))
 
 	g.POST("/search", func(e *core.RequestEvent) error {
 		var body struct {
@@ -100,7 +173,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if e.Auth.GetString("role") != "admin" {
 			return e.ForbiddenError("admin only", nil)
 		}
-		task := deps.Tasks.Create("scan", "Local library scan")
+		task := deps.Tasks.Create("scan", "")
 		go func() {
 			deps.Tasks.Update(task.ID, func(t *tasks.Task) { t.Status = tasks.Running; t.Progress = 10 })
 			n, err := services.ScanLocal(context.Background(), e.App)
@@ -112,7 +185,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 				}
 				t.Status = tasks.Completed
 				t.Progress = 100
-				t.Name = fmt.Sprintf("Local scan: %d tracks added", n)
+				t.Count = n
 			})
 		}()
 		return e.JSON(http.StatusAccepted, task)
@@ -122,8 +195,8 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
 			return e.ForbiddenError("admin only", nil)
 		}
-		task := deps.Tasks.Create("download", "Download album")
 		id := e.Request.PathValue("id")
+		task := deps.Tasks.Create("download", albumName(e.App, id))
 		go services.DownloadAlbum(context.Background(), e.App, deps.Tasks, deps.Cache, task.ID, id)
 		return e.JSON(http.StatusAccepted, task)
 	})
@@ -132,8 +205,8 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
 			return e.ForbiddenError("admin only", nil)
 		}
-		task := deps.Tasks.Create("resync", "Resync album")
 		id := e.Request.PathValue("id")
+		task := deps.Tasks.Create("resync", albumName(e.App, id))
 		go services.ResyncAlbum(context.Background(), e.App, deps.Tasks, deps.Cache, task.ID, id)
 		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
 	})
@@ -142,15 +215,21 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
 			return e.ForbiddenError("admin only", nil)
 		}
-		task := deps.Tasks.Create("enrichment", "Enriching metadata")
+		task := deps.Tasks.Create("enrichment", "")
 		go services.EnrichAll(context.Background(), e.App, deps.Tasks, task.ID)
 		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
 	})
 
-	g.DELETE("/tracks/{id}", deleteHandler("tracks", true))
-	g.DELETE("/albums/{id}", deleteHandler("albums", true))
-	g.DELETE("/artists/{id}", deleteHandler("artists", true))
-	g.DELETE("/playlists/{id}", deleteHandler("playlists", false))
+	g.DELETE("/playlists/{id}", func(e *core.RequestEvent) error {
+		rec, errResp := ownedPlaylist(e)
+		if errResp != nil {
+			return errResp
+		}
+		if err := e.App.Delete(rec); err != nil {
+			return e.InternalServerError("delete failed", err)
+		}
+		return e.NoContent(http.StatusNoContent)
+	})
 
 	g.GET("/stats/overview", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, services.Overview(e.App, userID(e)))
@@ -253,6 +332,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, rec)
 	})
 
+	g.POST("/tasks/events", func(e *core.RequestEvent) error {
+		return streamTasks(e, deps)
+	})
 	g.GET("/tasks", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, map[string]any{"tasks": deps.Tasks.List()})
 	})
@@ -260,10 +342,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		deps.Tasks.ClearCompleted()
 		return e.NoContent(http.StatusNoContent)
 	})
-	g.GET("/tasks/events", func(e *core.RequestEvent) error {
-		return streamTasks(e, deps)
-	})
-
 }
 
 func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestEvent) error {
@@ -287,7 +365,7 @@ func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestE
 				}
 				t.Status = tasks.Completed
 				t.Progress = 100
-				t.Name = fmt.Sprintf("Imported %d tracks", len(imported))
+				t.Count = len(imported)
 			})
 		}()
 		return e.JSON(http.StatusAccepted, task)
@@ -302,6 +380,11 @@ func streamTasks(e *core.RequestEvent, deps *app.Deps) error {
 	h.Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 	flusher, _ := w.(http.Flusher)
+	// Flush the headers straight away: without any data the client would sit in
+	// CONNECTING until the first event, which may never come.
+	if flusher != nil {
+		flusher.Flush()
+	}
 
 	writeEvent := func(t tasks.Task) {
 		b, _ := json.Marshal(t)
@@ -330,16 +413,16 @@ func streamTasks(e *core.RequestEvent, deps *app.Deps) error {
 	}
 }
 
-// streamTokenTTL bounds how long a leaked stream URL stays usable: long enough
-// to outlive a queue, short enough that a copied URL is not a standing grant.
+// streamTokenTTL bounds how long a leaked stream URL stays usable. Long enough
+// to outlive a queue, short enough that a copied URL is not a permanent grant.
 const streamTokenTTL = 6 * time.Hour
 
 func streamToken(auth *core.Record) (string, error) {
 	return auth.NewStaticAuthToken(streamTokenTTL)
 }
 
-// streamUserID authenticates a stream request from the Authorization header or
-// from the ?token= minted by GET /api/stream-token.
+// streamUserID authenticates a stream request either from the Authorization
+// header or from the ?token= minted by GET /api/stream-token.
 func streamUserID(e *core.RequestEvent) (string, error) {
 	if e.Auth != nil {
 		return e.Auth.Id, nil
@@ -355,11 +438,106 @@ func streamUserID(e *core.RequestEvent) (string, error) {
 	return rec.Id, nil
 }
 
+// albumName labels a task with its subject rather than a sentence.
+func albumName(app core.App, id string) string {
+	if rec, err := app.FindRecordById("albums", id); err == nil {
+		return rec.GetString("name")
+	}
+	return ""
+}
+
 func userID(e *core.RequestEvent) string {
 	if e.Auth != nil {
 		return e.Auth.Id
 	}
 	return ""
+}
+
+func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
+	dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+	if !ok {
+		return e.NotFoundError("device not found", nil)
+	}
+	ctx := e.Request.Context()
+	trackID := e.Request.PathValue("trackId")
+	if trackID == "" {
+		if err := sonos.Play(ctx, dev.IPAddress); err != nil {
+			return e.InternalServerError("play failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	}
+	track, err := e.App.FindRecordById("tracks", trackID)
+	if err != nil {
+		return e.NotFoundError("track not found", err)
+	}
+	artist, album := "", ""
+	if ids := track.GetStringSlice("artists"); len(ids) > 0 {
+		if a, err := e.App.FindRecordById("artists", ids[0]); err == nil {
+			artist = a.GetString("name")
+		}
+	}
+	if al, err := e.App.FindRecordById("albums", track.GetString("album")); err == nil {
+		album = al.GetString("name")
+	}
+	tok, err := streamToken(e.Auth)
+	if err != nil {
+		return e.InternalServerError("stream token", err)
+	}
+	if err := sonos.PlayURL(ctx, dev.IPAddress, deps.Devices.StreamURL(trackID, tok), "audio/mpeg", track.GetString("title"), artist, album, track.GetInt("duration")); err != nil {
+		return e.InternalServerError("play failed", err)
+	}
+	return e.JSON(http.StatusOK, map[string]any{"success": true})
+}
+
+func deviceAction(deps *app.Deps, fn func(context.Context, string) error) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		if !ok {
+			return e.NotFoundError("device not found", nil)
+		}
+		if err := fn(e.Request.Context(), dev.IPAddress); err != nil {
+			return e.InternalServerError("device action failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	}
+}
+
+func streamDevices(e *core.RequestEvent, deps *app.Deps) error {
+	w := e.Response
+	h := w.Header()
+	h.Set("Content-Type", "text/event-stream")
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	flusher, _ := w.(http.Flusher)
+	// Flush the headers straight away: without any data the client would sit in
+	// CONNECTING until the first event, which may never come.
+	if flusher != nil {
+		flusher.Flush()
+	}
+	write := func(list []devices.Device) {
+		b, _ := json.Marshal(list)
+		fmt.Fprintf(w, "event: devices\ndata: %s\n\n", b)
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
+	write(deps.Devices.List())
+
+	ch, unsub := deps.Devices.Subscribe()
+	defer unsub()
+	ctx := e.Request.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case list, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			write(list)
+		}
+	}
 }
 
 // ownedPlaylist loads the playlist if the current user owns it (likes it),
@@ -417,23 +595,4 @@ func toSearchResponse(results []domain.SearchResult, provErrs []services.Provide
 		provErrs = []services.ProviderError{}
 	}
 	return map[string]any{"results": mapped, "providerErrors": provErrs}
-}
-
-func deleteHandler(collection string, adminOnly bool) func(*core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		if e.Auth == nil {
-			return e.UnauthorizedError("authentication required", nil)
-		}
-		if adminOnly && e.Auth.GetString("role") != "admin" {
-			return e.ForbiddenError("admin only", nil)
-		}
-		rec, err := e.App.FindRecordById(collection, e.Request.PathValue("id"))
-		if err != nil {
-			return e.NotFoundError("not found", err)
-		}
-		if err := e.App.Delete(rec); err != nil {
-			return e.InternalServerError("delete failed", err)
-		}
-		return e.NoContent(http.StatusNoContent)
-	}
 }

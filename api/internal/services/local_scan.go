@@ -57,6 +57,32 @@ func ScanLocal(ctx context.Context, app core.App) (int, error) {
 	return added, err
 }
 
+// ImportLocalPath imports a single local audio file if it's not already in the
+// library (used by the filesystem watcher).
+func ImportLocalPath(ctx context.Context, app core.App, path string) error {
+	if !audioExts[strings.ToLower(filepath.Ext(path))] {
+		return nil
+	}
+	abs, _ := filepath.Abs(path)
+	sourceURL := "file://" + abs
+	if n, _ := app.CountRecords("tracks", dbx.NewExp("sourceUrl = {:u}", dbx.Params{"u": sourceURL})); n > 0 {
+		return nil
+	}
+	return persistLocalFile(ctx, app, abs, sourceURL)
+}
+
+// RemoveLocalByPath deletes the track(s) backed by a local file path.
+func RemoveLocalByPath(app core.App, path string) {
+	abs, _ := filepath.Abs(path)
+	recs, err := app.FindRecordsByFilter("tracks", "sourceUrl = {:u}", "", 0, 0, dbx.Params{"u": "file://" + abs})
+	if err != nil {
+		return
+	}
+	for _, r := range recs {
+		_ = app.Delete(r)
+	}
+}
+
 func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string) error {
 	title := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	artistName, albumName := "Unknown Artist", "Unknown Album"
@@ -91,7 +117,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 	if err != nil {
 		return err
 	}
-	album, err := getOrCreate(app, "albums", "name = {:n}", dbx.Params{"n": albumName}, func(r *core.Record) {
+	album, err := getOrCreate(app, "albums", "name = {:n} && artists ~ {:a}", dbx.Params{"n": albumName, "a": artist.Id}, func(r *core.Record) {
 		r.Set("name", albumName)
 		r.Set("artists", []string{artist.Id})
 		if year != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/cache"
 	"github.com/KevinBonnoron/melody-manager/api/internal/config"
+	"github.com/KevinBonnoron/melody-manager/api/internal/devices"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
@@ -16,6 +17,7 @@ import (
 type Deps struct {
 	Registry *providers.Registry
 	Tasks    *tasks.Service
+	Devices  *devices.Service
 	Cache    *cache.Cache
 }
 
@@ -35,6 +37,7 @@ func New() *Deps {
 	return &Deps{
 		Registry: providers.NewRegistry(),
 		Tasks:    tasks.New(),
+		Devices:  devices.New(cfg.ServerURL),
 		Cache:    audio,
 	}
 }
