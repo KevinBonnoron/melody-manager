@@ -2,7 +2,10 @@ module github.com/KevinBonnoron/melody-manager/api
 
 go 1.26.3
 
-require github.com/pocketbase/pocketbase v0.39.4
+require (
+	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/pocketbase/pocketbase v0.39.4
+)
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
