@@ -4,45 +4,35 @@ Melody Manager is configured through environment variables and PocketBase settin
 
 ## Environment Variables
 
-### Server
-
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NODE_ENV` | `production` | Runtime environment (`development` or `production`) |
-| `PORT` | `3000` | API server port |
-| `PB_URL` | `http://localhost:8090` | PocketBase URL (internal) |
-| `CACHE_DIR` | `/tmp/melody-manager-cache` | Directory for cached audio files |
+| `SERVER_URL` | `http://localhost:8090` | Public URL of this server. Sonos speakers fetch stream URLs themselves, so it must be reachable from them |
+| `CACHE_DIR` | `/app/cache` | Directory for cached audio files |
 | `CACHE_MAX_FILES` | `500` | Maximum number of cached files |
 | `CACHE_MAX_SIZE` | `5GB` | Maximum total cache size |
+| `PB_SUPERUSER_EMAIL` | — | Bootstraps a PocketBase superuser on first run |
+| `PB_SUPERUSER_PASSWORD` | — | Password for that superuser |
+| `REGISTRATION_DISABLED` | `false` | Refuses new sign-ups; the first user can always register |
 
-### Client
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_PB_URL` | `/db` | PocketBase URL as seen by the browser |
-| `VITE_SERVER_URL` | `/api` | API server URL as seen by the browser |
-
-::: info
-In the Docker image, `VITE_*` variables are injected at runtime via placeholder replacement. You can change them without rebuilding the image.
-:::
+The client is served from the same origin as the API, so it needs no URL
+configuration of its own.
 
 ### PocketBase
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PB_SUPERUSER_EMAIL` | — | Admin account email (required on first launch) |
-| `PB_SUPERUSER_PASSWORD` | — | Admin account password (required on first launch) |
+PocketBase runs inside the server binary and provides the database and
+authentication layer. Its admin UI is at `http://your-host/_/`.
 
-PocketBase provides the database and authentication layer. Access the admin UI at `http://your-host/db/`.
-
-The admin account is created (or updated) at container startup from the environment variables above. If these variables are not set, admin creation is skipped.
+The superuser is created (or updated) at startup from the variables above; if
+they are unset, the step is skipped and the first user to register becomes the
+administrator.
 
 ### Data Persistence
 
-PocketBase stores its data in `/app/db/pb_data`. When running with Docker, mount a volume to persist data:
+The database, uploaded covers and auth keys live in `/app/pb_data`. When running
+with Docker, mount a volume to persist them:
 
 ```bash
--v melody-manager-db:/app/db/pb_data
+-v melody-manager-data:/app/pb_data
 ```
 
 ## Cache

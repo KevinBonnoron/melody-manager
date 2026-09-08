@@ -1,6 +1,7 @@
 # API Reference
 
-The Hono API server runs on port `3000` (development) or behind nginx at `/api` (Docker).
+The server exposes its endpoints under `/api`, on the same origin as the client
+(port `8090` by default).
 
 ## Authentication
 
@@ -86,6 +87,6 @@ Stop playback on a device.
 
 ### Health
 
-#### `GET /health`
+#### `GET /api/health`
 
 Returns `200 OK` when the server is running. Used by Docker health checks.

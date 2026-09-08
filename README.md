@@ -10,76 +10,54 @@ Self-hosted music library manager with multi-provider support. Aggregate your mu
 - **Mobile ready**: PWA support and native Android/iOS apps via Capacitor
 - **Internationalization**: English and French
 - **Dark mode**: Light and dark themes
-- **Docker deployment**: Single-container setup with nginx, PocketBase and the app server
+- **Docker deployment**: A single container running one Go binary (embedded PocketBase)
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | [Bun](https://bun.sh) |
-| Server | [Hono](https://hono.dev) |
+| Backend | [Go](https://go.dev) + embedded [PocketBase](https://pocketbase.io) (DB, auth, REST, realtime, admin UI) |
 | Client | [React 19](https://react.dev) + [Vite](https://vitejs.dev) |
 | Routing | [TanStack Router](https://tanstack.com/router) (file-based) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| Database | [PocketBase](https://pocketbase.io) |
 | State | [Zustand](https://zustand.docs.pmnd.rs) |
-| Build | [Turbo](https://turbo.build) |
+| Tasks | [Task](https://taskfile.dev) |
 | Mobile | [Capacitor](https://capacitorjs.com) |
-| Transcoding | FFmpeg |
+| Media tools | FFmpeg + yt-dlp |
 
 ## Project Structure
 
 ```
 melody-manager/
+├── api/             # Go backend: embedded PocketBase + /api routes, providers, services
 ├── client/          # React frontend (Vite, TanStack Router, Tailwind)
-├── server/          # Hono API server (streaming, transcoding, metadata)
-├── shared/          # Shared TypeScript types
-├── db/              # PocketBase database and migrations
-└── docker/          # Docker deployment (Dockerfile, nginx, supervisord)
+├── shared/          # Shared TypeScript types (client)
+└── docker/          # Single-container Dockerfile + compose
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) >= 1.2
-- [FFmpeg](https://ffmpeg.org) (for audio transcoding)
-
-### Installation
-
-```bash
-bun install
-```
+The repo ships a Nix dev shell (with `direnv` `use flake`) providing Go, Bun, Task, FFmpeg and yt-dlp. Either `direnv allow` or run commands through `nix develop`.
 
 ### Development
 
 ```bash
-# Start all services (client, server, database)
-bun run dev
+task dev
 ```
 
-This starts:
+This runs the Go backend and the Vite client together:
 - Client on `http://localhost:5173`
-- Server on `http://localhost:3000`
-- PocketBase on `http://localhost:8090` (admin UI at `http://localhost:8090/_/`)
+- API + PocketBase on `http://localhost:8090` (admin UI at `http://localhost:8090/_/`)
 
-Default admin credentials (local development only): `admin@melody-manager.local` / `changeme123`
-⚠️ Change the admin password immediately before exposing the service on any shared or public network.
-
-### Building
+The first registered user automatically becomes an admin. To create a PocketBase superuser:
 
 ```bash
-bun run build
+task superuser -- admin@example.com 'your-password'
 ```
 
-### Code Quality
-
-```bash
-bun run lint          # Biome linter
-bun run format        # Biome formatter
-bun run type-check    # TypeScript checks
-bun run test          # Tests
-```
+See `task --list` for all tasks (`api`, `client`, `build`, `lint`, `format`, `type-check`, `test`).
 
 ## Docker
 
@@ -88,18 +66,11 @@ cd docker
 docker compose up -d
 ```
 
-The app is served on port 80. Mount your music directory by uncommenting the volume in `docker-compose.yml`:
-
-```yaml
-volumes:
-  - /path/to/your/music:/app/music:ro
-```
+One container serves everything on port `8090` (client, API, PocketBase, admin UI). Persist data via the `pb_data` volume and point the local provider at a mounted music directory (uncomment the volume in `docker-compose.yml`).
 
 ## Sonos
 
-To stream to Sonos speakers, access the app via your machine's local IP (e.g. `http://192.168.x.x:5173`) so Sonos can reach the server. Open the device selector in the player and click "Discover Devices".
-
-FLAC files are automatically transcoded to MP3 320kbps. Other formats (MP3, WAV, AAC, M4A) stream directly.
+To stream to Sonos speakers, access the app via your machine's local IP so the speakers can reach the server, and set `SERVER_URL` accordingly. FLAC files are transcoded to MP3 320kbps; other formats stream directly.
 
 ## License
 
