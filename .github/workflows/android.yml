@@ -41,10 +41,10 @@ jobs:
         run: bun install
 
       - name: Build shared package
-        run: bun run build --filter=@melody-manager/shared
+        run: bun run --cwd shared build
 
       - name: Build client
-        run: bun run build --filter=@melody-manager/client
+        run: bun run --cwd client build
 
       - name: Generate app icons and splash screens
         working-directory: client

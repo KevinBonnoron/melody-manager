@@ -2,26 +2,29 @@
 
 Single Go binary that embeds PocketBase (DB, auth, admin UI, REST, realtime) and
 adds the melody-specific endpoints. Replaces the old `server/` (Hono) + `db/`
-(PocketBase binary). See `docs/design/go-migration-plan.md`.
+(PocketBase binary).
 
 ## Run
 
-Go, ffmpeg and yt-dlp are provided by the nix dev shell, so run through it:
+The repo uses [Task](https://taskfile.dev) (provided by the nix dev shell, which
+`.envrc`'s `use flake` loads automatically). From the repo root:
 
 ```bash
-cd api
-nix develop -c go run . serve --http 127.0.0.1:8090
-# build a binary instead:
-nix develop -c bash -c 'CGO_ENABLED=0 go build -o ../bin/melody-api .'
+task dev      # Go backend (:8090) + Vite client (:5173)
+task api      # backend only
+task build    # build the Go binary (bin/melody-api) + client bundle
+task --list   # all tasks
 ```
 
-`CGO_ENABLED=0` is required (PocketBase uses the pure-Go `modernc.org/sqlite`).
 Migrations apply automatically on boot. First run prints an admin setup URL
-(`/_/`); or create one non-interactively:
+(`/_/`); or create a superuser:
 
 ```bash
-nix develop -c go run . superuser upsert admin@example.com 'your-password'
+task superuser -- admin@example.com 'your-password'
 ```
+
+`CGO_ENABLED=0` is set by the Taskfile (PocketBase uses pure-Go
+`modernc.org/sqlite`).
 
 - Admin UI: http://127.0.0.1:8090/_/
 - REST API: http://127.0.0.1:8090/api/

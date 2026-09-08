@@ -37,7 +37,7 @@ jobs:
         env:
           VITE_PB_URL: __VITE_PB_URL_PLACEHOLDER__
           VITE_SERVER_URL: __VITE_SERVER_URL_PLACEHOLDER__
-        run: bun run build
+        run: bun run --cwd shared build && bun run --cwd server build && bun run --cwd client build
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

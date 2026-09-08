@@ -1,0 +1,87 @@
+version: '3'
+
+# Task runner for the Melody Manager monorepo (Go backend + Vite client).
+# Run inside the nix dev shell (direnv `use flake` loads it automatically), which
+# provides task, go, bun, ffmpeg and yt-dlp.
+
+env:
+  CGO_ENABLED: '0' # PocketBase uses pure-Go modernc.org/sqlite
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  dev:
+    desc: Run the Go backend (:8090) and the Vite client (:5173) together
+    deps: [api, client]
+
+  api:
+    desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
+    dir: api
+    cmds:
+      - go run . serve --http 127.0.0.1:8090
+
+  client:
+    desc: Run the Vite client on :5173
+    dir: client
+    cmds:
+      - bun run dev
+
+  superuser:
+    desc: 'Create/update a PocketBase superuser — usage: task superuser -- email password'
+    dir: api
+    cmds:
+      - go run . superuser upsert {{.CLI_ARGS}}
+
+  build:
+    desc: Build the Go binary and the client bundle
+    deps: [build:api, build:client]
+
+  build:api:
+    desc: Build the Go API binary into bin/melody-api
+    dir: api
+    cmds:
+      - go build -o ../bin/melody-api .
+
+  build:client:
+    desc: Type-check and build the client (builds shared via project refs)
+    dir: client
+    cmds:
+      - bun run build
+
+  type-check:
+    desc: Type-check the client
+    dir: client
+    cmds:
+      - bun run type-check
+
+  lint:
+    desc: Lint with Biome
+    cmds:
+      - bunx biome lint .
+
+  format:
+    desc: Format with Biome
+    cmds:
+      - bunx biome format --write .
+
+  test:
+    desc: Run Go and shared tests
+    cmds:
+      - cd api && go test ./...
+      - cd shared && bun test
+
+  tidy:
+    desc: go mod tidy for the API module
+    dir: api
+    cmds:
+      - go mod tidy
+
+  docs:
+    desc: Run the VitePress docs dev server
+    dir: docs
+    cmds:
+      - bun run dev
