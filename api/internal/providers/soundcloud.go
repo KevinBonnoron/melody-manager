@@ -13,8 +13,13 @@ type SoundCloud struct{}
 
 func (SoundCloud) ID() string { return "soundcloud" }
 
-func (SoundCloud) Search(ctx context.Context, query string, _ domain.SearchResultType, _ Config) ([]domain.SearchResult, error) {
-	entries, err := ytdlp.ExtractPlaylistTracks(ctx, "scsearch20:"+query, "")
+func (SoundCloud) Search(ctx context.Context, query string, typ domain.SearchResultType, cfg Config) ([]domain.SearchResult, error) {
+	if typ != domain.ResultTrack {
+		return nil, nil
+	}
+	cookiesFile, cleanup := writeCookies(cfg)
+	defer cleanup()
+	entries, err := ytdlp.SearchEntries(ctx, "scsearch20:"+query, cookiesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -45,3 +50,13 @@ var (
 	_ TrackResolver  = SoundCloud{}
 	_ StreamResolver = SoundCloud{}
 )
+
+func (SoundCloud) PlaylistName(ctx context.Context, url string, cfg Config) (string, error) {
+	cookiesFile, cleanup := writeCookies(cfg)
+	defer cleanup()
+	info, err := ytdlp.ExtractPlaylistInfo(ctx, url, cookiesFile)
+	if err != nil {
+		return "", err
+	}
+	return info.Title, nil
+}

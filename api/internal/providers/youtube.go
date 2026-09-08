@@ -13,8 +13,15 @@ type YouTube struct{}
 
 func (YouTube) ID() string { return "youtube" }
 
-func (YouTube) Search(ctx context.Context, query string, _ domain.SearchResultType, _ Config) ([]domain.SearchResult, error) {
-	entries, err := ytdlp.ExtractPlaylistTracks(ctx, "ytsearch20:"+query, "")
+func (YouTube) Search(ctx context.Context, query string, typ domain.SearchResultType, cfg Config) ([]domain.SearchResult, error) {
+	// yt-dlp's search only yields videos; anything else would just repeat the
+	// track hits under another label.
+	if typ != domain.ResultTrack {
+		return nil, nil
+	}
+	cookiesFile, cleanup := writeCookies(cfg)
+	defer cleanup()
+	entries, err := ytdlp.SearchEntries(ctx, "ytsearch20:"+query, cookiesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +38,11 @@ func (YouTube) ResolveTracks(ctx context.Context, url string, cfg Config) ([]dom
 	}
 	base := ytdlp.BuildResolvedTrack(*info, "youtube")
 	if len(info.Chapters) > 1 {
+		// The video is the album, so it is named after the video rather than
+		// the "<channel> - <provider>" placeholder a standalone track gets.
+		if info.Album == "" && info.Title != "" {
+			base.AlbumName = info.Title
+		}
 		tracks := make([]domain.ResolvedTrack, 0, len(info.Chapters))
 		for _, ch := range info.Chapters {
 			t := base
@@ -85,4 +97,14 @@ func firstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+func (YouTube) PlaylistName(ctx context.Context, url string, cfg Config) (string, error) {
+	cookiesFile, cleanup := writeCookies(cfg)
+	defer cleanup()
+	info, err := ytdlp.ExtractPlaylistInfo(ctx, url, cookiesFile)
+	if err != nil {
+		return "", err
+	}
+	return info.Title, nil
 }
