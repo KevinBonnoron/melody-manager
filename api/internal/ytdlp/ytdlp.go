@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 )
@@ -47,15 +48,41 @@ type TrackInfo struct {
 	Chapters    []Chapter `json:"chapters"`
 }
 
-var streamURLCache, _ = lru.New[string, string](1000)
+var streamURLCache = expirable.NewLRU[string, string](1000, nil, streamURLTTL)
 
-const extractorArgs = "youtube:player_client=default"
+// extraArgs are appended to every yt-dlp invocation. We intentionally do NOT
+// force `--extractor-args youtube:player_client=default` (the web client is the
+// one most aggressively hit by YouTube bot detection): letting yt-dlp pick its
+// own client priority (tv/android_vr/...) is far more reliable. Kept as a var so
+// a working client set can be injected later if needed.
+//
+// YouTube extraction without a JavaScript runtime is deprecated and drops
+// formats. yt-dlp only enables deno by default; bun is already a dependency
+// here, and an unavailable runtime is skipped rather than fatal.
+var extraArgs = []string{"--js-runtimes", "bun"}
 
 func cookieArgs(cookiesFile string) []string {
 	if cookiesFile == "" {
 		return nil
 	}
 	return []string{"--cookies", cookiesFile}
+}
+
+// validateURL rejects anything yt-dlp would read as an option rather than a
+// target. Callers hand user-supplied strings straight to argv, and yt-dlp
+// treats any leading "-" as a flag.
+func validateURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("invalid url %q: %w", raw, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("unsupported url scheme %q", u.Scheme)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("url %q has no host", raw)
+	}
+	return nil
 }
 
 func run(ctx context.Context, args ...string) ([]byte, error) {
@@ -66,8 +93,15 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// StreamURL resolves a direct audio URL for the source (cached 4h).
+// streamURLTTL matches how long a signed CDN URL stays valid; without an
+// expiry a stale entry made a track permanently unplayable.
+const streamURLTTL = 4 * time.Hour
+
+// StreamURL resolves a direct audio URL for the source (cached for streamURLTTL).
 func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, error) {
+	if err := validateURL(sourceURL); err != nil {
+		return "", err
+	}
 	if v, ok := streamURLCache.Get(sourceURL); ok {
 		return v, nil
 	}
@@ -83,7 +117,7 @@ func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, erro
 	}
 
 	args := append([]string{"-f", format, "-g"}, cookieArgs(cookiesFile)...)
-	args = append(args, sourceURL)
+	args = append(args, "--", sourceURL)
 	out, err := run(ctx, args...)
 	if err != nil {
 		return "", err
@@ -99,8 +133,12 @@ func InvalidateStreamURL(sourceURL string) { streamURLCache.Remove(sourceURL) }
 // ExtractTrackInfo fetches metadata for a single track and, when the embedded
 // chapters are missing/poor, derives them from the description.
 func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo, error) {
+	if err := validateURL(url); err != nil {
+		return nil, err
+	}
 	args := append([]string{"-j", "--no-playlist"}, cookieArgs(cookiesFile)...)
-	args = append(args, "--extractor-args", extractorArgs, url)
+	args = append(args, extraArgs...)
+	args = append(args, "--", url)
 	out, err := run(ctx, args...)
 	if err != nil {
 		return nil, err
@@ -135,14 +173,41 @@ func needsChapterRecovery(info TrackInfo) bool {
 	return allNumeric
 }
 
-// ExtractPlaylistTracks returns the (flat) entries of a playlist.
-func ExtractPlaylistTracks(ctx context.Context, url, cookiesFile string) ([]TrackInfo, error) {
+var searchSpecRe = regexp.MustCompile(`^(yt|sc)search\d*:`)
+
+// SearchEntries runs a yt-dlp search spec (ytsearch20:…, scsearch20:…). Kept
+// apart from the URL entry points because a spec is not a URL, yet still must
+// never be mistaken for an option.
+func SearchEntries(ctx context.Context, spec, cookiesFile string) ([]TrackInfo, error) {
+	if !searchSpecRe.MatchString(spec) {
+		return nil, fmt.Errorf("invalid search spec %q", spec)
+	}
 	args := append([]string{"-j", "--flat-playlist"}, cookieArgs(cookiesFile)...)
-	args = append(args, "--extractor-args", extractorArgs, url)
+	args = append(args, extraArgs...)
+	args = append(args, "--", spec)
 	out, err := run(ctx, args...)
 	if err != nil {
 		return nil, err
 	}
+	return parseTrackInfoLines(out), nil
+}
+
+// ExtractPlaylistTracks returns the (flat) entries of a playlist.
+func ExtractPlaylistTracks(ctx context.Context, url, cookiesFile string) ([]TrackInfo, error) {
+	if err := validateURL(url); err != nil {
+		return nil, err
+	}
+	args := append([]string{"-j", "--flat-playlist"}, cookieArgs(cookiesFile)...)
+	args = append(args, extraArgs...)
+	args = append(args, "--", url)
+	out, err := run(ctx, args...)
+	if err != nil {
+		return nil, err
+	}
+	return parseTrackInfoLines(out), nil
+}
+
+func parseTrackInfoLines(out []byte) []TrackInfo {
 	var tracks []TrackInfo
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if strings.TrimSpace(line) == "" {
@@ -160,7 +225,7 @@ func ExtractPlaylistTracks(ctx context.Context, url, cookiesFile string) ([]Trac
 		}
 		tracks = append(tracks, info)
 	}
-	return tracks, nil
+	return tracks
 }
 
 // PlaylistInfo is the summary of a playlist.
@@ -172,8 +237,12 @@ type PlaylistInfo struct {
 
 // ExtractPlaylistInfo returns a playlist's title/thumbnail/count.
 func ExtractPlaylistInfo(ctx context.Context, url, cookiesFile string) (*PlaylistInfo, error) {
+	if err := validateURL(url); err != nil {
+		return nil, err
+	}
 	args := append([]string{"--dump-single-json", "--flat-playlist"}, cookieArgs(cookiesFile)...)
-	args = append(args, "--extractor-args", extractorArgs, url)
+	args = append(args, extraArgs...)
+	args = append(args, "--", url)
 	out, err := run(ctx, args...)
 	if err != nil {
 		return nil, err
@@ -200,9 +269,14 @@ func ExtractPlaylistInfo(ctx context.Context, url, cookiesFile string) (*Playlis
 
 // DownloadAudio downloads the best audio to a temp file and returns its path.
 func DownloadAudio(ctx context.Context, url string) (string, error) {
+	if err := validateURL(url); err != nil {
+		return "", err
+	}
 	output := filepath.Join(os.TempDir(), fmt.Sprintf("yt-audio-%d.%%(ext)s", time.Now().UnixNano()))
 	format := "bestaudio[ext=m4a]/bestaudio[ext=opus]/bestaudio[protocol!=m3u8][protocol!=m3u8_native][protocol!=http_dash_segments]/bestaudio"
-	out, err := run(ctx, "-f", format, "-o", output, "--extractor-args", extractorArgs, "--print", "after_move:filepath", url)
+	args := append([]string{"-f", format, "-o", output}, extraArgs...)
+	args = append(args, "--print", "after_move:filepath", "--", url)
+	out, err := run(ctx, args...)
 	if err != nil {
 		return "", err
 	}
@@ -270,7 +344,11 @@ func ParseChapters(text string, duration float64) []Chapter {
 			secs = atoi(m[1])*3600 + atoi(m[2])*60 + atoi(m[3])
 		}
 		title := strings.TrimSpace(line[:loc[0]] + line[loc[1]:])
-		title = strings.Trim(title, " -–—[]:·")
+		// A bracketed timestamp leaves an empty pair behind; drop that rather
+		// than trimming brackets generally, which would eat the closing one of
+		// a title like "Opening [Episode One]".
+		title = strings.ReplaceAll(title, "[]", "")
+		title = strings.Trim(title, " -–—:·")
 		title = leadingNumRe.ReplaceAllString(title, "")
 		title = strings.TrimSpace(title)
 		if title == "" {
