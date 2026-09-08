@@ -7,6 +7,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
+	mmapp "github.com/KevinBonnoron/melody-manager/api/internal/app"
 	_ "github.com/KevinBonnoron/melody-manager/api/internal/migrations"
 	"github.com/KevinBonnoron/melody-manager/api/internal/routes"
 )
@@ -18,8 +19,10 @@ func main() {
 		Automigrate: true,
 	})
 
+	deps := mmapp.New()
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		routes.Register(se)
+		routes.Register(se, deps)
 		return se.Next()
 	})
 
