@@ -138,8 +138,7 @@
       "download": "Téléchargement",
       "resync": "Resynchronisation",
       "scan": "Scan",
-      "import": "Import",
-      "enrichment": "Enrichissement"
+      "import": "Import"
     },
     "status": {
       "pending": "En attente",
@@ -221,11 +220,7 @@
     "noProvidersInCategory": "Aucun service ajouté. Utilisez le bouton ci-dessus pour en ajouter un.",
     "providersCount": "{{count}} service(s) configuré(s)",
     "allProviderTypesAdded": "Tous les types sont déjà ajoutés",
-    "personalProviderHint": "Chaque utilisateur configure ses propres identifiants",
-    "providerActions": "Actions du service",
-    "enrichAllTitle": "Ré-enrichir les métadonnées",
-    "enrichAllStarted": "Enrichissement des métadonnées lancé",
-    "enrichAllFailed": "Impossible de lancer l'enrichissement"
+    "personalProviderHint": "Chaque utilisateur configure ses propres identifiants"
   },
   "ArtistPage": {
     "playAll": "Lire tout",

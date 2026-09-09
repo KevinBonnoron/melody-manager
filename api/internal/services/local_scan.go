@@ -9,7 +9,9 @@ import (
 	"github.com/dhowden/tag"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 
+	"github.com/KevinBonnoron/melody-manager/api/internal/covers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 	"github.com/KevinBonnoron/melody-manager/api/internal/ffmpeg"
 	"github.com/KevinBonnoron/melody-manager/api/internal/pbx"
@@ -29,6 +31,7 @@ func ScanLocal(ctx context.Context, app core.App) (int, error) {
 	}
 
 	added := 0
+	albumIDs := map[string]bool{}
 	var firstErr error
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
@@ -42,19 +45,47 @@ func ScanLocal(ctx context.Context, app core.App) (int, error) {
 		if n, _ := app.CountRecords("tracks", dbx.NewExp("sourceUrl = {:u}", dbx.Params{"u": sourceURL})); n > 0 {
 			return nil
 		}
-		if perr := persistLocalFile(ctx, app, abs, sourceURL); perr != nil {
+		albumID, perr := persistLocalFile(ctx, app, abs, sourceURL)
+		if perr != nil {
 			if firstErr == nil {
 				firstErr = perr
 			}
 			return nil
 		}
+		albumIDs[albumID] = true
 		added++
 		return nil
 	})
+
+	// Files carrying no embedded picture leave their album bare; the lookup is
+	// rate-limited, so it runs once per album after the walk rather than per
+	// track during it.
+	for id := range albumIDs {
+		resolveAlbumCover(ctx, app, id)
+	}
+
 	if err == nil {
 		err = firstErr
 	}
 	return added, err
+}
+
+func resolveAlbumCover(ctx context.Context, app core.App, albumID string) {
+	album, err := app.FindRecordById("albums", albumID)
+	if err != nil || album.GetString("cover") != "" {
+		return
+	}
+	artistIDs := album.GetStringSlice("artists")
+	if len(artistIDs) == 0 {
+		return
+	}
+	artist, err := app.FindRecordById("artists", artistIDs[0])
+	if err != nil {
+		return
+	}
+	if u := covers.AlbumCover(ctx, album.GetString("name"), artist.GetString("name")); u != "" {
+		setCoverFromURL(ctx, app, album, u)
+	}
 }
 
 // ImportLocalPath imports a single local audio file if it's not already in the
@@ -68,7 +99,12 @@ func ImportLocalPath(ctx context.Context, app core.App, path string) error {
 	if n, _ := app.CountRecords("tracks", dbx.NewExp("sourceUrl = {:u}", dbx.Params{"u": sourceURL})); n > 0 {
 		return nil
 	}
-	return persistLocalFile(ctx, app, abs, sourceURL)
+	albumID, err := persistLocalFile(ctx, app, abs, sourceURL)
+	if err != nil {
+		return err
+	}
+	resolveAlbumCover(ctx, app, albumID)
+	return nil
 }
 
 // RemoveLocalByPath deletes the track(s) backed by a local file path.
@@ -83,10 +119,11 @@ func RemoveLocalByPath(app core.App, path string) {
 	}
 }
 
-func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string) error {
+func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string) (string, error) {
 	title := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	artistName, albumName := "Unknown Artist", "Unknown Album"
 	var year *int
+	var picture *tag.Picture
 
 	if f, err := os.Open(path); err == nil {
 		if m, err := tag.ReadFrom(f); err == nil {
@@ -102,6 +139,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 			if y := m.Year(); y != 0 {
 				year = &y
 			}
+			picture = m.Picture()
 		}
 		_ = f.Close()
 	}
@@ -115,7 +153,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 		r.Set("name", artistName)
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	album, err := getOrCreate(app, "albums", "name = {:n} && artists ~ {:a}", dbx.Params{"n": albumName, "a": artist.Id}, func(r *core.Record) {
 		r.Set("name", albumName)
@@ -125,8 +163,9 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 		}
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
+	setEmbeddedCover(app, album, picture)
 
 	meta := domain.TrackMetadata{LocalPath: path, Format: strings.TrimPrefix(filepath.Ext(path), "."), Year: year}
 	_, err = getOrCreate(app, "tracks", "sourceUrl = {:u}", dbx.Params{"u": sourceURL}, func(r *core.Record) {
@@ -138,5 +177,23 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 		r.Set("album", album.Id)
 		r.Set("metadata", meta)
 	})
-	return err
+	return album.Id, err
+}
+
+// setEmbeddedCover uses the artwork stored in the audio file itself, which is
+// both free and more faithful than any lookup by name.
+func setEmbeddedCover(app core.App, album *core.Record, picture *tag.Picture) {
+	if picture == nil || len(picture.Data) == 0 || album.GetString("cover") != "" {
+		return
+	}
+	ext := picture.Ext
+	if ext == "" {
+		ext = "jpg"
+	}
+	f, err := filesystem.NewFileFromBytes(picture.Data, "cover."+ext)
+	if err != nil {
+		return
+	}
+	album.Set("cover", f)
+	_ = app.Save(album)
 }

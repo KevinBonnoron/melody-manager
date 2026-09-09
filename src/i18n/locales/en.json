@@ -138,8 +138,7 @@
       "download": "Download",
       "resync": "Resync",
       "scan": "Scan",
-      "import": "Import",
-      "enrichment": "Enrichment"
+      "import": "Import"
     },
     "status": {
       "pending": "Pending",
@@ -221,11 +220,7 @@
     "noProvidersInCategory": "No providers added yet. Use the button above to add one.",
     "providersCount": "{{count}} provider(s) configured",
     "allProviderTypesAdded": "All provider types already added",
-    "personalProviderHint": "Each user configures their own credentials",
-    "providerActions": "Provider actions",
-    "enrichAllTitle": "Re-enrich all metadata",
-    "enrichAllStarted": "Metadata enrichment started",
-    "enrichAllFailed": "Failed to start metadata enrichment"
+    "personalProviderHint": "Each user configures their own credentials"
   },
   "ArtistPage": {
     "playAll": "Play all",

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 	"github.com/KevinBonnoron/melody-manager/api/internal/pbx"
@@ -181,4 +182,13 @@ func getOrCreate(app core.App, collection, filter string, params dbx.Params, set
 		return nil, err
 	}
 	return rec, nil
+}
+
+func setCoverFromURL(ctx context.Context, app core.App, rec *core.Record, u string) {
+	f, err := filesystem.NewFileFromURL(ctx, u)
+	if err != nil {
+		return
+	}
+	rec.Set("cover", f)
+	_ = app.Save(rec)
 }

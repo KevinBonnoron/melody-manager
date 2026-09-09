@@ -1,4 +1,4 @@
-export type TaskType = 'download' | 'resync' | 'scan' | 'import' | 'enrichment';
+export type TaskType = 'download' | 'resync' | 'scan' | 'import';
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export interface Task {
