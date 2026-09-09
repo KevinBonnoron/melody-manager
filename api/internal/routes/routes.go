@@ -211,15 +211,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
 	})
 
-	g.POST("/metadata/enrich", func(e *core.RequestEvent) error {
-		if e.Auth == nil || e.Auth.GetString("role") != "admin" {
-			return e.ForbiddenError("admin only", nil)
-		}
-		task := deps.Tasks.Create("enrichment", "")
-		go services.EnrichAll(context.Background(), e.App, deps.Tasks, task.ID)
-		return e.JSON(http.StatusAccepted, map[string]any{"taskId": task.ID})
-	})
-
 	g.DELETE("/playlists/{id}", func(e *core.RequestEvent) error {
 		rec, errResp := ownedPlaylist(e)
 		if errResp != nil {

@@ -1,11 +1,9 @@
 import { useLiveQuery } from '@tanstack/react-db';
-import { ChevronDown, MoreVertical, Plus, RefreshCw } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { metadataClient } from '@/clients/metadata.client';
 import { providerCollection } from '@/collections/provider.collection';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { usePlugins } from '@/hooks/use-plugins';
 import { AdminProviderAddButton } from './admin-provider-add-button';
 import { AdminProviderCard } from './admin-provider-card';
@@ -18,37 +16,12 @@ export function AdminProviderList() {
   const configuredTypes = new Set(providers.map((p) => p.type));
   const availableToAdd = manifests.filter((m) => !configuredTypes.has(m.id));
   const providerInfo = getProviderInfoFromManifests(t, manifests);
-  const handleEnrichAll = async () => {
-    try {
-      const res = await metadataClient.enrichAll();
-      if (!res.taskId) {
-        throw new Error('No taskId returned');
-      }
-
-      toast.success(t('Admin.enrichAllStarted'));
-    } catch {
-      toast.error(t('Admin.enrichAllFailed'));
-    }
-  };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>{providers.length > 0 ? <p className="text-muted-foreground text-sm">{t('Admin.providersCount', { count: providers.length })}</p> : <p className="text-muted-foreground text-sm">{t('Admin.noProvidersInCategory')}</p>}</div>
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label={t('Admin.providerActions')}>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={handleEnrichAll}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {t('Admin.enrichAllTitle')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button>
