@@ -1,3 +1,4 @@
+import { artistNames, useArtistsById } from '@/hooks/use-library-index';
 import type { Track } from '@/shared';
 
 interface Props {
@@ -5,6 +6,6 @@ interface Props {
 }
 
 export function TrackArtistsCell({ track }: Props) {
-  const names = track.expand?.artists?.map((artist) => artist.name).join(', ') ?? '';
-  return <div className="text-muted-foreground hidden md:table-cell">{names || '—'}</div>;
+  const artistsById = useArtistsById();
+  return <div className="text-muted-foreground hidden md:table-cell">{artistNames(track.artists, artistsById)}</div>;
 }

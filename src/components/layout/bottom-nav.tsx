@@ -1,24 +1,24 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { History, Home, Library, Share2 } from 'lucide-react';
+import { History, Home, Library, MonitorSpeaker, Music2, Pause, Play, Search, SkipForward } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuthUser } from '@/hooks/use-auth-user';
-import { config } from '@/lib/config';
+import { useMusicPlayer } from '@/contexts/music-player-context';
+import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
+import { useNowPlaying } from '@/hooks/use-now-playing';
+import { useRemotePlayback } from '@/hooks/use-remote-playback';
+import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { cn } from '@/lib/utils';
 
-export function BottomNav() {
+export function BottomNav({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
   const location = useLocation();
-  const user = useAuthUser();
-  const avatarUrl = user?.avatar ? `${config.pb.url}/api/files/_pb_users_auth_/${user.id}/${user.avatar}` : undefined;
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const { togglePlayPause, playNext, currentTime } = useMusicPlayer();
+  const { track: currentTrack, isPlaying, isRemote } = useNowPlaying();
+  const remote = useRemotePlayback();
+  const albumsById = useAlbumsById();
+  const artistsById = useArtistsById();
+  // The dock is the mobile player bar, so it drives whatever holds the
+  // playback, this client or another of the user's devices.
+  const control = isRemote && remote ? { toggle: remote.togglePlayPause, next: remote.playNext, time: remote.currentTime } : { toggle: togglePlayPause, next: playNext, time: currentTime };
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -28,38 +28,79 @@ export function BottomNav() {
     return location.pathname.startsWith(href);
   };
 
-  const profileActive = isActive('/profile');
-  const sharesActive = isActive('/shares');
+  const tabs = [
+    { href: '/', icon: Home, label: t('AppSidebar.home') },
+    { href: '/library', icon: Library, label: t('AppSidebar.library') },
+    { href: '/search', icon: Search, label: t('AppSidebar.search') },
+    { href: '/history', icon: History, label: t('AppSidebar.history') },
+  ];
+
+  const album = currentTrack ? albumsById.get(currentTrack.album) : undefined;
+  const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
+  const duration = currentTrack?.duration ?? 0;
+  const progress = duration > 0 ? Math.min(100, Math.max(0, (control.time / duration) * 100)) : 0;
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
-      <div className="relative flex h-14 items-center">
-        <div className="flex flex-1 items-center justify-around">
-          <Link to="/" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/') && 'text-primary')}>
-            <Home className="h-5 w-5" />
-            <span>{t('AppSidebar.home')}</span>
-          </Link>
-          <Link to="/library" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/library') && 'text-primary')}>
-            <Library className="h-5 w-5" />
-            <span>{t('AppSidebar.library')}</span>
-          </Link>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/[0.96] backdrop-blur-[24px] backdrop-saturate-[1.2] border-t border-primary-border shadow-[0_-8px_24px_rgba(0,0,0,0.3)] md:hidden">
+      {/* Mini-player strip */}
+      {currentTrack && (
+        <div className="border-b border-border/50">
+          {/* Above the strip, where a progress bar reads as belonging to what is
+              playing rather than to the tabs below. Its colours come from the
+              theme's classes: written as a gradient over hsl(var(--primary)) it
+              produced no colour at all, the palette being in oklch. */}
+          <div className="h-[2px] w-full bg-muted">
+            <div className={cn('h-full bg-primary', isPlaying && 'transition-[width] duration-1000 ease-linear')} style={{ width: `${progress}%` }} />
+          </div>
+
+          {/* Siblings rather than nesting: the strip used to be a link wrapping
+              buttons, which is invalid and swallowed their clicks. */}
+          <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 px-2 py-2">
+            <button type="button" onClick={onExpand} className="col-span-2 grid grid-cols-[auto_1fr] items-center gap-2.5 text-left" aria-label={t('NowPlaying.title')}>
+              <div className="h-10 w-10 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 shrink-0">
+                {coverUrl ? (
+                  <img src={coverUrl} alt={currentTrack.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Music2 className="h-4 w-4 text-primary/60" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold truncate leading-tight">{currentTrack.title}</p>
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                  {isRemote && <MonitorSpeaker className="h-3 w-3 shrink-0 text-primary" />}
+                  <span className="truncate">{isRemote && remote ? remote.device.name : artistNames(currentTrack.artists, artistsById)}</span>
+                </p>
+              </div>
+            </button>
+
+            <button type="button" className="h-9 w-9 flex items-center justify-center text-muted-foreground" onClick={control.next} aria-label={t('MusicPlayer.next')}>
+              <SkipForward className="h-4 w-4" />
+            </button>
+
+            <button type="button" className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-[0_3px_10px_var(--primary-glow)] shrink-0" onClick={control.toggle} aria-label={t('MusicPlayer.playPause')}>
+              {isPlaying ? <Pause className="h-[18px] w-[18px]" /> : <Play className="h-[18px] w-[18px] ml-0.5" />}
+            </button>
+          </div>
         </div>
-        <Link to="/profile" className={cn('flex flex-col items-center justify-center -mt-5 px-3', profileActive && 'text-primary')}>
-          <Avatar className={cn('h-10 w-10 border-2 ring-4 ring-background', profileActive ? 'border-primary' : 'border-muted-foreground/30')}>
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.name} />}
-            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs">{user?.name ? getInitials(user.name) : '?'}</AvatarFallback>
-          </Avatar>
-          <span className={cn('text-[10px] mt-0.5', profileActive ? 'text-primary' : 'text-muted-foreground')}>{t('ProfilePage.title')}</span>
-        </Link>
-        <div className="flex flex-1 items-center justify-around">
-          <Link to="/history" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', isActive('/history') && 'text-primary')}>
-            <History className="h-5 w-5" />
-            <span>{t('AppSidebar.history')}</span>
-          </Link>
-          <Link to="/shares" className={cn('flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground transition-colors', sharesActive && 'text-primary')}>
-            <Share2 className="h-5 w-5" />
-            <span>{t('AppSidebar.shares')}</span>
-          </Link>
-        </div>
+      )}
+
+      {/* Tab bar */}
+      <div className="grid grid-cols-4 h-14">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = isActive(tab.href);
+
+          return (
+            <Link key={tab.href} to={tab.href} className={cn('relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors', active ? 'text-primary' : 'text-muted-foreground')}>
+              {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-b bg-primary" />}
+              <Icon className="h-[19px] w-[19px]" />
+              <span>{tab.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

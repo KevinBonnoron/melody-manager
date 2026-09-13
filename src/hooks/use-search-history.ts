@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 const STORAGE_KEY = 'melody-manager-search-history';
 const MAX_HISTORY = 10;
@@ -58,4 +58,21 @@ export function useSearchHistory() {
   }, []);
 
   return { history, addEntry, removeEntry, clearHistory };
+}
+
+// A query the user typed and looked at is worth remembering even when nothing
+// was clicked: recording only on selection left the list empty for anyone who
+// just read the results. Debounced so intermediate keystrokes are not stored.
+export function useRecordSearch(query: string, enabled = true) {
+  const { addEntry } = useSearchHistory();
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!enabled || trimmed.length < 2) {
+      return;
+    }
+
+    const id = setTimeout(() => addEntry(trimmed), 1200);
+    return () => clearTimeout(id);
+  }, [query, enabled, addEntry]);
 }

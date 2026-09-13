@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList } from '@/components/ui/command';
 import { useCommandDialog } from '@/hooks/use-command-dialog';
 import { useProviders } from '@/hooks/use-providers';
-import { getModifierKey } from '@/lib/utils';
 import type { ProviderError, SearchResult, SearchType, TrackProvider } from '@/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
 import type { LibraryStatus } from './search-result-item';
@@ -22,7 +21,7 @@ import { AlbumResultItem, ArtistResultItem, PlaylistResultItem, TrackResultItem 
 const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 export function AddMusicButton() {
   const { t } = useTranslation();
-  const { open, setOpen, handleOpenChange } = useCommandDialog('k');
+  const { open, setOpen, handleOpenChange } = useCommandDialog();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [providerErrors, setProviderErrors] = useState<ProviderError[]>([]);
@@ -79,27 +78,27 @@ export function AddMusicButton() {
   }, [query, t]);
 
   const handleAdd = async (result: SearchResult) => {
-    setAddingUrls((prev) => new Set(prev).add(result.sourceUrl));
+    setAddingUrls((prev) => new Set(prev).add(result.origin));
     try {
       // Every /add route queues a task and returns it, so no track count is
-      // known yet — progress shows up in the tasks panel.
+      // known yet, progress shows up in the tasks panel.
       let title = '';
       if (isTrackResult(result)) {
-        await tracksClient.addFromUrl(result.sourceUrl);
+        await tracksClient.addFromUrl(result.origin);
         title = result.title;
       } else if (isAlbumResult(result)) {
-        await albumsClient.addFromUrl(result.sourceUrl);
+        await albumsClient.addFromUrl(result.origin);
         title = result.name;
       } else if (isArtistResult(result)) {
-        await artistsClient.addFromUrl(result.sourceUrl);
+        await artistsClient.addFromUrl(result.origin);
         title = result.name;
       } else if (isPlaylistResult(result)) {
-        await playlistsClient.addFromUrl(result.sourceUrl);
+        await playlistsClient.addFromUrl(result.origin);
         title = result.name;
       }
 
-      setAddedUrls((prev) => new Set(prev).add(result.sourceUrl));
-      setResults((prev) => prev.map((r) => (r.sourceUrl === result.sourceUrl ? { ...r, libraryStatus: { ...r.libraryStatus, isInLibrary: true } } : r)));
+      setAddedUrls((prev) => new Set(prev).add(result.origin));
+      setResults((prev) => prev.map((r) => (r.origin === result.origin ? { ...r, libraryStatus: { ...r.libraryStatus, isInLibrary: true } } : r)));
 
       toast.success(t('GlobalSearch.addedSuccessfully', { title }));
     } catch (error) {
@@ -108,7 +107,7 @@ export function AddMusicButton() {
     } finally {
       setAddingUrls((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(result.sourceUrl);
+        newSet.delete(result.origin);
         return newSet;
       });
     }
@@ -116,7 +115,7 @@ export function AddMusicButton() {
 
   const getLibraryStatus = (result: SearchResult): LibraryStatus => {
     const status = result.libraryStatus || { isInLibrary: false };
-    if (addedUrls.has(result.sourceUrl)) {
+    if (addedUrls.has(result.origin)) {
       return { ...status, isInLibrary: true };
     }
 
@@ -167,7 +166,6 @@ export function AddMusicButton() {
       <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)} aria-label={t('AppLayout.addMusic')}>
         <Plus className="h-4 w-4 md:mr-2" />
         <span className="hidden md:inline">{t('AppLayout.addMusic')}</span>
-        <kbd className="ml-2 pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">{getModifierKey('k')}</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false} className="sm:max-w-2xl">
         <CommandInput placeholder={t('GlobalSearch.searchForMusic')} value={query} onValueChange={setQuery} autoFocus />
@@ -179,7 +177,7 @@ export function AddMusicButton() {
               </div>
               <p className="text-base font-semibold text-card-foreground mb-1">{t('GlobalSearch.noProvidersConfigured')}</p>
               <p className="text-sm text-muted-foreground mb-6 max-w-sm">{t('GlobalSearch.configureOneProvider')}</p>
-              <Link to="/providers" onClick={() => setOpen(false)}>
+              <Link to="/sources" onClick={() => setOpen(false)}>
                 <Button size="sm" variant="outline" className="transition-colors">
                   <Settings className="h-4 w-4 mr-2" />
                   {t('GlobalSearch.configureProviders')}
@@ -208,7 +206,7 @@ export function AddMusicButton() {
               {filteredTracks.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.tracks')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredTracks.map((result) => (
-                    <TrackResultItem key={`track-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
+                    <TrackResultItem key={`track-${result.origin}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.origin)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -216,7 +214,7 @@ export function AddMusicButton() {
               {filteredAlbums.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.albums')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredAlbums.map((result) => (
-                    <AlbumResultItem key={`album-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
+                    <AlbumResultItem key={`album-${result.origin}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.origin)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -224,7 +222,7 @@ export function AddMusicButton() {
               {filteredPlaylists.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.playlists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredPlaylists.map((result) => (
-                    <PlaylistResultItem key={`playlist-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
+                    <PlaylistResultItem key={`playlist-${result.origin}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.origin)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -232,7 +230,7 @@ export function AddMusicButton() {
               {filteredArtists.length > 0 && (
                 <CommandGroup heading={t('GlobalSearch.artists')} className="[&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:text-foreground [&_[cmdk-group-heading]]:py-2 border-b border-border/50">
                   {filteredArtists.map((result) => (
-                    <ArtistResultItem key={`artist-${result.sourceUrl}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.sourceUrl)} onAdd={() => handleAdd(result)} />
+                    <ArtistResultItem key={`artist-${result.origin}`} result={result} status={getLibraryStatus(result)} isAdding={addingUrls.has(result.origin)} onAdd={() => handleAdd(result)} />
                   ))}
                 </CommandGroup>
               )}
@@ -247,7 +245,7 @@ export function AddMusicButton() {
                     <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                     <span>{t(`GlobalSearch.providerError.${err.code}`, { provider: err.provider })}</span>
                   </div>
-                  <Link to="/providers" onClick={() => setOpen(false)} className="shrink-0 text-primary underline-offset-2 hover:underline">
+                  <Link to="/sources" onClick={() => setOpen(false)} className="shrink-0 text-primary underline-offset-2 hover:underline">
                     {t('GlobalSearch.providerError.configure')}
                   </Link>
                 </div>

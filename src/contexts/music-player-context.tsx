@@ -1,14 +1,18 @@
 import { Capacitor } from '@capacitor/core';
-import { useLiveQuery } from '@tanstack/react-db';
+import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useAuth } from 'pocketbase-react-hooks';
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+import { trackCollection } from '@/collections/track.collection';
 import { trackPlayCollection } from '@/collections/track-play.collection';
+import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
+import { useReportedPosition } from '@/hooks/use-reported-position';
 import i18n from '@/i18n';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
+import { getDevices, subscribeDevices } from '@/lib/device-presence';
 import { getStreamToken } from '@/lib/stream-token';
-import type { Device, PlayerState, Track, TrackPlay } from '@/shared';
+import type { Device, PlayerState, SonosDevice, Track, TrackPlay } from '@/shared';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
 
@@ -27,7 +31,7 @@ interface MusicPlayerContextValue {
   activeDevice: Device | null;
   audioFormat: AudioFormat;
 
-  playTrack: (track: Track) => void;
+  playTrack: (track: Track, startAt?: number) => void;
   playTrackWithContext: (track: Track, contextTracks: Track[]) => void;
   togglePlayPause: () => void;
   playNext: () => void;
@@ -49,6 +53,13 @@ interface MusicPlayerContextValue {
   audioElement: HTMLAudioElement | null;
 }
 
+// How long the speaker's reported position is distrusted after a seek.
+const SEEK_SETTLE_MS = 2000;
+
+// How close to the end counts as having reached it, given the speaker is asked
+// where it is once a second over those last seconds.
+const SPEAKER_END_TOLERANCE = 3;
+
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 interface MusicPlayerProviderProps {
   children: ReactNode;
@@ -56,7 +67,7 @@ interface MusicPlayerProviderProps {
 
 export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const { user } = useAuth();
-  const { data: trackPlays = [] } = useLiveQuery((q) => q.from({ trackPlays: trackPlayCollection }));
+  const { data: trackPlays = [] } = useLiveQuery({ query: (q) => q.from({ trackPlays: trackPlayCollection }) });
   const trackPlaysRef = useRef<TrackPlay[]>([]);
   trackPlaysRef.current = trackPlays as TrackPlay[];
   const userIdRef = useRef<string | undefined>(undefined);
@@ -64,12 +75,30 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
+  const currentTrackRef = useRef<Track | null>(null);
+  const isPlayingRef = useRef(false);
+  // Taken over at most once, and never again after this tab has chosen for
+  // itself: asking to play here would otherwise hand the speaker straight back.
+  const deviceDecidedRef = useRef(false);
+  const positionRef = useRef(0);
+  // Where the speaker had got to while it was still playing. A speaker that
+  // reaches the end of a track reports itself stopped at nought, so its own
+  // final position says nothing about whether it finished or was paused.
+  const speakerReachedRef = useRef(0);
   const endedHandledForTrackIdRef = useRef<string | null>(null);
   const currentPlayIdRef = useRef<string | null>(null);
+  const lastPlayRef = useRef<{ trackId: string; at: number } | null>(null);
   const playCompletedForTrackIdRef = useRef<string | null>(null);
   const listenedTimeRef = useRef(0);
   const lastTimeUpdateRef = useRef(0);
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
+  // The speaker as the server last saw it. It plays on its own, so what it
+  // reports wins over anything this tab believes.
+  const devices = useSyncExternalStore(subscribeDevices, getDevices);
+  const albumsById = useAlbumsById();
+  const artistsById = useArtistsById();
+  const speaker = activeDevice?.type === 'sonos' ? (devices.find((d): d is SonosDevice => d.id === activeDevice.id && d.type === 'sonos') ?? null) : null;
+  const speakerPosition = useReportedPosition(speaker);
   const [audioFormat, setAudioFormat] = useState<AudioFormat>('source');
   const [isLoading, setIsLoading] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -85,13 +114,21 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const isNativePlatform = Capacitor.isNativePlatform();
   currentTrackIdRef.current = playerState.currentTrack?.id ?? null;
+  currentTrackRef.current = playerState.currentTrack;
+  isPlayingRef.current = playerState.isPlaying;
+  positionRef.current = playerState.currentTime;
 
   useEffect(() => {
     endedHandledForTrackIdRef.current = null;
   }, []);
 
   const playTrack = useCallback(
-    async (track: Track) => {
+    async (track: Track, startAt = 0) => {
+      // Asking for a track is itself a decision about where it plays: whatever
+      // is selected now, including this tab, is the target. Without this the
+      // adoption below could still fire in the gap before the audio starts and
+      // hand the session to a speaker the listener did not pick.
+      deviceDecidedRef.current = true;
       endedHandledForTrackIdRef.current = null;
       playCompletedForTrackIdRef.current = null;
       listenedTimeRef.current = 0;
@@ -101,11 +138,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       // Guard against double calls (React strict mode / setState double-invoke)
       const userId = userIdRef.current;
       const now = Date.now();
-      const lastPlayId = currentPlayIdRef.current;
-      const isDuplicate = lastPlayId?.includes(`-${track.id}-`) && now - Number(lastPlayId.split('-').pop()) < 1000;
+      // The same track starting twice within a second is one play: StrictMode
+      // double-invokes this, and so does an impatient second click. What is
+      // being guarded against is tracked on its own rather than read back out
+      // of the record's key.
+      const last = lastPlayRef.current;
+      const isDuplicate = last?.trackId === track.id && now - last.at < 1000;
       if (userId && !isDuplicate) {
-        const playId = `tmp-${userId}-${track.id}-${now}`;
+        // A PocketBase id is fifteen characters and anything longer is refused,
+        // which rolled the optimistic row back with only a console error to show
+        // for it. The collection mints ids the server will accept.
+        const playId = trackPlayCollection.utils.newId();
         currentPlayIdRef.current = playId;
+        lastPlayRef.current = { trackId: track.id, at: now };
         trackPlayCollection.insert({ id: playId, user: userId, track: track.id, completed: false } as TrackPlay);
       }
 
@@ -113,13 +158,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         ...prev,
         currentTrack: track,
         isPlaying: true,
-        currentTime: 0,
+        currentTime: startAt,
       }));
 
       if (activeDevice && activeDevice.type === 'sonos') {
         try {
           setIsLoading(true);
-          await deviceClient.play(activeDevice.id, track.id);
+          // The position travels with the play request: asking separately meant
+          // a seek the speaker refused reported the whole playback as failed,
+          // where the server treats it as a speaker that simply started at nought.
+          await deviceClient.play(activeDevice.id, track.id, Math.round(startAt));
           setIsLoading(false);
         } catch (error) {
           console.error('Sonos playback failed:', error);
@@ -149,7 +197,17 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         setIsLoading(false);
         return;
       }
-      audioRef.current.src = `${config.server.url}/tracks/stream/${track.id}?${params.toString()}`;
+      audioRef.current.src = `${config.server.url}/tracks/${track.id}/stream?${params.toString()}`;
+      if (startAt > 0) {
+        const audio = audioRef.current;
+        audio.addEventListener(
+          'loadedmetadata',
+          () => {
+            audio.currentTime = startAt;
+          },
+          { once: true },
+        );
+      }
 
       audioRef.current.play().catch((error) => {
         if (error.name === 'AbortError') {
@@ -175,7 +233,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [playerState.volume]);
 
-  // Initialize audio element — intentionally runs once, initial volume read at mount only
+  // Initialize audio element, intentionally runs once, initial volume read at mount only
   // biome-ignore lint/correctness/useExhaustiveDependencies: audio element must only be created once
   useEffect(() => {
     audioRef.current = new Audio();
@@ -344,6 +402,21 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         await deviceClient.play(activeDevice.id);
         setPlayerState((prev) => ({ ...prev, isPlaying: true }));
       } catch (error) {
+        // A speaker with nothing loaded has nothing to resume: hand it the
+        // current track rather than reporting a failure the user cannot act on.
+        const track = currentTrackRef.current;
+        if (track) {
+          try {
+            await deviceClient.play(activeDevice.id, track.id);
+            setPlayerState((prev) => ({ ...prev, isPlaying: true }));
+            return;
+          } catch (retryError) {
+            console.error('Sonos play failed:', retryError);
+            toast.error(i18n.t('MusicPlayer.deviceError'));
+            return;
+          }
+        }
+
         console.error('Sonos play failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       }
@@ -375,18 +448,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [playerState.isPlaying, pause, play]);
 
+  // A speaker is handed one track at a time and holds no queue of its own, so
+  // moving through the queue is the same work wherever the sound comes out:
+  // pick the next track here, and let playTrack send it where it belongs.
   const playNext = useCallback(async () => {
-    if (activeDevice?.type === 'sonos') {
-      try {
-        await deviceClient.next(activeDevice.id);
-      } catch (error) {
-        console.error('Sonos next failed:', error);
-        toast.error(i18n.t('MusicPlayer.deviceError'));
-      }
-
-      return;
-    }
-
     if (playerState.shuffle && playerState.queue.length > 1) {
       const otherTracks = playerState.queue.filter((t) => t.id !== playerState.currentTrack?.id);
       if (otherTracks.length > 0) {
@@ -406,20 +471,9 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     playTrack(playerState.queue[currentIndex + 1]);
-  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
+  }, [playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
 
   const playPrevious = useCallback(async () => {
-    if (activeDevice?.type === 'sonos') {
-      try {
-        await deviceClient.previous(activeDevice.id);
-      } catch (error) {
-        console.error('Sonos previous failed:', error);
-        toast.error(i18n.t('MusicPlayer.deviceError'));
-      }
-
-      return;
-    }
-
     if (playerState.shuffle && playerState.queue.length > 1) {
       const otherTracks = playerState.queue.filter((t) => t.id !== playerState.currentTrack?.id);
       if (otherTracks.length > 0) {
@@ -439,13 +493,17 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     playTrack(playerState.queue[currentIndex - 1]);
-  }, [activeDevice, playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
+  }, [playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
 
+  const seekedAtRef = useRef(0);
   const seek = useCallback(
     async (time: number) => {
       if (activeDevice?.type === 'sonos') {
         try {
           await deviceClient.seek(activeDevice.id, time);
+          // A poll in flight when the seek lands answers the position before
+          // it, which drags the bar back to where the listener just left.
+          seekedAtRef.current = Date.now();
           setPlayerState((prev) => ({ ...prev, currentTime: time }));
         } catch (error) {
           console.error('Sonos seek failed:', error);
@@ -550,26 +608,57 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const switchDevice = useCallback(
     async (device: Device | null) => {
+      const wasPlaying = playerState.isPlaying;
+      const previous = activeDevice;
+      deviceDecidedRef.current = true;
       setActiveDevice(device);
 
-      if (playerState.isPlaying && audioRef.current) {
+      if (wasPlaying && audioRef.current) {
         audioRef.current.pause();
+      }
+
+      const track = currentTrackRef.current;
+
+      // Coming back from a speaker is the same move in reverse, and it has two
+      // halves: silence the speaker, and pick the track up here where it left
+      // off. Doing only the first leaves it playing on in the other room.
+      if (!device && previous?.type === 'sonos' && wasPlaying && track) {
+        // Not positionRef: that mirrors the local player's clock, which stands
+        // still for as long as a speaker is the one playing. The speaker's own
+        // reported position is the only one that moved.
+        const resumeAt = speakerReachedRef.current;
+        try {
+          await deviceClient.stop(previous.id);
+        } catch (error) {
+          console.error('Sonos stop failed:', error);
+        }
+
+        // playTrack sends the track to whichever device it was built against;
+        // let the switch land first, or it goes straight back to the speaker.
+        setTimeout(() => playTrackRef.current(track, resumeAt), 0);
+        return;
+      }
+
+      // Choosing a speaker moves the playback there rather than ending it: the
+      // track carries on from where it was, which is what picking a device means.
+      if (device?.type === 'sonos' && wasPlaying && track) {
+        try {
+          await deviceClient.play(device.id, track.id, Math.round(positionRef.current));
+          setPlayerState((prev) => ({ ...prev, isPlaying: true }));
+        } catch (error) {
+          console.error('Sonos handover failed:', error);
+          toast.error(i18n.t('MusicPlayer.deviceError'));
+          setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+        }
+      } else if (wasPlaying) {
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
       }
 
       if (device?.type === 'sonos') {
-        try {
-          const response = await deviceClient.getState(device.id);
-          if (response.success && response.data.volume !== undefined) {
-            setPlayerState((prev) => ({ ...prev, volume: response.data.volume / 100 }));
-          }
-        } catch (error) {
-          console.error('Failed to get device state:', error);
-          toast.error(i18n.t('MusicPlayer.deviceError'));
-        }
+        setPlayerState((prev) => ({ ...prev, volume: device.volume / 100 }));
       }
     },
-    [playerState.isPlaying],
+    [playerState.isPlaying, activeDevice],
   );
 
   // Media Session API for background playback
@@ -579,6 +668,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     const track = playerState.currentTrack;
+    const album = albumsById.get(track.album);
     if (isNativePlatform) {
       nativeAudioService.initialize({
         onPlay: () => play(),
@@ -590,9 +680,9 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       nativeAudioService.setMetadata({
         title: track.title,
-        artist: track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist',
-        album: track.expand?.album?.name || 'Unknown Album',
-        artwork: track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined,
+        artist: artistNames(track.artists, artistsById) || 'Unknown Artist',
+        album: album?.name || 'Unknown Album',
+        artwork: album ? getAlbumCoverUrl(album) : undefined,
         duration: track.duration,
       });
 
@@ -607,10 +697,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,
-      artist: track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist',
-      album: track.expand?.album?.name || 'Unknown Album',
+      artist: artistNames(track.artists, artistsById) || 'Unknown Artist',
+      album: album?.name || 'Unknown Album',
       artwork: (() => {
-        const url = track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined;
+        const url = album ? getAlbumCoverUrl(album) : undefined;
         return url ? [{ src: url, sizes: '512x512', type: 'image/jpeg' }] : [];
       })(),
     });
@@ -644,7 +734,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       navigator.mediaSession.setActionHandler('previoustrack', null);
       navigator.mediaSession.setActionHandler('seekto', null);
     };
-  }, [isNativePlatform, playerState.currentTrack, play, pause, playNext, playPrevious, seek]);
+  }, [isNativePlatform, playerState.currentTrack, albumsById, artistsById, play, pause, playNext, playPrevious, seek]);
 
   // Update Media Session playback state
   useEffect(() => {
@@ -671,50 +761,96 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [isNativePlatform, playerState.currentTrack, playerState.currentTime, playerState.isPlaying]);
 
-  // Poll device state for Sonos devices
+  // A speaker that is playing owns the session: a tab opening or reloading
+  // mid-playback takes it over as its own target, so its transport buttons move
+  // the queue held here rather than asking the speaker to find a next track it
+  // was never given.
   useEffect(() => {
-    if (!activeDevice || activeDevice.type !== 'sonos' || !playerState.isPlaying) {
+    if (deviceDecidedRef.current || activeDevice || isPlayingRef.current) {
       return;
     }
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await deviceClient.getState(activeDevice.id);
-        if (!response.success) {
-          return;
-        }
+    // Playing, not merely known: a speaker that was paused from its own app
+    // still answers with its last track, and adopting it there left this tab
+    // sending every later play to a room nobody was listening in.
+    const speaker = devices.find((d) => d.type === 'sonos' && d.playing);
+    if (!speaker) {
+      return;
+    }
 
-        const { state, track, volume } = response.data;
-        const isPlaying = state === 'PLAYING';
-        let currentTime = 0;
-        if (track && typeof track === 'object' && 'RelTime' in track && typeof track.RelTime === 'string') {
-          const timeParts = track.RelTime.split(':');
-          if (timeParts.length === 3) {
-            const [hours, minutes, seconds] = timeParts.map(Number);
-            currentTime = hours * 3600 + minutes * 60 + seconds;
-          }
-        }
+    deviceDecidedRef.current = true;
+    setActiveDevice(speaker);
+  }, [devices, activeDevice]);
 
-        setPlayerState((prev) => ({
-          ...prev,
-          isPlaying,
-          currentTime,
-          volume: volume !== undefined ? volume / 100 : prev.volume,
-        }));
-      } catch (error) {
-        console.error('Failed to poll device state:', error);
-      }
-    }, 1000);
+  // A device that is no longer in the list cannot be played on, and keeping it
+  // selected sends every later play into silence while the transport keeps
+  // saying it worked. An empty list is a stream reconnecting, not a speaker
+  // going away, so it is left alone.
+  useEffect(() => {
+    if (!activeDevice || devices.length === 0) {
+      return;
+    }
 
-    return () => clearInterval(pollInterval);
-  }, [activeDevice, playerState.isPlaying]);
+    if (!devices.some((device) => device.id === activeDevice.id)) {
+      setActiveDevice(null);
+    }
+  }, [devices, activeDevice]);
+
+  // The speaker knows which track it is playing; a tab that has just taken it
+  // over does not, and without it there is nothing to show and nowhere in the
+  // queue to move on from.
+  const speakerTrackId = speaker?.trackId ?? '';
+  const { data: speakerTrackRows = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.id, speakerTrackId)) });
+  useEffect(() => {
+    const track = (speakerTrackRows as unknown as Track[])[0];
+    if (!track) {
+      return;
+    }
+
+    setPlayerState((prev) => (prev.currentTrack ? prev : { ...prev, currentTrack: track }));
+  }, [speakerTrackRows]);
+
+  if (speaker?.playing) {
+    speakerReachedRef.current = speakerPosition;
+  }
+
+  // A speaker reports over the same stream as every other device, polled once by
+  // the server rather than once per second by each tab. Its transport state is
+  // authoritative; the position between two reports is counted locally.
+  useEffect(() => {
+    if (!speaker) {
+      return;
+    }
+
+    setPlayerState((prev) => (prev.isPlaying === speaker.playing && prev.volume === speaker.volume / 100 ? prev : { ...prev, isPlaying: speaker.playing, volume: speaker.volume / 100 }));
+  }, [speaker]);
+
+  // A speaker that stops where the track ran out has finished it; stopping
+  // anywhere else is a pause. Only the queue lives here, so only this side can
+  // move it on.
+  useEffect(() => {
+    if (!speaker || speaker.playing || !currentTrackRef.current) {
+      return;
+    }
+
+    const { duration } = currentTrackRef.current;
+    if (duration > 0 && speakerReachedRef.current >= duration - SPEAKER_END_TOLERANCE) {
+      speakerReachedRef.current = 0;
+      playNext();
+    }
+  }, [speaker, playNext]);
+
+  // A seek is shown where it was asked for until the speaker confirms it: the
+  // server nudges its watch on every command, but the answer still has to come
+  // back from the speaker.
+  const speakerCurrentTime = speaker && Date.now() - seekedAtRef.current >= SEEK_SETTLE_MS ? speakerPosition : playerState.currentTime;
 
   const value: MusicPlayerContextValue = {
     currentTrack: playerState.currentTrack,
     isPlaying: playerState.isPlaying,
     isLoading,
     volume: playerState.volume,
-    currentTime: playerState.currentTime,
+    currentTime: speakerCurrentTime,
     queue: playerState.queue,
     repeatMode: playerState.repeatMode,
     shuffle: playerState.shuffle,

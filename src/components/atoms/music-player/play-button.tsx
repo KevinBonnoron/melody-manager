@@ -9,7 +9,16 @@ interface Props {
 
 export function PlayButton({ isPlaying, isLoading = false, onToggle }: Props) {
   return (
-    <Button variant="default" size="icon" className="h-10 w-10 rounded-full" onClick={onToggle} disabled={isLoading} aria-label={isLoading ? 'Loading playback' : isPlaying ? 'Pause' : 'Play'} aria-pressed={isPlaying} aria-busy={isLoading || undefined}>
+    <Button
+      variant="default"
+      size="icon"
+      className="h-10 w-10 rounded-full shadow-[0_4px_12px_var(--primary-glow)] hover:scale-105 transition-transform"
+      onClick={onToggle}
+      disabled={isLoading}
+      aria-label={isLoading ? 'Loading playback' : isPlaying ? 'Pause' : 'Play'}
+      aria-pressed={isPlaying}
+      aria-busy={isLoading || undefined}
+    >
       {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : isPlaying ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="h-6 w-6 ml-0.5" fill="currentColor" />}
     </Button>
   );

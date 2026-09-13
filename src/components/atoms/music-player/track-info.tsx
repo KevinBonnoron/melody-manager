@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { Music2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import MarqueeExport from 'react-fast-marquee';
+import { resolveAll, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import type { Track } from '@/shared';
 
@@ -11,52 +12,68 @@ import type { Track } from '@/shared';
 const Marquee = (MarqueeExport as unknown as { default?: typeof MarqueeExport }).default ?? MarqueeExport;
 
 interface Props {
-  track: Track;
+  // Null while a device reports a track this client has not loaded yet: the
+  // controls still have to be there, or there is no way to stop what is
+  // playing.
+  track: Track | null;
+  fallbackTitle?: string;
 }
 
-export function TrackInfo({ track }: Props) {
-  const titleRef = useRef<HTMLParagraphElement>(null);
-  const [shouldScroll, setShouldScroll] = useState(false);
-  const prevTitleRef = useRef(track.title);
+export function TrackInfo({ track, fallbackTitle }: Props) {
+  const album = useAlbumsById().get(track?.album ?? '');
+  const artists = resolveAll(track?.artists, useArtistsById());
+  const title = track?.title ?? fallbackTitle ?? '';
+  const trackRef = useRef<HTMLDivElement>(null);
+  const probeRef = useRef<HTMLSpanElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  // Measured on a copy laid out on one line and never shown. The visible title
+  // is either truncated or inside the marquee, and neither reports the width
+  // the text would actually need. Watching the container is what makes a
+  // window resize, or the sidebar opening, reconsider the decision.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the title is read through the DOM, and it is the signal that a new one has to be measured
   useLayoutEffect(() => {
-    if (prevTitleRef.current !== track.title) {
-      prevTitleRef.current = track.title;
-      setShouldScroll(false);
+    const container = trackRef.current;
+    if (!container) {
       return;
     }
 
-    if (!shouldScroll && titleRef.current) {
-      if (titleRef.current.scrollWidth > titleRef.current.clientWidth) {
-        setShouldScroll(true);
-      }
-    }
-  });
+    const measure = () => setOverflows((probeRef.current?.scrollWidth ?? 0) > container.clientWidth);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [title]);
 
   return (
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="h-14 w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
-        <Link to="/albums/$albumId" params={{ albumId: track.expand?.album?.id }}>
-          {track.expand?.album && getAlbumCoverUrl(track.expand.album) ? (
-            <img src={getAlbumCoverUrl(track.expand.album)} alt={track.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center">
-              <Music2 className="h-6 w-6 text-primary/60" />
-            </div>
-          )}
-        </Link>
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="h-11 w-11 lg:h-14 lg:w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
+        {album && getAlbumCoverUrl(album) ? (
+          <Link to="/albums/$albumId" params={{ albumId: album.id }}>
+            <img src={getAlbumCoverUrl(album)} alt={title} className="h-full w-full object-cover" />
+          </Link>
+        ) : (
+          <div className="h-full w-full flex items-center justify-center">
+            <Music2 className="h-6 w-6 text-primary/60" />
+          </div>
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        {shouldScroll ? (
-          <Marquee gradient={false} speed={30} pauseOnHover className="font-semibold text-sm">
-            <span className="mr-8">{track.title}</span>
-          </Marquee>
-        ) : (
-          <p ref={titleRef} className="font-semibold text-sm truncate">
-            {track.title}
-          </p>
-        )}
+        <div ref={trackRef} className="relative min-w-0">
+          <span ref={probeRef} aria-hidden className="pointer-events-none invisible absolute whitespace-nowrap text-sm font-semibold">
+            {title}
+          </span>
+          {overflows ? (
+            <Marquee gradient={false} speed={30} pauseOnHover className="font-semibold text-sm">
+              <span className="mr-8">{title}</span>
+            </Marquee>
+          ) : (
+            <p className="font-semibold text-sm truncate">{title}</p>
+          )}
+        </div>
         <div className="text-xs text-muted-foreground line-clamp-1">
-          {track.expand?.artists?.map((artist, index) => (
+          {artists.map((artist, index) => (
             <span key={artist.id}>
               {index > 0 && ', '}
               <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="hover:underline hover:text-foreground transition-colors">

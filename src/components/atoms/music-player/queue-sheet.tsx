@@ -3,16 +3,22 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 
 interface QueueSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // The full-screen player sits above the sheet's own layer, so opening the
+  // queue from there has to lift it over the player rather than under it.
+  elevated?: boolean;
 }
 
-export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
+export function QueueSheet({ open, onOpenChange, elevated }: QueueSheetProps) {
   const { t } = useTranslation();
   const { queue, currentTrack, isLoading, isPlaying, removeFromQueue, clearQueue, playTrack } = useMusicPlayer();
+  const albumsById = useAlbumsById();
+  const artistsById = useArtistsById();
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -21,7 +27,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col">
+      <SheetContent side="right" className={`w-full sm:w-[420px] p-0 flex flex-col ${elevated ? 'z-[200]' : ''}`} overlayClassName={elevated ? 'z-[200]' : undefined}>
         <SheetHeader className="px-5 pt-5 pb-4 pr-12 border-b border-border/50">
           <SheetTitle className="flex items-center gap-2 text-base">
             <ListMusic className="h-5 w-5" />
@@ -51,8 +57,9 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                 const isCurrentTrack = currentTrack?.id === track.id;
                 const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
                 const isListened = currentIndex > -1 && index < currentIndex;
-                const albumCoverUrl = track.expand?.album ? getAlbumCoverUrl(track.expand.album) : undefined;
-                const artistName = track.expand?.artists?.map((a) => a.name).join(', ') || 'Unknown Artist';
+                const album = albumsById.get(track.album);
+                const albumCoverUrl = album ? getAlbumCoverUrl(album) : undefined;
+                const artistName = artistNames(track.artists, artistsById) || 'Unknown Artist';
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: contains nested interactive elements (remove button), cannot use <button>
                   // biome-ignore lint/a11y/noStaticElementInteractions: same reason
@@ -63,7 +70,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
 
                     <div className="relative flex-shrink-0">
                       {albumCoverUrl ? (
-                        <img src={albumCoverUrl} alt={track.expand?.album?.name || 'Album'} className="h-10 w-10 rounded-md object-cover" />
+                        <img src={albumCoverUrl} alt={album?.name || 'Album'} className="h-10 w-10 rounded-md object-cover" />
                       ) : (
                         <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
                           <Music2 className="h-5 w-5 text-muted-foreground" />

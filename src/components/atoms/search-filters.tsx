@@ -46,7 +46,7 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
             {t('TrackProviderFilter.all')}
           </Badge>
           {providers.map((p) => {
-            const isSelected = filters.provider === p.id;
+            const isSelected = filters.provider === p.type;
             const colorClass = getProviderColor(p.type, isSelected ? 'contrast' : 'default');
             return (
               <Badge
@@ -56,11 +56,11 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
                 role="button"
                 tabIndex={0}
                 aria-pressed={isSelected}
-                onClick={() => onChange({ ...filters, provider: isSelected ? undefined : p.id })}
+                onClick={() => onChange({ ...filters, provider: isSelected ? undefined : p.type })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onChange({ ...filters, provider: isSelected ? undefined : p.id });
+                    onChange({ ...filters, provider: isSelected ? undefined : p.type });
                   }
                 }}
               >
@@ -80,7 +80,8 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
               <SelectTrigger size="sm" className="h-6 gap-1 border-dashed text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              {/* The palette overlay sits at z-200; the portalled content defaults to z-50. */}
+              <SelectContent className="z-[300]">
                 <SelectItem value="all">{t('GlobalSearch.filters.allGenres')}</SelectItem>
                 {genres.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
