@@ -8,6 +8,7 @@ export const artistsClient = universalClient(
     return {
       addFromUrl: (url: string) => http.post('/artists/add', { url }),
       delete: (artistId: string) => http.delete(`/artists/${artistId}`),
+      update: (artistId: string, body: { name: string }) => http.patch(`/artists/${artistId}`, body),
     };
   }),
 );
