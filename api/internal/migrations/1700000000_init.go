@@ -21,7 +21,7 @@ var snapshotJSON []byte
 // and one created during development.
 //
 //   - provider_settings: admin-only writes, authenticated reads. config may hold
-//     server-level settings incl. secrets (spotify clientSecret) — masking those
+//     server-level settings incl. secrets (spotify clientSecret), masking those
 //     from non-admin reads is a follow-up.
 //   - connections: per-user linkage, owner-only.
 //   - tracks.provider (relation to the dropped providers collection) becomes a

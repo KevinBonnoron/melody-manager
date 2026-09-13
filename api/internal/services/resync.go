@@ -34,7 +34,7 @@ func ResyncAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audi
 	groups := map[string][]*core.Record{}
 	var order []string
 	for _, t := range trackRecs {
-		u := t.GetString("sourceUrl")
+		u := t.GetString("origin")
 		if _, ok := groups[u]; !ok {
 			order = append(order, u)
 		}
@@ -59,7 +59,7 @@ func ResyncAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audi
 			_ = t.UnmarshalJSONField("metadata", &meta)
 			// Moving the window orphans whatever was cached under the old one.
 			if audio != nil && meta.StartTime != nil && meta.EndTime != nil {
-				audio.Forget(segmentKey(t.GetString("sourceUrl"), *meta.StartTime, *meta.EndTime))
+				audio.Forget(segmentKey(t.GetString("origin"), *meta.StartTime, *meta.EndTime))
 			}
 			st, et := ch.StartTime, ch.EndTime
 			meta.StartTime = &st

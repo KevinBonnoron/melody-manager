@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
 	"os/exec"
 	"strconv"
@@ -27,57 +26,42 @@ var formats = map[string]Format{
 	"aac":  {MimeType: "audio/aac", Args: []string{"-f", "adts", "-c:a", "aac", "-b:a", "256k"}},
 }
 
-// FormatFor returns the transcode format config, ok=false if unknown.
-func FormatFor(name string) (Format, bool) {
-	f, ok := formats[name]
-	return f, ok
-}
+// extensions name the container each format is written into, for callers that
+// need a file rather than a stream.
+var extensions = map[string]string{"mp3": ".mp3", "wav": ".wav", "flac": ".flac", "aac": ".aac"}
 
-// streamReader couples ffmpeg's stdout with the process so Close kills it.
-type streamReader struct {
-	io.ReadCloser
-	cmd *exec.Cmd
-}
-
-func (s *streamReader) Close() error {
-	err := s.ReadCloser.Close()
-	if s.cmd.Process != nil {
-		_ = s.cmd.Process.Kill()
+// Extension returns the file extension a transcoded format is written with.
+func Extension(format string) string {
+	if ext, ok := extensions[format]; ok {
+		return ext
 	}
-	_ = s.cmd.Wait()
-	return err
+	return ".mp3"
 }
 
-// Transcode starts ffmpeg reading from input (file path or URL), optionally
-// seeking to [start,end] seconds, and streams the chosen format to the
-// returned reader. Close the reader to stop and reap the process.
-func Transcode(ctx context.Context, input string, start, end float64, format string) (io.ReadCloser, string, error) {
+// SaveTranscode writes the whole of input to outPath in the given format. A
+// player can only seek in a response that has a length, which a pipe has not.
+func SaveTranscode(ctx context.Context, input, format, outPath string) error {
 	f, ok := formats[format]
 	if !ok {
 		f = formats["mp3"]
 	}
 
-	args := []string{}
-	if start > 0 {
-		args = append(args, "-ss", strconv.FormatFloat(start, 'f', -1, 64))
-	}
-	if end > 0 {
-		args = append(args, "-to", strconv.FormatFloat(end, 'f', -1, 64))
-	}
-	args = append(args, "-i", input)
+	args := []string{"-y", "-i", input, "-vn"}
 	args = append(args, f.Args...)
-	args = append(args, "pipe:1")
-
+	args = append(args, outPath)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, "", err
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
-	cmd.Stderr = io.Discard
-	if err := cmd.Start(); err != nil {
-		return nil, "", err
-	}
-	return &streamReader{ReadCloser: stdout, cmd: cmd}, f.MimeType, nil
+	return nil
+}
+
+// FormatFor returns the transcode format config, ok=false if unknown.
+func FormatFor(name string) (Format, bool) {
+	f, ok := formats[name]
+	return f, ok
 }
 
 // ProbeDuration returns the media duration in seconds via ffprobe.
@@ -133,7 +117,7 @@ func Peaks(ctx context.Context, input string, num int) ([]float64, error) {
 }
 
 // SaveSegment writes input (a local file or URL) to outPath as MP3. When
-// end > start it extracts only that [start, end] window (seconds) — used to cut
+// end > start it extracts only that [start, end] window (seconds), used to cut
 // chapter tracks out of a single downloaded source. end <= start downloads the
 // whole file.
 func SaveSegment(ctx context.Context, input string, start, end float64, outPath string) error {
@@ -155,10 +139,18 @@ func SaveSegment(ctx context.Context, input string, start, end float64, outPath 
 	return nil
 }
 
+// Tag is one metadata field written into the output container. A downloaded
+// file is read back by the scanner and by whatever music player the operator
+// points at the same folder, and both of them read tags, not file names.
+type Tag struct {
+	Name  string
+	Value string
+}
+
 // SaveSegmentCopy writes [start, end] of input to outPath without re-encoding.
 // The container is taken from outPath's extension, so callers keep the source
 // extension: copying preserves quality and is far faster than an encode.
-func SaveSegmentCopy(ctx context.Context, input string, start, end float64, outPath string) error {
+func SaveSegmentCopy(ctx context.Context, input string, start, end float64, outPath string, tags ...Tag) error {
 	args := []string{"-y"}
 	if start > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', -1, 64))
@@ -166,6 +158,12 @@ func SaveSegmentCopy(ctx context.Context, input string, start, end float64, outP
 	args = append(args, "-i", input)
 	if end > start {
 		args = append(args, "-t", strconv.FormatFloat(end-start, 'f', -1, 64))
+	}
+	for _, tag := range tags {
+		if tag.Value == "" {
+			continue
+		}
+		args = append(args, "-metadata", tag.Name+"="+tag.Value)
 	}
 	args = append(args, "-vn", "-c:a", "copy", outPath)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)

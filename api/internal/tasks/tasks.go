@@ -1,5 +1,5 @@
 // Package tasks is the in-memory background-job tracker (import, download,
-// enrich, scan), surfaced over SSE. Not persisted — lost on restart, matching
+// enrich, scan), surfaced over SSE. Not persisted, lost on restart, matching
 // the original server's behaviour.
 package tasks
 
@@ -28,7 +28,7 @@ type Task struct {
 	Status   Status `json:"status"`
 	Progress int    `json:"progress"`
 	// Count carries an outcome the client turns into a translated sentence.
-	// Names stay untranslatable subjects (an album, a URL) — prose built here
+	// Names stay untranslatable subjects (an album, a URL), prose built here
 	// could only ever be in one language.
 	Count     int    `json:"count,omitempty"`
 	Error     string `json:"error,omitempty"`
