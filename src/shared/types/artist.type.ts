@@ -8,6 +8,6 @@ export interface Artist extends PocketBaseRecord {
   name: string;
   bio?: string;
   cover?: string;
-  sourceUrl?: string;
+  origin?: string;
   metadata?: ArtistMetadata;
 }

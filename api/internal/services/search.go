@@ -21,7 +21,7 @@ func SearchLibrary(app core.App, query string) []domain.SearchResult {
 		for _, r := range recs {
 			out = append(out, domain.SearchResult{
 				Type: domain.ResultTrack, ID: r.Id, Title: r.GetString("title"),
-				Source: r.GetString("source"), SourceURL: r.GetString("sourceUrl"),
+				Source: r.GetString("source"), Origin: r.GetString("origin"),
 				Duration: r.GetInt("duration"), InLibrary: true,
 			})
 		}
@@ -60,7 +60,7 @@ func SearchProviders(ctx context.Context, app core.App, reg *providers.Registry,
 	var out []domain.SearchResult
 	errs := make([]ProviderError, 0)
 	for _, mf := range providers.Manifests() {
-		if !slices.Contains(mf.Features, "search") || !pbx.ProviderEnabled(app, mf.ID) {
+		if !slices.Contains(mf.Features, "search") || !pbx.ProviderEnabled(app, mf.ID) || !pbx.CapabilityAvailable(app, mf.ID, "search") {
 			continue
 		}
 		s := reg.Searcher(mf.ID)
@@ -78,7 +78,7 @@ func SearchProviders(ctx context.Context, app core.App, reg *providers.Registry,
 			continue
 		}
 		for i := range results {
-			results[i].InLibrary = inLibrary(app, results[i].SourceURL)
+			results[i].InLibrary = inLibrary(app, results[i].Origin)
 		}
 		out = append(out, results...)
 	}
@@ -106,6 +106,6 @@ func inLibrary(app core.App, sourceURL string) bool {
 	if sourceURL == "" {
 		return false
 	}
-	n, _ := app.CountRecords("tracks", dbx.NewExp("sourceUrl = {:u}", dbx.Params{"u": sourceURL}))
+	n, _ := app.CountRecords("tracks", dbx.NewExp("origin = {:u}", dbx.Params{"u": sourceURL}))
 	return n > 0
 }

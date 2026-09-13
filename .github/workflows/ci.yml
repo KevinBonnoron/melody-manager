@@ -6,13 +6,19 @@ on:
       - main
     tags:
       - 'v*'
+  # Every pull request, not only the ones aiming at main: a stack of pull requests
+  # is reviewed one part at a time, and the part that matters is the one on top.
   pull_request:
-    branches:
-      - main
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+
+# Checking out, testing and uploading a report need nothing else. A pull request
+# runs code from the branch it proposes, so the token it runs with should not be
+# able to write to the repository; the image job asks for what it needs on top.
+permissions:
+  contents: read
 
 jobs:
   client:
@@ -28,7 +34,7 @@ jobs:
       - name: Type-check
         run: bun run type-check
       - name: Test
-        run: bun test
+        run: bun test src
 
   api:
     runs-on: ubuntu-latest
@@ -50,10 +56,39 @@ jobs:
       - name: Test
         run: go test ./...
 
-  # The image rebuilds both sides, so it waits on the cheap checks rather than
-  # spending a multi-arch build on a branch that does not lint.
+  # The suite drives the real binary serving the real bundle, so it needs both
+  # toolchains and a browser.
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - run: bun install --frozen-lockfile
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Test
+        run: bun run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/.report
+            e2e/.artifacts
+          retention-days: 7
+
+  # The image rebuilds both sides, so it waits on the checks rather than
+  # spending a multi-arch build on a branch that does not lint or does not run.
   image:
-    needs: [client, api]
+    needs: [client, api, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -18,7 +18,7 @@ export function OnboardingPage() {
   const isAdmin = user.role === 'admin';
   const navigate = useNavigate();
   const [isContinuing, setIsContinuing] = useState(false);
-  const { data: providers = [] } = useLiveQuery((q) => q.from({ providers: providerCollection }), []);
+  const { data: providers = [] } = useLiveQuery({ query: (q) => q.from({ providers: providerCollection }) });
   const handleContinue = useCallback(async () => {
     setIsContinuing(true);
     try {

@@ -19,18 +19,23 @@ type Props = {
   onSubmit: (value: ConfigFormData) => void | Promise<void>;
   onAdd?: () => void | Promise<void>;
   onCancel?: () => void;
+  submitLabel?: string;
   isEdit?: boolean;
   isConnected?: boolean;
   useConnectionSchema?: boolean;
 };
 
 export function ProviderConfigForm(props: Props) {
-  const { type, initialConfig, onSubmit, onAdd, onCancel, isEdit = false, isConnected = false, useConnectionSchema = false } = props;
+  const { type, initialConfig, onSubmit, onAdd, onCancel, submitLabel, isEdit = false, isConnected = false, useConnectionSchema = false } = props;
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
-  const fields = useConnectionSchema ? (info?.connectionFields ?? info?.fields) : info?.fields;
+  // No fallback to the server fields: a source with nothing to ask its users
+  // asks them nothing. Falling back put the admin's own credentials, the
+  // Spotify client secret included, in a form every user sees and writes to
+  // his own connection.
+  const fields = useConnectionSchema ? (info?.connectionFields ?? []) : info?.fields;
   const requiredKeys = fields?.filter((f) => f.required && f.type !== 'checkbox').map((f) => f.key) ?? [];
   const form = useForm({
     defaultValues: initialConfig,
@@ -95,7 +100,7 @@ export function ProviderConfigForm(props: Props) {
   }
 
   // Without the manifest there is no schema, so the form would render empty and
-  // happily save nothing — which is how a provider ended up configured with no
+  // happily save nothing, which is how a provider ended up configured with no
   // configuration at all.
   if (!fields) {
     return <p className="text-muted-foreground text-sm">{t('ProviderCardActions.schemaUnavailable')}</p>;
@@ -195,7 +200,7 @@ export function ProviderConfigForm(props: Props) {
         >
           {({ isSubmitting }) => (
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t('ProviderCardActions.saving') : !isEdit ? t('ProviderCardActions.add') : isConnected ? t('ProviderCardActions.update') : t('ProviderCardActions.connect')}
+              {isSubmitting ? t('ProviderCardActions.saving') : (submitLabel ?? (!isEdit ? t('ProviderCardActions.add') : isConnected ? t('ProviderCardActions.update') : t('ProviderCardActions.connect')))}
             </Button>
           )}
         </form.Subscribe>

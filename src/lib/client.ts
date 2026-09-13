@@ -25,7 +25,7 @@ export const withHttpDelegate = (baseURL: string) =>
 
 export const withSseDelegate = (baseURL: string) => withServerSentEventDelegate(baseURL, 'sse');
 
-// The SSE delegate only falls back to EventSource — which cannot set headers —
+// The SSE delegate only falls back to EventSource, which cannot set headers :
 // for GET. Opening with POST puts it on fetch, so the stream carries the same
 // bearer token as every other request.
 export const sseAuth = () => ({

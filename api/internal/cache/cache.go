@@ -61,7 +61,7 @@ func New(dir string, maxFiles int, maxSize int64) (*Cache, error) {
 }
 
 // Fetch returns the cached file for key, producing it with produce on a miss.
-// The produced file is moved into the cache and belongs to it from then on —
+// The produced file is moved into the cache and belongs to it from then on :
 // callers must not delete what they get back.
 func (c *Cache) Fetch(ctx context.Context, key string, produce func(context.Context) (string, error)) (string, error) {
 	if path, ok := c.get(key); ok {
@@ -106,7 +106,7 @@ func (c *Cache) Size() int64 {
 }
 
 // Forget drops an entry and its file. Used when the data it held has been
-// superseded — a downloaded track makes its cached extract dead weight.
+// superseded, a downloaded track makes its cached extract dead weight.
 func (c *Cache) Forget(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

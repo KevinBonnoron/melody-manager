@@ -40,12 +40,22 @@ type TrackInfo struct {
 	Artist      string    `json:"artist"`
 	Uploader    string    `json:"uploader"`
 	Channel     string    `json:"channel"`
+	ChannelURL  string    `json:"channel_url"`
+	UploaderURL string    `json:"uploader_url"`
 	Album       string    `json:"album"`
 	UploadDate  string    `json:"upload_date"`
 	Ext         string    `json:"ext"`
 	TBR         float64   `json:"tbr"`
 	Description string    `json:"description"`
 	Chapters    []Chapter `json:"chapters"`
+	Comments    []Comment `json:"comments"`
+}
+
+// Comment is the subset of a yt-dlp comment we use. A long upload's track list
+// often lives in a comment rather than the description, which YouTube caps.
+type Comment struct {
+	Text   string `json:"text"`
+	Parent string `json:"parent"`
 }
 
 var streamURLCache = expirable.NewLRU[string, string](1000, nil, streamURLTTL)
@@ -131,13 +141,40 @@ func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, erro
 func InvalidateStreamURL(sourceURL string) { streamURLCache.Remove(sourceURL) }
 
 // ExtractTrackInfo fetches metadata for a single track and, when the embedded
-// chapters are missing/poor, derives them from the description.
+// chapters are missing or poor, derives them from the description and, failing
+// that, from the comments.
 func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo, error) {
 	if err := validateURL(url); err != nil {
 		return nil, err
 	}
+	info, err := extractInfo(ctx, url, cookiesFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if needsChapterRecovery(*info) && info.Duration > 0 {
+		fromDescription := ParseChapters(info.Description, info.Duration)
+		if len(fromDescription) <= 1 {
+			fromDescription = nil
+		}
+
+		// Fetching the comments costs a second, much slower call, so it only
+		// happens for an upload whose own chapters did not hold up.
+		fromComments := chaptersFromComments(ctx, url, cookiesFile, info.Duration)
+		if best := pickChapters(fromDescription, fromComments, info.Duration); len(best) > 1 {
+			info.Chapters = best
+		}
+	}
+	for i := range info.Chapters {
+		info.Chapters[i].Title = cleanTitle(info.Chapters[i].Title)
+	}
+	return info, nil
+}
+
+func extractInfo(ctx context.Context, url, cookiesFile string, extra ...string) (*TrackInfo, error) {
 	args := append([]string{"-j", "--no-playlist"}, cookieArgs(cookiesFile)...)
 	args = append(args, extraArgs...)
+	args = append(args, extra...)
 	args = append(args, "--", url)
 	out, err := run(ctx, args...)
 	if err != nil {
@@ -147,30 +184,101 @@ func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo,
 	if err := json.Unmarshal(out, &info); err != nil {
 		return nil, err
 	}
-
-	if needsChapterRecovery(info) && info.Description != "" && info.Duration > 0 {
-		if derived := ParseChapters(info.Description, info.Duration); len(derived) > 1 {
-			info.Chapters = derived
-		}
-	}
-	for i := range info.Chapters {
-		info.Chapters[i].Title = cleanTitle(info.Chapters[i].Title)
-	}
 	return &info, nil
 }
 
+// chaptersFromComments returns the longest track list any top-level comment
+// holds. A description is capped at 5000 characters, so the uploader of a long
+// compilation routinely ends it with "check the comments" and someone else
+// posts the rest.
+func chaptersFromComments(ctx context.Context, url, cookiesFile string, duration float64) []Chapter {
+	info, err := extractInfo(ctx, url, cookiesFile, "--write-comments")
+	if err != nil {
+		return nil
+	}
+
+	var best []Chapter
+	for _, comment := range info.Comments {
+		if comment.Parent != "root" {
+			continue
+		}
+
+		chapters := ParseChapters(comment.Text, duration)
+		if len(chapters) <= 1 {
+			continue
+		}
+		if len(chapters) > len(best) || (len(chapters) == len(best) && coverage(chapters, duration) > coverage(best, duration)) {
+			best = chapters
+		}
+	}
+
+	return best
+}
+
+// pickChapters takes whichever list names more tracks, and on a tie whichever
+// reaches further into the upload.
+func pickChapters(fromDescription, fromComments []Chapter, duration float64) []Chapter {
+	switch {
+	case len(fromDescription) == 0:
+		return fromComments
+	case len(fromComments) == 0:
+		return fromDescription
+	case len(fromComments) > len(fromDescription):
+		return fromComments
+	case len(fromDescription) > len(fromComments):
+		return fromDescription
+	}
+
+	if coverage(fromComments, duration) >= coverage(fromDescription, duration) {
+		return fromComments
+	}
+	return fromDescription
+}
+
+func coverage(chapters []Chapter, duration float64) float64 {
+	if len(chapters) == 0 || duration <= 0 {
+		return 0
+	}
+	return math.Min(1, chapters[len(chapters)-1].EndTime/duration)
+}
+
+var numberedTitleRe = regexp.MustCompile(`^\d+[.)]*\s*$`)
+
+// needsChapterRecovery reports whether the upload's own chapters can be trusted.
+//
+// A last chapter running far longer than the others is the signature of a list
+// that stops early: what follows it is not a track, it is everything the
+// uploader could not fit.
 func needsChapterRecovery(info TrackInfo) bool {
 	if len(info.Chapters) <= 1 {
 		return true
 	}
+
 	allNumeric := true
 	for _, c := range info.Chapters {
-		if !regexp.MustCompile(`^\d+[.)]*\s*$`).MatchString(strings.TrimSpace(c.Title)) {
+		if !numberedTitleRe.MatchString(strings.TrimSpace(c.Title)) {
 			allNumeric = false
 			break
 		}
 	}
-	return allNumeric
+	if allNumeric {
+		return true
+	}
+
+	return lastChapterOutsized(info.Chapters)
+}
+
+const outsizedLastChapter = 3
+
+func lastChapterOutsized(chapters []Chapter) bool {
+	last := chapters[len(chapters)-1]
+	var total float64
+	for _, c := range chapters[:len(chapters)-1] {
+		total += c.EndTime - c.StartTime
+	}
+
+	average := total / float64(len(chapters)-1)
+	return average > 0 && last.EndTime-last.StartTime > average*outsizedLastChapter
 }
 
 var searchSpecRe = regexp.MustCompile(`^(yt|sc)search\d*:`)
@@ -312,7 +420,7 @@ func BuildResolvedTrack(info TrackInfo, source string) domain.ResolvedTrack {
 	return domain.ResolvedTrack{
 		Title:      info.Title,
 		Duration:   int(math.Floor(info.Duration)),
-		SourceURL:  info.WebpageURL,
+		Origin:     info.WebpageURL,
 		ArtistName: artist,
 		AlbumName:  album,
 		CoverURL:   thumb,
@@ -348,7 +456,7 @@ func ParseChapters(text string, duration float64) []Chapter {
 		// than trimming brackets generally, which would eat the closing one of
 		// a title like "Opening [Episode One]".
 		title = strings.ReplaceAll(title, "[]", "")
-		title = strings.Trim(title, " -–—:·")
+		title = strings.Trim(title, " -–::·")
 		title = leadingNumRe.ReplaceAllString(title, "")
 		title = strings.TrimSpace(title)
 		if title == "" {
@@ -389,3 +497,45 @@ func firstNonEmpty(vals ...string) string {
 }
 
 func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
+
+// ChannelAvatar returns the channel's avatar URL. YouTube exposes it on the
+// channel, never on a video, so this costs one extra yt-dlp run, call it once
+// per import and only when the artist has no image yet.
+func ChannelAvatar(ctx context.Context, channelURL, cookiesFile string) string {
+	if channelURL == "" || validateURL(channelURL) != nil {
+		return ""
+	}
+
+	args := append([]string{"-J", "--playlist-items", "0"}, cookieArgs(cookiesFile)...)
+	args = append(args, extraArgs...)
+	args = append(args, "--", channelURL)
+	out, err := run(ctx, args...)
+	if err != nil {
+		return ""
+	}
+
+	var payload struct {
+		Thumbnails []struct {
+			ID     string `json:"id"`
+			URL    string `json:"url"`
+			Width  int    `json:"width"`
+			Height int    `json:"height"`
+		} `json:"thumbnails"`
+	}
+	if err := json.Unmarshal(out, &payload); err != nil {
+		return ""
+	}
+
+	// Channels expose an avatar and a banner; the avatar is square, the banner
+	// is not. Prefer the largest square.
+	best, bestSize := "", 0
+	for _, t := range payload.Thumbnails {
+		if t.URL == "" || t.Width == 0 || t.Width != t.Height {
+			continue
+		}
+		if t.Width > bestSize {
+			best, bestSize = t.URL, t.Width
+		}
+	}
+	return best
+}

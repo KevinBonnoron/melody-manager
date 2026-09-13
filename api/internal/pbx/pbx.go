@@ -5,6 +5,7 @@ package pbx
 import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"strings"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 )
@@ -16,7 +17,7 @@ import (
 func EffectiveConfig(app core.App, userID, providerType string) providers.Config {
 	cfg := providers.Config{}
 
-	if rec, err := app.FindFirstRecordByFilter("provider_settings",
+	if rec, err := app.FindFirstRecordByFilter("provider_config",
 		"type = {:t}", dbx.Params{"t": providerType}); err == nil {
 		merge(cfg, recordConfig(rec))
 	}
@@ -53,4 +54,42 @@ func merge(dst providers.Config, src map[string]any) {
 	for k, v := range src {
 		dst[k] = v
 	}
+}
+
+// MissingConfig reports, per capability the manifest declares requirements for,
+// which server-level fields are still empty. An empty result means everything
+// the source needs is set.
+func MissingConfig(app core.App, providerType string) map[string][]string {
+	mf, ok := providers.ManifestFor(providerType)
+	if !ok || len(mf.Requires) == 0 {
+		return nil
+	}
+
+	cfg := providers.Config{}
+	if rec, err := app.FindFirstRecordByFilter("provider_config",
+		"type = {:t}", dbx.Params{"t": providerType}); err == nil {
+		merge(cfg, recordConfig(rec))
+	}
+
+	out := map[string][]string{}
+	for capability, fields := range mf.Requires {
+		var missing []string
+		for _, name := range fields {
+			if v, _ := cfg[name].(string); strings.TrimSpace(v) == "" {
+				missing = append(missing, name)
+			}
+		}
+		if len(missing) > 0 {
+			out[capability] = missing
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// CapabilityAvailable is the yes/no form of MissingConfig for one capability.
+func CapabilityAvailable(app core.App, providerType, capability string) bool {
+	return len(MissingConfig(app, providerType)[capability]) == 0
 }

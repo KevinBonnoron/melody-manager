@@ -2,7 +2,9 @@ pre-commit:
   jobs:
     - name: biome format
       glob: "*.{js,ts,jsx,tsx,css}"
-      run: bunx biome format --write {staged_files} && git add {staged_files}
+      # Without this, a commit touching only files biome's config excludes, a
+      # stylesheet for one, is refused: biome reports being given nothing to do.
+      run: bunx biome format --no-errors-on-unmatched --write {staged_files} && git add {staged_files}
 
 pre-push:
   jobs:

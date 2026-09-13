@@ -22,7 +22,8 @@ tasks:
     desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
     dir: api
     cmds:
-      - go run . serve --http 127.0.0.1:8090
+      # The listen address comes from config/config.json; pass --http to override.
+      - go run . serve
 
   client:
     desc: Run the Vite client on :5173
@@ -56,6 +57,58 @@ tasks:
     cmds:
       - bun run build
 
+  desktop:
+    desc: Build and run the desktop client (Wails)
+    deps: [desktop:build]
+    cmds:
+      - ./bin/melody-manager-desktop
+
+  desktop:build:
+    desc: Build the desktop client into bin/melody-manager-desktop
+    env:
+      # Wails binds the system webview through cgo, unlike the API, which is
+      # built pure-Go so it can ship as a static binary.
+      CGO_ENABLED: '1'
+    cmds:
+      # The client is embedded in the binary, so it is built first.
+      - bun run build:desktop
+      - cd desktop && go build -o ../bin/melody-manager-desktop .
+
+  desktop:install:
+    desc: 'Install the desktop client for the current user (PREFIX=~/.local by default)'
+    deps: [desktop:build]
+    vars:
+      PREFIX: '{{.PREFIX | default (printf "%s/.local" .HOME)}}'
+    cmds:
+      # A user-level XDG install: no root, no package manager, and it works the
+      # same on a distribution that has one and on a system that does not.
+      - install -Dm755 bin/melody-manager-desktop "{{.PREFIX}}/bin/melody-manager"
+      - install -Dm644 public/pwa-512x512.png "{{.PREFIX}}/share/icons/hicolor/512x512/apps/melody-manager.png"
+      - install -Dm644 public/pwa-192x192.png "{{.PREFIX}}/share/icons/hicolor/192x192/apps/melody-manager.png"
+      # The launcher names the binary by its full path: ~/.local/bin is not on
+      # every session's PATH, and a menu entry that does nothing is worse than
+      # none.
+      - sed 's|__EXEC__|{{.PREFIX}}/bin/melody-manager|' desktop/melody-manager.desktop | install -Dm644 /dev/stdin "{{.PREFIX}}/share/applications/melody-manager.desktop"
+      - update-desktop-database "{{.PREFIX}}/share/applications" 2>/dev/null || true
+      - echo "Installed in {{.PREFIX}}"
+
+  desktop:reset:
+    desc: 'Forget the desktop client''s stored server address and session'
+    cmds:
+      # WebKit keeps the window's local storage here, which is where the client
+      # put the server address. The application itself offers "Change server";
+      # this is for when it will not start far enough to reach it.
+      - rm -rf "$HOME/.local/share/melody-manager-desktop" "$HOME/.cache/melody-manager-desktop"
+      - echo "Desktop client reset"
+
+  desktop:uninstall:
+    desc: 'Remove the desktop client installed for the current user'
+    vars:
+      PREFIX: '{{.PREFIX | default (printf "%s/.local" .HOME)}}'
+    cmds:
+      - rm -f "{{.PREFIX}}/bin/melody-manager" "{{.PREFIX}}/share/applications/melody-manager.desktop" "{{.PREFIX}}/share/icons/hicolor/512x512/apps/melody-manager.png" "{{.PREFIX}}/share/icons/hicolor/192x192/apps/melody-manager.png"
+      - update-desktop-database "{{.PREFIX}}/share/applications" 2>/dev/null || true
+
   type-check:
     desc: Type-check the client
     cmds:
@@ -75,7 +128,12 @@ tasks:
     desc: Run Go and client tests
     cmds:
       - cd api && go test ./...
-      - bun test
+      - bun test src
+
+  test:e2e:
+    desc: 'Run the Playwright suite against a throwaway server on :8099 (never touches :8090)'
+    cmds:
+      - bun run test:e2e
 
   tidy:
     desc: go mod tidy for the API module

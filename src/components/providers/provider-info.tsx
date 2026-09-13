@@ -1,6 +1,11 @@
 import type { TFunction } from 'i18next';
-import { HardDrive, type LucideIcon, Music2, Speaker } from 'lucide-react';
+import { HardDrive, Music2, Speaker } from 'lucide-react';
+import type { ComponentType } from 'react';
 import type { ConfigSchemaItem, PluginManifest } from '@/shared';
+import { BandcampIcon, SoundCloudIcon, SpotifyIcon, YoutubeIcon } from './brand-icons';
+
+// Lucide icons and brand marks both fit: the screens only ever size them.
+export type ProviderIcon = ComponentType<{ className?: string }>;
 
 export interface FieldConfig {
   key: string;
@@ -14,16 +19,20 @@ export interface FieldConfig {
 export interface ProviderInfo {
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: ProviderIcon;
   fields?: FieldConfig[];
   connectionFields?: FieldConfig[];
   isAutoDiscovery?: boolean;
   discoveryHelp?: string;
 }
 
-const ICON_MAP: Record<string, LucideIcon> = {
+const ICON_MAP: Record<string, ProviderIcon> = {
   'hard-drive': HardDrive,
   speaker: Speaker,
+  youtube: YoutubeIcon,
+  spotify: SpotifyIcon,
+  soundcloud: SoundCloudIcon,
+  bandcamp: BandcampIcon,
 };
 
 function mapSchemaTypeToFieldType(schema: ConfigSchemaItem): FieldConfig['type'] {

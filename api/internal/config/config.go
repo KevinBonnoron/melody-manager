@@ -1,73 +1,236 @@
+// Package config holds the operator settings, in a JSON file rather than in the
+// database: it has to stay readable and editable when the server will not start,
+// and none of it justifies a reactive collection.
 package config
 
 import (
+	"encoding/json"
 	"os"
-	"strconv"
-	"strings"
+	"path/filepath"
+	"sync"
 )
 
-// Config holds runtime configuration sourced from the environment. With
-// embedded PocketBase there is no PB_URL/superuser hop anymore — the DB lives
-// in-process. SERVER_URL is still needed so devices (Sonos) can reach the
-// stream endpoints.
+// Config is the whole operator-facing configuration. Anything a deployment
+// needs to set lives here, including the one application setting an
+// unauthenticated screen has to read.
 type Config struct {
-	ServerURL    string
-	CacheDir     string
-	CacheMaxFile int
-	CacheMaxSize int64
+	// PublicURL is the address of this server as reachable from outside the
+	// browser: speakers fetching a stream, share links, future integrations.
+	// ListenAddr is the address the server binds to. Loopback keeps it to this
+	// machine; 0.0.0.0 lets the network in, which anything fetching from the
+	// server, a speaker, a phone, needs.
+	ListenAddr    string `json:"listenAddr"`
+	PublicURL     string `json:"publicUrl"`
+	CacheDir      string `json:"cacheDir"`
+	CacheMaxFiles int    `json:"cacheMaxFiles"`
+	CacheMaxSize  int64  `json:"cacheMaxSize"`
+	// Absent means closed: the zero value is the safe one, so a hand-written or
+	// truncated file never opens registration by accident.
+	RegistrationAllowed bool `json:"registrationAllowed"`
+	// Speakers found once are remembered here and confirmed over HTTP from then
+	// on: a Sonos stops answering discovery without warning, and would otherwise
+	// disappear from a list it is perfectly able to play from. Addresses can be
+	// added by hand when discovery never gets an answer at all.
+	SonosAddresses []string `json:"sonosAddresses"`
 }
 
-func Load() Config {
+// Store reads and writes the configuration file, and hands out copies so no
+// caller can mutate the shared value.
+type Store struct {
+	path string
+
+	mu      sync.RWMutex
+	current Config
+}
+
+// DefaultPath is where the file lives unless CONFIG_FILE says otherwise. The
+// container mounts /config; a checkout gets a local directory.
+func DefaultPath() string {
+	if path := os.Getenv("CONFIG_FILE"); path != "" {
+		return path
+	}
+	return filepath.Join("config", "config.json")
+}
+
+// Load opens the configuration file, creating it with the defaults when it is
+// missing. The file is the only source of truth: nothing is read from the
+// environment except where the file itself lives.
+func Load(path string) (*Store, bool, error) {
+	store := &Store{path: path}
+
+	data, err := os.ReadFile(path)
+	if err == nil {
+		cfg := defaults()
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			return nil, false, err
+		}
+
+		store.current = heal(cfg)
+		return store, false, nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, false, err
+	}
+
+	store.current = defaults()
+	return store, true, store.write(store.current)
+}
+
+// Fallback is the store used when the file cannot be read: the server still
+// starts, on defaults, and says so. It keeps the path it failed to read, so an
+// administrator correcting the configuration from the admin screen writes to
+// the file the server will read next time rather than nowhere.
+func Fallback(path string) *Store {
+	return &Store{path: path, current: defaults()}
+}
+
+// KnownSpeakers lists the addresses discovery has found before.
+func (s *Store) KnownSpeakers() []string {
+	return s.Get().SonosAddresses
+}
+
+// RememberSpeakers adds addresses to the list, keeping what is already there:
+// a speaker that is merely switched off should not be forgotten because one
+// discovery pass happened without it.
+func (s *Store) RememberSpeakers(addresses []string) error {
+	s.mu.Lock()
+	known := map[string]bool{}
+	for _, addr := range s.current.SonosAddresses {
+		known[addr] = true
+	}
+
+	added := false
+	next := s.current
+	for _, addr := range addresses {
+		if !known[addr] {
+			known[addr] = true
+			next.SonosAddresses = append(next.SonosAddresses, addr)
+			added = true
+		}
+	}
+	if !added {
+		s.mu.Unlock()
+		return nil
+	}
+
+	if err := s.write(next); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	s.current = next
+	s.mu.Unlock()
+	return nil
+}
+
+// Reload re-reads the file. Migrations run after the store is first loaded and
+// may write to it, so the serving process has to pick their changes up.
+func (s *Store) Reload() error {
+	if s.path == "" {
+		return nil
+	}
+
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		return err
+	}
+
+	cfg := defaults()
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.current = heal(cfg)
+	return nil
+}
+
+// Get returns a copy of the current configuration.
+func (s *Store) Get() Config {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.current
+}
+
+// Path is where the configuration is read from and written to.
+func (s *Store) Path() string { return s.path }
+
+// Save replaces the configuration and persists it.
+func (s *Store) Save(next Config) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.write(next); err != nil {
+		return err
+	}
+
+	s.current = next
+	return nil
+}
+
+// write lands the file in one step: a half-written configuration is worse than
+// an old one, and this file is what a stuck server is recovered with.
+func (s *Store) write(cfg Config) error {
+	if s.path == "" {
+		return nil
+	}
+
+	if dir := filepath.Dir(s.path); dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".config-*.json")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmp.Name(), s.path)
+}
+
+// heal replaces values a file can hold but nothing can use. An empty string is
+// what a hand-edited or half-written file leaves behind, and taking it at face
+// value silently changes where the server listens or what address it hands out.
+func heal(cfg Config) Config {
+	fallback := defaults()
+	if cfg.ListenAddr == "" {
+		cfg.ListenAddr = fallback.ListenAddr
+	}
+	if cfg.PublicURL == "" {
+		cfg.PublicURL = fallback.PublicURL
+	}
+	if cfg.CacheDir == "" {
+		cfg.CacheDir = fallback.CacheDir
+	}
+	if cfg.CacheMaxFiles <= 0 {
+		cfg.CacheMaxFiles = fallback.CacheMaxFiles
+	}
+	if cfg.CacheMaxSize <= 0 {
+		cfg.CacheMaxSize = fallback.CacheMaxSize
+	}
+	return cfg
+}
+
+func defaults() Config {
 	return Config{
-		ServerURL:    env("SERVER_URL", "http://localhost:8090"),
-		CacheDir:     env("CACHE_DIR", "/tmp/melody-manager-cache"),
-		CacheMaxFile: envInt("CACHE_MAX_FILES", 500),
-		CacheMaxSize: envSize("CACHE_MAX_SIZE", 5*1024*1024*1024),
+		PublicURL:           "http://localhost:8090",
+		CacheDir:            "/tmp/melody-manager-cache",
+		CacheMaxFiles:       500,
+		CacheMaxSize:        5 * 1024 * 1024 * 1024,
+		RegistrationAllowed: false,
 	}
-}
-
-func env(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok && v != "" {
-		return v
-	}
-	return fallback
-}
-
-func envInt(key string, fallback int) int {
-	if v, ok := os.LookupEnv(key); ok {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return fallback
-}
-
-// envSize reads a byte size, accepting the documented human forms ("512MB",
-// "5GB") as well as a plain byte count.
-func envSize(key string, fallback int64) int64 {
-	raw, ok := os.LookupEnv(key)
-	if !ok || raw == "" {
-		return fallback
-	}
-	v := strings.TrimSpace(strings.ToUpper(raw))
-	mult := int64(1)
-	for _, unit := range []struct {
-		suffix string
-		factor int64
-	}{
-		{"KB", 1 << 10}, {"MB", 1 << 20}, {"GB", 1 << 30}, {"TB", 1 << 40},
-		{"K", 1 << 10}, {"M", 1 << 20}, {"G", 1 << 30}, {"T", 1 << 40},
-		{"B", 1},
-	} {
-		if strings.HasSuffix(v, unit.suffix) {
-			v = strings.TrimSpace(strings.TrimSuffix(v, unit.suffix))
-			mult = unit.factor
-			break
-		}
-	}
-	n, err := strconv.ParseInt(v, 10, 64)
-	if err != nil || n < 0 {
-		return fallback
-	}
-	return n * mult
 }

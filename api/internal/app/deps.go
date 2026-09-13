@@ -19,17 +19,26 @@ type Deps struct {
 	Tasks    *tasks.Service
 	Devices  *devices.Service
 	Cache    *cache.Cache
+	Config   *config.Store
 }
 
 // New builds the default dependency set.
 func New() *Deps {
-	cfg := config.Load()
-	audio, err := cache.New(cfg.CacheDir, cfg.CacheMaxFile, cfg.CacheMaxSize)
+	store, created, err := config.Load(config.DefaultPath())
+	if err != nil {
+		slog.Error("configuration unreadable, falling back to defaults", "path", config.DefaultPath(), "error", err)
+		store = config.Fallback(config.DefaultPath())
+	} else if created {
+		slog.Info("configuration file created", "path", config.DefaultPath())
+	}
+
+	cfg := store.Get()
+	audio, err := cache.New(cfg.CacheDir, cfg.CacheMaxFiles, cfg.CacheMaxSize)
 	if err != nil {
 		// A configured directory that cannot be created is worth reporting, but
 		// not worth refusing to start over: fall back to the system temp dir.
 		slog.Warn("audio cache unavailable, falling back to the temp dir", "dir", cfg.CacheDir, "error", err)
-		audio, err = cache.New(filepath.Join(os.TempDir(), "melody-manager-cache"), cfg.CacheMaxFile, cfg.CacheMaxSize)
+		audio, err = cache.New(filepath.Join(os.TempDir(), "melody-manager-cache"), cfg.CacheMaxFiles, cfg.CacheMaxSize)
 		if err != nil {
 			slog.Error("audio cache disabled", "error", err)
 		}
@@ -37,7 +46,8 @@ func New() *Deps {
 	return &Deps{
 		Registry: providers.NewRegistry(),
 		Tasks:    tasks.New(),
-		Devices:  devices.New(cfg.ServerURL),
+		Devices:  devices.New(func() string { return store.Get().PublicURL }, store),
 		Cache:    audio,
+		Config:   store,
 	}
 }

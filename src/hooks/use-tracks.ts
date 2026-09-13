@@ -4,11 +4,11 @@ import { trackCollection } from '@/collections/track.collection';
 import type { Track } from '@/shared';
 
 export function useTracks() {
-  return useLiveQuery((q) => q.from({ tracks: trackCollection }));
+  return useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
 }
 
 export function useAlbumTracks(albumId: string) {
-  const result = useLiveQuery((q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.album, albumId)), [albumId]);
+  const result = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.album, albumId)) });
   const data = useMemo(
     () =>
       result.data
@@ -37,5 +37,5 @@ export function useAlbumTracks(albumId: string) {
 }
 
 export function useArtistTracks(artistId: string) {
-  return useLiveQuery((q) => q.from({ tracks: trackCollection }).where(({ tracks }) => inArray(artistId, tracks.artists)), [artistId]);
+  return useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => inArray(artistId, tracks.artists)) });
 }

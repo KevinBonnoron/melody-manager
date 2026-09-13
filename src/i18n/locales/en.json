@@ -14,10 +14,9 @@
     "tracks_other": "tracks",
     "noTracksInAlbum": "No tracks in this album",
     "unknownArtist": "Unknown Artist",
-    "addToLibrary": "Add to library",
-    "inLibrary": "In library",
     "openExternal": "Open in provider",
-    "playAlbum": "Play Album"
+    "playAlbum": "Play Album",
+    "actions": "Album actions"
   },
   "AlbumTable": {
     "title": "Title",
@@ -33,7 +32,57 @@
     "smartPlaylists": "Smart Playlists",
     "noSmartPlaylists": "Create a smart playlist to get personalized mixes based on your listening habits.",
     "recentArtists": "Recent Artists",
-    "recentAlbums": "Recent Albums"
+    "recentAlbums": "Recent Albums",
+    "continueListening": "Continue listening",
+    "resumeAt": "Resume at {{time}}"
+  },
+  "SearchPage": {
+    "title": "Search",
+    "description": "Search your library and external sources",
+    "placeholder": "Title, artist, album, or paste a link…",
+    "myLibrary": "My library",
+    "externalResults": "External sources",
+    "add": "Add",
+    "linkDetected": "Link detected",
+    "readyToImport": "Ready to import",
+    "addToLibrary": "Add to my library",
+    "recentSearches": "Recent searches",
+    "suggestions": "Suggestions",
+    "urlHint": "Tip: paste a {{sources}} link to import it directly",
+    "artists": "Artists",
+    "albums": "Albums",
+    "tracks": "Tracks",
+    "noLibraryResults": "No results for \"{{query}}\" in your library",
+    "searchExternal": "Search on external sources",
+    "alsoSearchOn": "Also search \"{{query}}\" on",
+    "urlAdded": "Added to library",
+    "added": "Added",
+    "openSource": "Open the source",
+    "clear": "Clear the search"
+  },
+  "SourcesPage": {
+    "title": "Sources",
+    "description": "Where your music comes from",
+    "none": "No source is enabled yet",
+    "notFound": "Unknown source",
+    "status": {
+      "server": "Managed by the server",
+      "linked": "Linked to your account",
+      "unlinked": "Not linked to your account",
+      "active": "Feeding your library",
+      "unconfigured": "Not configured yet"
+    },
+    "tracks_one": "track",
+    "tracks_other": "tracks",
+    "albums_one": "album",
+    "albums_other": "albums",
+    "artists_one": "artist",
+    "artists_other": "artists",
+    "serverSettings": "Server settings",
+    "actions": "Actions for {{title}}",
+    "scan": "Scan the library",
+    "scanStarted": "{{title}} scan started",
+    "scanError": "Could not start the {{title}} scan"
   },
   "SmartPlaylist": {
     "most-played": "Most Played",
@@ -46,12 +95,19 @@
   "PlaylistPage": {
     "tracks_one": "track",
     "tracks_other": "tracks",
-    "addToLibrary": "Add to library",
-    "inLibrary": "In library",
     "noTracks": "No tracks in this playlist",
     "notFound": "Playlist not found",
     "openExternal": "Open in provider",
-    "play": "Play Playlist"
+    "play": "Play Playlist",
+    "actions": "Playlist actions",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "deleteSuccess": "\"{{name}}\" was deleted",
+    "deleteError": "Could not delete this playlist",
+    "deleteConfirmTitle": "Delete the playlist",
+    "deleteConfirmDescription": "Delete \"{{name}}\"? The tracks it holds stay in your library.",
+    "dislike": "Dislike",
+    "undislike": "Remove dislike"
   },
   "LibraryPage": {
     "title": "Library",
@@ -61,17 +117,21 @@
     "playlists": "Playlists",
     "tracks": "Tracks",
     "seeAll": "See all",
-    "seeMore": "See more",
+    "seeMore": "Show more",
     "showLess": "Show less",
     "noLikedTracks": "No liked tracks yet",
     "startLikingTracks": "Like tracks to add them to your library",
     "noLikedAlbums": "No liked albums yet",
     "startLikingAlbums": "Like albums to add them to your library",
     "noLikedArtists": "No liked artists yet",
+    "noSourceMatches": "Nothing from this source in your library yet",
     "startLikingArtists": "Like artists to add them to your library",
     "emptyTitle": "Your library is empty",
     "emptyDescription": "Search for music and like artists, albums or tracks to build your personal library.",
-    "searchForMusic": "Search for music"
+    "searchForMusic": "Search for music",
+    "tabAll": "All",
+    "noPlaylists": "No playlist yet",
+    "startAddingPlaylists": "Import a playlist from a source or create your own to find it here."
   },
   "TrackGrid": {
     "noTracksFound": "No tracks found",
@@ -104,7 +164,32 @@
     "downloadError": "Failed to download album",
     "resync": "Resync chapters",
     "resyncStarted": "Resync started",
-    "resyncError": "Failed to start resync"
+    "resyncError": "Failed to start resync",
+    "checkFiles": "Check files",
+    "checkChecking": "Checking...",
+    "checkError": "Check failed",
+    "refreshCover": "Refresh cover",
+    "refreshingCover": "Searching...",
+    "coverRefreshed": "Cover refreshed",
+    "coverError": "No cover found",
+    "checkClean_one": "{{count}} track checked, nothing changed",
+    "checkClean_other": "{{count}} tracks checked, nothing changed",
+    "checkChanged_one": "{{count}} track updated, {{lost}}",
+    "checkChanged_other": "{{count}} tracks updated, {{lost}}",
+    "dislike": "Dislike",
+    "undislike": "Remove dislike",
+    "rename": "Rename",
+    "renameLabel": "Album name",
+    "renameDescription": "The folder on disk follows the new name. If a folder of that name already exists for this artist, nothing is moved.",
+    "renamed": "\"{{name}}\" renamed",
+    "edit": "Rename or change artist",
+    "editDescription": "The folder on disk follows: renaming moves the album, changing artist files it under the other one. If a folder of that name already exists, nothing is moved.",
+    "artistLabel": "Artist",
+    "artistSearch": "Search an artist",
+    "artistNone": "No artist",
+    "edited": "\"{{name}}\" updated",
+    "checkLost_one": "{{count}} missing",
+    "checkLost_other": "{{count}} missing"
   },
   "TrackActionsMenu": {
     "like": "Add to liked songs",
@@ -128,7 +213,10 @@
     "deleteConfirmTitle": "Delete track",
     "deleteConfirmDescription": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "deleteSuccess": "\"{{title}}\" has been deleted",
-    "deleteError": "Failed to delete track"
+    "deleteError": "Failed to delete track",
+    "expires": "Make the link expire",
+    "neverExpires": "The link stays valid until you revoke it.",
+    "actions": "Track actions"
   },
   "Tasks": {
     "title": "Tasks",
@@ -155,14 +243,10 @@
     "search": "Search",
     "addMusic": "Add Music"
   },
-  "BackButton": {
-    "label": "Back"
-  },
   "SignOutDropdownMenuItem": {
     "label": "Log out"
   },
   "AppSidebar": {
-    "tagline": "Your music, everywhere, all at once",
     "userFallback": "User",
     "noEmail": "No email",
     "home": "Home",
@@ -171,7 +255,14 @@
     "providers": "Connections",
     "shares": "Shares",
     "history": "History",
-    "stats": "Stats"
+    "stats": "Stats",
+    "search": "Search",
+    "platforms": "Platforms",
+    "platformsConnected_one": "{{count}} connected",
+    "platformsConnected_other": "{{count}} connected",
+    "allSources": "All sources",
+    "connect": "Connect",
+    "toggle": "Toggle the sidebar"
   },
   "SharesPage": {
     "title": "Shares",
@@ -192,13 +283,18 @@
     "delete": "Delete",
     "deleting": "Deleting...",
     "deleteSuccess": "Share link deleted",
-    "deleteError": "Failed to delete share link"
+    "deleteError": "Failed to delete share link",
+    "plays": "Plays"
   },
   "ProvidersPage": {
-    "title": "Providers",
-    "description": "Configure your music sources and playback devices",
     "sharedTitle": "Shared providers",
-    "sharedDescription": "Server-wide providers accessible to specific users"
+    "sharedDescription": "Server-wide providers accessible to specific users",
+    "connectedSources": "connected sources",
+    "aggregatedTracks": "aggregated tracks",
+    "activeSources": "Active sources",
+    "addSource": "Add a source",
+    "addSourceDescription": "Connect your accounts to unify your libraries and playlists in one place.",
+    "disconnected": "Disconnected"
   },
   "Admin": {
     "title": "Admin",
@@ -206,8 +302,6 @@
     "usersTitle": "Users",
     "usersDescription": "Manage user accounts",
     "usersLoading": "Loading users...",
-    "providersTitle": "Services",
-    "providersDescription": "Configure music sources and playback devices accessible to all users",
     "tabMusicSources": "Music Sources",
     "tabPlaybackDevices": "Playback Devices",
     "addProvider": "Add provider",
@@ -217,15 +311,60 @@
     "addProviderSelectPlaceholder": "Select a provider",
     "addProviderCancel": "Cancel",
     "addProviderConfirm": "Add",
-    "noProvidersInCategory": "No providers added yet. Use the button above to add one.",
-    "providersCount": "{{count}} provider(s) configured",
-    "allProviderTypesAdded": "All provider types already added",
-    "personalProviderHint": "Each user configures their own credentials"
+    "you": "(you)",
+    "roleUser": "User",
+    "roleAdmin": "Administrator",
+    "deleteUser": "Delete",
+    "userDeleted": "{{name}} has been deleted",
+    "userDeleteError": "Could not delete the account",
+    "deleteUserDescription": "Delete {{name}}? Their ratings, listening history, connections and share links go with the account. Imported tracks and playlists stay, they belong to the library.",
+    "memberSince": "Member since",
+    "editUser": "Edit",
+    "editUserDescription": "The account's name, address, role and password.",
+    "name": "Name",
+    "email": "Email address",
+    "role": "Role",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "Leave empty to keep it",
+    "passwordResetHint": "8 characters minimum. This account's open sessions will be closed.",
+    "passwordResetSelfWarning": "8 characters minimum. Changing your own password signs you out.",
+    "cannotChangeOwnRole": "You cannot change your own role.",
+    "save": "Save",
+    "saving": "Saving...",
+    "userUpdated": "{{name}} has been updated",
+    "userUpdateError": "Could not update the account",
+    "account": "Account",
+    "actions": "Actions",
+    "passwordTooShort": "The password must be at least {{count}} characters"
+  },
+  "AdminSettings": {
+    "title": "Settings",
+    "description": "Server-wide options",
+    "unavailable": "Settings are unavailable.",
+    "saveError": "Could not save the setting",
+    "registration": {
+      "title": "Allow sign-ups",
+      "description": "When off, nobody can sign themselves up. An administrator can still create an account."
+    },
+    "publicUrl": {
+      "title": "Server public URL",
+      "description": "Address devices outside the browser use to reach this server. Sonos speakers fetch the stream from it. Left empty, the server uses its own address on the speaker network.",
+      "detect": "Detect",
+      "candidates": "Detected addresses:",
+      "noCandidate": "No network address found",
+      "detectError": "Detection failed",
+      "loopbackWarning": "This address means \"this machine\" to whatever reads it: no device outside the browser can reach the server. Use its network address."
+    },
+    "storedAt": "Configuration stored in {{path}}",
+    "saved": "Saved",
+    "listenAddr": {
+      "title": "Listen address",
+      "description": "Interface and port the server accepts connections on. `127.0.0.1` keeps it to this machine; `0.0.0.0` opens it to the network, which devices fetching the stream need.",
+      "restartNotice": "Applied the next time the server starts."
+    }
   },
   "ArtistPage": {
     "playAll": "Play all",
-    "follow": "Follow",
-    "following": "Following",
     "albumsSectionTitle": "Albums",
     "artistNotFound": "Artist not found",
     "albums_one": "album",
@@ -238,7 +377,14 @@
     "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
     "deleteSuccess": "\"{{name}}\" has been deleted",
     "deleteError": "Failed to delete artist",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "actions": "Artist actions",
+    "dislike": "Dislike",
+    "undislike": "Remove dislike",
+    "rename": "Rename",
+    "renameLabel": "Artist name",
+    "renameDescription": "The folder on disk follows the new name, with every album in it. If a folder of that name already exists, nothing is moved.",
+    "renamed": "\"{{name}}\" renamed"
   },
   "AuthLayout": {
     "description": "Your personal music library manager. Stream, organize, and enjoy your music collection across all your devices.",
@@ -270,6 +416,9 @@
     "openExternal": "Open in provider",
     "addToLibrary": "Add to library",
     "failedToSearch": "Failed to search",
+    "navigate": "navigate",
+    "open": "open",
+    "close": "close",
     "tracksCount_one": "{{count}} track",
     "tracksCount_other": "{{count}} tracks",
     "albumsCount_one": "{{count}} album",
@@ -287,7 +436,8 @@
       "title": "Recent searches",
       "clear": "Clear history",
       "remove": "Remove"
-    }
+    },
+    "openPage": "See on the page"
   },
   "Onboarding": {
     "title": "Welcome to Melody Manager",
@@ -301,18 +451,23 @@
   },
   "LoginForm": {
     "error": "Invalid email or password",
-    "success": "Welcome back!"
+    "success": "Welcome back!",
+    "unreachable": "Server unreachable. Check its address and that it is running."
   },
   "MusicPlayer": {
     "playbackError": "Failed to play \"{{title}}\"",
     "playbackErrorGeneric": "Playback failed",
-    "deviceError": "Failed to communicate with device"
+    "deviceError": "Failed to communicate with device",
+    "next": "Next track",
+    "playPause": "Play / pause"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
     "playbackDevices": "Playback Devices",
     "thisBrowser": "This Browser",
-    "sonosSpeakers": "Sonos Speakers"
+    "sonosSpeakers": "Sonos Speakers",
+    "otherSessions": "Other devices",
+    "playingNow": "Playing"
   },
   "FormatSelector": {
     "selectFormat": "Select audio format",
@@ -430,7 +585,16 @@
     "providerSaveError": "Failed to save {{title}} provider",
     "providerDisconnectedSuccess": "{{title}} provider disconnected",
     "providerDisconnectError": "Failed to disconnect {{title}} provider",
-    "schemaUnavailable": "Provider options could not be loaded. Reload the page and try again."
+    "schemaUnavailable": "Provider options could not be loaded. Reload the page and try again.",
+    "disconnecting": "Disconnecting...",
+    "disconnectConfirmTitle": "Disconnect source",
+    "disconnectConfirmDescription": "Disconnect \"{{title}}\"? Your imported tracks stay in your library; only the link to your account is removed.",
+    "removeServerSettings": "Remove the configuration",
+    "serverSettingsRemoved": "{{title}} configuration removed",
+    "removeServerSettingsConfirmTitle": "Remove the configuration",
+    "removeServerSettingsConfirmDescription": "Remove the server configuration for \"{{title}}\"? Your imported tracks stay in your library; the source will be unconfigured until you fill it in again.",
+    "save": "Save",
+    "removeServerSettingsDropsLibrary": "Remove the server configuration for \"{{title}}\"? The tracks it imported will be removed from the library, along with the albums and artists left pointing at nothing. The files on disk are untouched."
   },
   "ProviderGrants": {
     "manageAccess": "Access",
@@ -509,6 +673,7 @@
     "rememberPassword": "Remember your password?",
     "signIn": "Sign in",
     "success": "Password reset email sent! Check your inbox.",
+    "error": "Could not send the reset email",
     "backToLogin": "Back to login"
   },
   "ResetPasswordPage": {
@@ -526,7 +691,20 @@
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago",
     "emptyTitle": "No listening history yet",
-    "emptyDescription": "Play some tracks to see your listening history here."
+    "emptyDescription": "Play some tracks to see your listening history here.",
+    "plays": "plays",
+    "totalDuration": "total duration",
+    "bySource": "By source",
+    "allPeriods": "All",
+    "today": "Today",
+    "7days": "7 days",
+    "30days": "30 days",
+    "filterHistory": "Filter history…",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "older": "Older",
+    "noResults": "No plays match these filters",
+    "showAll": "All"
   },
   "StatsPage": {
     "title": "Stats",
@@ -543,7 +721,9 @@
     "hourShort": "h",
     "minuteShort": "m",
     "emptyTitle": "No listening stats yet",
-    "emptyDescription": "Play some tracks to start building your listening stats."
+    "emptyDescription": "Play some tracks to start building your listening stats.",
+    "otherGenres": "Other",
+    "plays": "Plays"
   },
   "ProfilePage": {
     "title": "Profile",
@@ -568,5 +748,99 @@
   "PasswordField": {
     "showPassword": "Show password",
     "hidePassword": "Hide password"
+  },
+  "SourcePage": {
+    "empty": {
+      "title": "Nothing imported from {{source}}",
+      "description": "Search for a track or paste a link to add it to your library.",
+      "searchAction": "Search",
+      "unlinkedTitle": "Source not linked",
+      "unlinkedDescription": "Link your {{source}} account to import music from it.",
+      "connectAction": "Connect",
+      "noArtistsTitle": "No artists",
+      "noArtistsDescription": "No artist comes from {{source}} yet.",
+      "noAlbumsTitle": "No albums",
+      "noAlbumsDescription": "No album comes from {{source}} yet.",
+      "noTracksTitle": "No tracks",
+      "noTracksDescription": "No track comes from {{source}} yet."
+    }
+  },
+  "RemotePlayback": {
+    "playingOn": "Playing on {{device}}",
+    "unknownTrack": "Now playing",
+    "playHere": "Play here"
+  },
+  "NowPlaying": {
+    "title": "Now playing",
+    "close": "Close",
+    "queue": "Queue",
+    "shuffle": "Shuffle",
+    "previous": "Previous track",
+    "next": "Next track",
+    "playPause": "Play / pause",
+    "repeat": "Repeat"
+  },
+  "Track": {
+    "unavailable": "File missing: this track cannot be played"
+  },
+  "Album": {
+    "unavailable": "No file of this album is available"
+  },
+  "SetupPage": {
+    "title": "Welcome to Melody Manager",
+    "description": "Enter the address of your Melody Manager server to get started.",
+    "serverUrl": "Server address",
+    "hint": "For example music.example.com, 192.168.1.100:8090 or localhost:8090",
+    "checking": "Checking...",
+    "continue": "Continue",
+    "invalidUrl": "That address is not valid",
+    "unreachable": "No answer from {{origin}}. Check the address and that the server is running.",
+    "notMelodyManager": "{{origin}} answers, but it is not a Melody Manager server."
+  },
+  "ChangeServerMenuItem": {
+    "label": "Change server"
+  },
+  "RenameDialog": {
+    "cancel": "Cancel",
+    "save": "Rename",
+    "saving": "Renaming…",
+    "error": "The rename failed"
+  },
+  "CreatePlaylist": {
+    "title": "New playlist",
+    "description": "An empty playlist, filled from a track's own menu.",
+    "nameLabel": "Name",
+    "descriptionLabel": "Description",
+    "create": "Create a playlist",
+    "creating": "Creating…",
+    "cancel": "Cancel",
+    "created": "\"{{name}}\" created",
+    "error": "Could not create the playlist",
+    "addTo": "Add to a playlist",
+    "added": "Added to \"{{name}}\"",
+    "addError": "Could not add the track",
+    "newOne": "New playlist…"
+  },
+  "Library": {
+    "add": "Add",
+    "in": "Added",
+    "remove": "Remove",
+    "ignored": "Ignored",
+    "unignore": "Stop ignoring"
+  },
+  "Appearance": {
+    "title": "Appearance",
+    "mode": "Mode",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "colour": "Colour",
+    "accents": {
+      "violet": "Violet",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "sky": "Sky"
+    }
   }
 }

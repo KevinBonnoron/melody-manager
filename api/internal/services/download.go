@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/pocketbase/dbx"
@@ -47,6 +48,29 @@ func artistName(app core.App, track, album *core.Record) string {
 	return "Unknown Artist"
 }
 
+// trackArtists names everyone credited on the track, in the form a tag can
+// hold and splitArtistName can take apart again on the way back in.
+func trackArtists(app core.App, track, album *core.Record) string {
+	ids := track.GetStringSlice("artists")
+	if len(ids) == 0 {
+		ids = album.GetStringSlice("artists")
+	}
+
+	var names []string
+	for _, id := range ids {
+		if a, err := app.FindRecordById("artists", id); err == nil {
+			if n := a.GetString("name"); n != "" {
+				names = append(names, n)
+			}
+		}
+	}
+	if len(names) == 0 {
+		return "Unknown Artist"
+	}
+
+	return strings.Join(names, "; ")
+}
+
 // DownloadAlbum downloads an album's tracks to the provider's configured
 // downloadPath and points each track at the local file. Tracks sharing a source
 // URL (chaptered YouTube albums) are downloaded once then segmented per chapter.
@@ -74,7 +98,7 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 	groups := map[string][]*core.Record{}
 	var order []string
 	for _, t := range trackRecs {
-		u := t.GetString("sourceUrl")
+		u := t.GetString("origin")
 		if _, ok := groups[u]; !ok {
 			order = append(order, u)
 		}
@@ -91,7 +115,7 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 		src := grp[0].GetString("source")
 		dir := pbx.EffectiveConfig(app, "", src).String("downloadPath")
 		if dir == "" {
-			fail(fmt.Errorf("no download path set for %s — set it in Admin › Providers › %s", src, src))
+			fail(fmt.Errorf("no download path set for %s, set it in Admin › Providers › %s", src, src))
 			return
 		}
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -105,7 +129,7 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 			return
 		}
 
-		// artist/album/NN - Title.ext, the layout any music player expects —
+		// artist/album/NN - Title.ext, the layout any music player expects :
 		// flat files named after a record id are unusable outside the app.
 		albumDir := filepath.Join(dir, sanitizeFilename(artistName(app, grp[0], album)), sanitizeFilename(album.GetString("name")))
 		if err := os.MkdirAll(albumDir, 0o755); err != nil {
@@ -133,8 +157,20 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 			}
 			out := filepath.Join(albumDir, fmt.Sprintf("%02d - %s%s", number, sanitizeFilename(t.GetString("title")), ext))
 			// Copy rather than re-encode: the point of downloading is to keep
-			// the source quality, and it is much faster.
-			if err := ffmpeg.SaveSegmentCopy(ctx, tmp, start, end, out); err != nil {
+			// the source quality, and it is much faster. The tags are written
+			// in the same pass, since a file carrying none reads back as
+			// "Unknown Artist" to the scanner and to every other player.
+			tags := []ffmpeg.Tag{
+				{Name: "title", Value: t.GetString("title")},
+				{Name: "artist", Value: trackArtists(app, t, album)},
+				{Name: "album", Value: album.GetString("name")},
+				{Name: "album_artist", Value: artistName(app, t, album)},
+				{Name: "track", Value: strconv.Itoa(number)},
+			}
+			if year := album.GetInt("year"); year > 0 {
+				tags = append(tags, ffmpeg.Tag{Name: "date", Value: strconv.Itoa(year)})
+			}
+			if err := ffmpeg.SaveSegmentCopy(ctx, tmp, start, end, out, tags...); err != nil {
 				// Remember why, so a run where every track fails does not end up
 				// reported as a success with nothing to show for it.
 				app.Logger().Warn("album download: segment failed", "track", t.Id, "error", err)
@@ -143,8 +179,7 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 				}
 				continue
 			}
-			meta.LocalPath = out
-			t.Set("metadata", meta)
+			t.Set("availability", AvailabilityFile)
 			_ = app.Save(t)
 			// The track plays from disk now, so the extract cached for it is
 			// dead weight.

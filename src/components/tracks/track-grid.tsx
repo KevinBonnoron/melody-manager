@@ -1,8 +1,9 @@
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Music2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CardGrid } from '@/components/atoms/card-grid';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useNowPlaying } from '@/hooks/use-now-playing';
 import type { Track, TrackProvider } from '@/shared';
 import { TrackCard } from './track-card';
 
@@ -13,60 +14,27 @@ interface Props {
 
 export function TrackGrid({ tracks, provider }: Props) {
   const { t } = useTranslation();
-  const { playTrack, togglePlayPause, currentTrack, isPlaying, isLoading, setQueue } = useMusicPlayer();
-  const [columns, setColumns] = useState(4);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { playTrack, togglePlayPause, currentTrack, isLoading, setQueue } = useMusicPlayer();
+  const { track: nowPlaying, isPlaying } = useNowPlaying();
   const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.source === provider.type)), [tracks, provider]);
+  // A track whose file is gone never reaches a queue: skipping it at playback
+  // time would look like a player fault rather than a missing file.
+  const playableTracks = useMemo(() => filteredTracks.filter((track) => track.availability !== 'none'), [filteredTracks]);
   const handlePlayTrack = useCallback(
     (track: Track) => {
+      if (track.availability === 'none') {
+        return;
+      }
+
       if (currentTrack?.id === track.id) {
         togglePlayPause();
       } else {
-        setQueue(filteredTracks);
+        setQueue(playableTracks);
         playTrack(track);
       }
     },
-    [filteredTracks, currentTrack, setQueue, playTrack, togglePlayPause],
+    [playableTracks, currentTrack, setQueue, playTrack, togglePlayPause],
   );
-
-  // Calculate number of columns based on screen width
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = window.innerWidth;
-      if (width < 768) {
-        setColumns(3);
-      } else if (width < 1024) {
-        setColumns(4);
-      } else if (width < 1280) {
-        setColumns(5);
-      } else if (width < 1536) {
-        setColumns(6);
-      } else {
-        setColumns(7);
-      }
-    };
-
-    updateColumns();
-    window.addEventListener('resize', updateColumns);
-    return () => window.removeEventListener('resize', updateColumns);
-  }, []);
-
-  // Group tracks into rows
-  const rows = useMemo(() => {
-    const result: Track[][] = [];
-    for (let i = 0; i < filteredTracks.length; i += columns) {
-      result.push(filteredTracks.slice(i, i + columns));
-    }
-
-    return result;
-  }, [filteredTracks, columns]);
-
-  const virtualizer = useWindowVirtualizer({
-    count: rows.length,
-    estimateSize: () => 200,
-    overscan: 3,
-    scrollMargin: containerRef.current?.offsetTop ?? 0,
-  });
 
   if (filteredTracks.length === 0) {
     return (
@@ -78,40 +46,9 @@ export function TrackGrid({ tracks, provider }: Props) {
     );
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
   return (
-    <div ref={containerRef}>
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        {virtualItems.map((virtualRow) => {
-          const row = rows[virtualRow.index];
-          return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-              }}
-            >
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3 mb-2 sm:mb-3">
-                {row.map((track) => (
-                  <TrackCard key={track.id} track={track} onPlay={handlePlayTrack} isPlaying={currentTrack?.id === track.id && isPlaying} isLoading={currentTrack?.id === track.id && isLoading} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <CardGrid items={filteredTracks} getKey={(track) => track.id} className="gap-2 sm:gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]" fallbackHeight={246}>
+      {(track) => <TrackCard track={track} onPlay={handlePlayTrack} isPlaying={nowPlaying?.id === track.id && isPlaying} isLoading={currentTrack?.id === track.id && isLoading} />}
+    </CardGrid>
   );
 }

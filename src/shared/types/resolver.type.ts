@@ -4,7 +4,7 @@ import type { TrackMetadata } from './track.type';
 export interface ResolvedTrack {
   title: string;
   duration: number;
-  sourceUrl: string;
+  origin: string;
   artistName: string;
   albumName: string;
   coverUrl?: string;
@@ -28,7 +28,7 @@ export interface ResolvedPlaylist {
   name: string;
   description?: string;
   coverUrl?: string;
-  sourceUrl?: string;
+  origin?: string;
   tracks: ResolvedTrack[];
 }
 

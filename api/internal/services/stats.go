@@ -92,18 +92,6 @@ func Overview(app core.App, userID string) map[string]any {
 	}
 }
 
-// PlayCounts returns per-track play counts for a user, keyed by track id.
-func PlayCounts(app core.App, userID string) map[string]int {
-	rows := groupCount(app, `
-		SELECT track AS id, COUNT(*) AS count
-		FROM track_plays WHERE user = {:u} GROUP BY track`, dbx.Params{"u": userID})
-	out := make(map[string]int, len(rows))
-	for _, r := range rows {
-		out[r.ID] = r.Count
-	}
-	return out
-}
-
 func groupCount(app core.App, sql string, params dbx.Params) []countRow {
 	bound := dbx.Params{"n": topLimit}
 	for k, v := range params {

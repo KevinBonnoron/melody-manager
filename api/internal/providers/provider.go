@@ -128,3 +128,17 @@ func writeCookies(cfg Config) (string, func()) {
 	_ = f.Close()
 	return f.Name(), func() { _ = os.Remove(f.Name()) }
 }
+
+// CatalogResolver describes a source that knows a track but cannot serve its
+// audio, Spotify, whose streams are DRM-protected. The importer pairs what it
+// returns with a playable source.
+type CatalogResolver interface {
+	ResolveCatalogTrack(ctx context.Context, url string, cfg Config) (domain.ResolvedTrack, error)
+}
+
+func (r *Registry) CatalogResolver(id string) CatalogResolver {
+	if c, ok := r.providers[id].(CatalogResolver); ok {
+		return c
+	}
+	return nil
+}

@@ -1,5 +1,6 @@
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useTrackLikes } from '@/hooks/use-track-likes';
+import { useTrackRatings } from '@/hooks/use-ratings';
+import type { Track } from '@/shared';
 import { LikeButton } from '../like-button';
 import { NextButton } from './next-button';
 import { PlayButton } from './play-button';
@@ -7,12 +8,29 @@ import { PreviousButton } from './previous-button';
 import { RepeatButton } from './repeat-button';
 import { ShuffleButton } from './shuffle-button';
 
-export function PlaybackControls() {
-  const { shuffle, repeatMode, isPlaying, isLoading, queue, currentTrack, playNext, playPrevious, togglePlayPause, toggleShuffle, toggleRepeat } = useMusicPlayer();
-  const { isLiked, toggleLike } = useTrackLikes();
+interface Props {
+  remote?: {
+    isPlaying: boolean;
+    track?: Track;
+    togglePlayPause: () => void;
+    playNext: () => void;
+    playPrevious: () => void;
+  };
+}
+
+export function PlaybackControls({ remote }: Props) {
+  const local = useMusicPlayer();
+  const { shuffle, repeatMode, queue, toggleShuffle, toggleRepeat } = local;
+  const isPlaying = remote ? remote.isPlaying : local.isPlaying;
+  const isLoading = remote ? false : local.isLoading;
+  const currentTrack = remote ? remote.track : local.currentTrack;
+  const playNext = remote ? remote.playNext : local.playNext;
+  const playPrevious = remote ? remote.playPrevious : local.playPrevious;
+  const togglePlayPause = remote ? remote.togglePlayPause : local.togglePlayPause;
+  const { isLiked, toggleLike } = useTrackRatings();
   const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
-  const canGoNext = (currentIndex >= 0 && currentIndex < queue.length - 1) || (repeatMode === 'all' && queue.length > 0);
-  const canGoPrevious = currentIndex > 0 || (repeatMode === 'all' && queue.length > 0);
+  const canGoNext = remote ? true : (currentIndex >= 0 && currentIndex < queue.length - 1) || (repeatMode === 'all' && queue.length > 0);
+  const canGoPrevious = remote ? true : currentIndex > 0 || (repeatMode === 'all' && queue.length > 0);
   return (
     <div className="flex items-center justify-self-center gap-2">
       <div className="hidden sm:flex items-center gap-2 w-20 justify-end">

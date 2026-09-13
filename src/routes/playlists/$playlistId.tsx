@@ -18,7 +18,7 @@ function RouteComponent() {
   const { playlistId } = Route.useParams();
   const { data: playlist, isLoading: isPlaylistLoading } = usePlaylist(playlistId);
   const trackIds = (playlist as unknown as Playlist | undefined)?.tracks ?? [];
-  const { data: tracks = [], isLoading: isTracksLoading } = useLiveQuery((q) => q.from({ tracks: trackCollection }).where(({ tracks }) => inArray(tracks.id, trackIds.length > 0 ? trackIds : [''])), [trackIds.join(',')]);
+  const { data: tracks = [], isLoading: isTracksLoading } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => inArray(tracks.id, trackIds.length > 0 ? trackIds : [''])) });
   const isLoading = isPlaylistLoading || isTracksLoading;
 
   return (

@@ -1,4 +1,4 @@
-import { createCollection } from '@tanstack/react-db';
+import { BasicIndex, createCollection } from '@tanstack/react-db';
 import { pocketbaseCollectionOptions } from 'pocketbase-db-collection';
 import { pb } from '@/lib/pocketbase';
 import type { Artist } from '@/shared';
@@ -10,3 +10,6 @@ export const artistCollection = createCollection(
     options: {},
   }),
 );
+
+// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
+artistCollection.createIndex((row) => row.id, { indexType: BasicIndex });

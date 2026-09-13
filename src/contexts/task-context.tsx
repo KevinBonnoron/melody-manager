@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { tasksClient } from '@/clients/tasks.client';
+import { subscribeTasks } from '@/lib/device-presence';
 import type { Task } from '@/shared';
 
 interface TaskContextValue {
@@ -31,13 +32,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  useEffect(() => {
-    const unsub = tasksClient.events((task) => {
-      upsertTask(task);
-    });
-
-    return unsub;
-  }, [upsertTask]);
+  useEffect(() => subscribeTasks(upsertTask), [upsertTask]);
 
   const activeTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'running');
   const clearCompleted = useCallback(() => {

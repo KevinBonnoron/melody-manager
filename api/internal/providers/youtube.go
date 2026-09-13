@@ -37,6 +37,9 @@ func (YouTube) ResolveTracks(ctx context.Context, url string, cfg Config) ([]dom
 		return nil, err
 	}
 	base := ytdlp.BuildResolvedTrack(*info, "youtube")
+	// One extra yt-dlp run per import, not per track: the avatar lives on the
+	// channel, and every track of an import shares it.
+	base.ArtistImageURL = ytdlp.ChannelAvatar(ctx, firstNonEmpty(info.ChannelURL, info.UploaderURL), cookiesFile)
 	if len(info.Chapters) > 1 {
 		// The video is the album, so it is named after the video rather than
 		// the "<channel> - <provider>" placeholder a standalone track gets.
@@ -78,13 +81,13 @@ func mapSearchResults(entries []ytdlp.TrackInfo, source string) []domain.SearchR
 	out := make([]domain.SearchResult, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, domain.SearchResult{
-			Type:      domain.ResultTrack,
-			Title:     e.Title,
-			Subtitle:  firstNonEmpty(e.Artist, e.Uploader, e.Channel),
-			Source:    source,
-			SourceURL: e.WebpageURL,
-			CoverURL:  e.Thumbnail,
-			Duration:  int(e.Duration),
+			Type:     domain.ResultTrack,
+			Title:    e.Title,
+			Subtitle: firstNonEmpty(e.Artist, e.Uploader, e.Channel),
+			Source:   source,
+			Origin:   e.WebpageURL,
+			CoverURL: e.Thumbnail,
+			Duration: int(e.Duration),
 		})
 	}
 	return out

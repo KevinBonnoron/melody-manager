@@ -4,10 +4,15 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Not modal by default: a modal menu locks page scroll and Radix pads the body
+// to make up for the scrollbar it just removed, which shifts the whole page
+// sideways for as long as the menu is open. A dropdown has no reason to hold
+// the page still anyway.
 function DropdownMenu({
+  modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />
 }
 
 function DropdownMenuPortal({

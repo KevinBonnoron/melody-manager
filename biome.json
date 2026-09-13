@@ -11,6 +11,7 @@
       "src/**/*.ts*",
       "!src/routeTree.gen.ts",
       "!!src/components/ui",
+      "e2e/**/*.ts",
       "*.ts"
     ]
   },

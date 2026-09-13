@@ -10,6 +10,8 @@ services:
     volumes:
       # Persist PocketBase data (DB, uploaded covers, etc.)
       - melody-manager-data:/app/pb_data
+      # Operator configuration, editable from the host while the server is down
+      - ./config:/config
 
       # Cached audio from remote sources, so a track is fetched once
       - melody-manager-cache:/app/cache
@@ -17,16 +19,12 @@ services:
       # Mount your audio files here and point the local provider at it
       # - /path/to/your/music:/music:ro
     environment:
-      # Public URL of this server (used to build stream URLs for Sonos devices)
-      - SERVER_URL=http://localhost:8090
-      - CACHE_DIR=/app/cache
-      - CACHE_MAX_FILES=500
-      - CACHE_MAX_SIZE=5GB
+      # Operator settings live in ./config/config.json, written with the
+      # defaults on first run and edited there or from the admin screen.
+      - CONFIG_FILE=/config/config.json
       # Optional: bootstrap a PocketBase superuser on first run
       # - PB_SUPERUSER_EMAIL=admin@example.com
       # - PB_SUPERUSER_PASSWORD=change-me
-      # Optional: disable public registration (first user can always register)
-      # - REGISTRATION_DISABLED=true
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8090/api/health"]

@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { Check, Loader2, Play, Trash2, User, UserPlus } from 'lucide-react';
+import { Loader2, Play, User } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -7,13 +7,16 @@ import { artistCollection } from '@/collections/artist.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useAlbumsForArtist } from '@/hooks/use-album';
-import { useArtistLikes } from '@/hooks/use-artist-likes';
 import { useArtist } from '@/hooks/use-artists';
 import { useAuthUser } from '@/hooks/use-auth-user';
+import { useArtistRatings } from '@/hooks/use-ratings';
 import { useArtistTracks } from '@/hooks/use-tracks';
 import { getArtistCoverUrl } from '@/lib/cover-url';
 import { AlbumCard } from '../albums/album-card';
+import { LibraryButton } from '../atoms/library-button';
+import { PageHeader } from '../layout/page-header-block';
 import { Button } from '../ui/button';
+import { ArtistActionsMenu } from './artist-actions-menu';
 
 interface Props {
   artistId: string;
@@ -25,7 +28,7 @@ export function ArtistPage({ artistId }: Props) {
   const { data: artist, isLoading } = useArtist(artistId);
   const { data: tracks = [] } = useArtistTracks(artistId);
   const { data: albums = [] } = useAlbumsForArtist(artistId);
-  const { isLiked, toggleLike } = useArtistLikes();
+  const { ratingOf, toggleLike, toggleDislike, isReady: ratingsReady } = useArtistRatings();
   const { playTrack, setQueue } = useMusicPlayer();
   const user = useAuthUser();
   const isAdmin = user.role === 'admin';
@@ -60,44 +63,40 @@ export function ArtistPage({ artistId }: Props) {
         </div>
       ) : artist ? (
         <>
-          <div className="flex flex-row gap-4 md:gap-8 mb-8">
-            <div className="flex-shrink-0">
-              <div className="w-20 h-20 md:w-32 md:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
+          {/* Title, one subtitle, one row of actions: the same three parts as the
+              album header, so moving between the two does not reshuffle the page. */}
+          <PageHeader
+            media={
+              <div className="h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
                 {(() => {
                   const imageUrl = getArtistCoverUrl(artist);
                   return imageUrl ? <img src={imageUrl} alt={artist.name} className="w-full h-full object-cover" /> : <User className="h-1/3 w-1/3 text-primary/60" />;
                 })()}
               </div>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center md:justify-end min-w-0">
-              <h1 className="text-2xl md:text-4xl xl:text-5xl font-bold mb-1 md:mb-4 truncate">{artist.name}</h1>
-              {artist.bio && <p className="hidden md:block text-lg text-muted-foreground mb-6">{artist.bio}</p>}
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 flex-wrap">
-                <Button size="icon" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 md:h-10" onClick={handlePlayAll} disabled={tracks.length === 0}>
-                  <Play className="h-4 w-4 md:h-5 md:w-5 sm:mr-2" fill="currentColor" />
+            }
+            title={artist.name}
+            subtitle={
+              <>
+                {albums.length} {t('ArtistPage.albums', { count: albums.length })} · {tracks.length} {t('ArtistPage.tracks', { count: tracks.length })}
+              </>
+            }
+            description={artist.bio}
+            actions={
+              <>
+                <Button size="icon" className="h-9 w-9 sm:w-auto sm:px-3" onClick={handlePlayAll} disabled={tracks.length === 0}>
+                  <Play className="h-4 w-4 sm:mr-2" fill="currentColor" />
                   <span className="hidden sm:inline">{t('ArtistPage.playAll')}</span>
                 </Button>
-                <Button variant={isLiked(artist.id) ? 'secondary' : 'outline'} size="icon" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3" onClick={() => toggleLike(artist.id)}>
-                  {isLiked(artist.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <UserPlus className="h-4 w-4 sm:mr-2" />}
-                  <span className="hidden sm:inline">{isLiked(artist.id) ? t('ArtistPage.following') : t('ArtistPage.follow')}</span>
-                </Button>
-                {isAdmin && (
-                  <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" aria-label={t('ArtistPage.delete')} onClick={() => setDeleteDialogOpen(true)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-                <p className="text-xs md:text-sm text-muted-foreground">
-                  {albums.length} {t('ArtistPage.albums', { count: albums.length })} · {tracks.length} {t('ArtistPage.tracks', { count: tracks.length })}
-                </p>
-              </div>
-            </div>
-          </div>
+                <LibraryButton value={ratingOf(artist.id)?.value} ready={ratingsReady} onLike={() => toggleLike(artist.id)} onUndislike={() => toggleDislike(artist.id)} />
+              </>
+            }
+            menu={<ArtistActionsMenu artistId={artist.id} name={artist.name} onDelete={isAdmin ? () => setDeleteDialogOpen(true) : undefined} />}
+          />
 
           {albums.length > 0 && (
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">{t('ArtistPage.albumsSectionTitle')}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 sm:gap-3">
                 {albums.map((album) => (
                   <AlbumCard key={album.id} album={album} />
                 ))}

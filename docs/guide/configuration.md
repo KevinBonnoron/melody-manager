@@ -12,10 +12,18 @@ Melody Manager is configured through environment variables and PocketBase settin
 | `CACHE_MAX_SIZE` | `5GB` | Maximum total cache size |
 | `PB_SUPERUSER_EMAIL` | — | Bootstraps a PocketBase superuser on first run |
 | `PB_SUPERUSER_PASSWORD` | — | Password for that superuser |
-| `REGISTRATION_DISABLED` | `false` | Refuses new sign-ups; the first user can always register |
 
 The client is served from the same origin as the API, so it needs no URL
 configuration of its own.
+
+### Settings changed from the app
+
+Anything an operator flips while running lives in the database, not in the
+environment, and is edited under **Administration → Settings**:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Allow sign-ups | off | When off, nobody can create an account. The very first account is always allowed, so a fresh install can be set up. |
 
 ### PocketBase
 

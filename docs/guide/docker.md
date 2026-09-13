@@ -100,7 +100,6 @@ with ffmpeg, ca-certificates and curl.
 | `SERVER_URL` | `http://localhost:8090` | Public URL of this server. Sonos speakers fetch stream URLs themselves, so it must be reachable from them |
 | `PB_SUPERUSER_EMAIL` | — | Bootstraps a PocketBase superuser on first run |
 | `PB_SUPERUSER_PASSWORD` | — | Password for that superuser |
-| `REGISTRATION_DISABLED` | `false` | Refuses new sign-ups; the first user can always register |
 | `CACHE_DIR` | `/app/cache` | Where cached audio is stored |
 | `CACHE_MAX_FILES` | `500` | Maximum number of cached files |
 | `CACHE_MAX_SIZE` | `5GB` | Maximum total cache size (`512MB`, `5GB`, or a byte count) |

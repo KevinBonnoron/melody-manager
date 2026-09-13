@@ -20,7 +20,7 @@ export function FormatSelector({ audioFormat, onFormatChange }: FormatSelectorPr
   ];
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" title={t('FormatSelector.selectFormat')}>
           <FileAudio className="h-4 w-4" />

@@ -1,8 +1,6 @@
-import type { Expand } from './pocketbase.type';
-import type { Track } from './track.type';
-import type { User } from './user.type';
+import type { PocketBaseRecord } from './pocketbase.type';
 
-export interface TrackPlay extends Expand<{ user: User; track: Track }> {
+export interface TrackPlay extends PocketBaseRecord {
   user: string;
   track: string;
   completed: boolean;

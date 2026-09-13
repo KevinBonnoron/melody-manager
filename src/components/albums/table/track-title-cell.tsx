@@ -1,4 +1,4 @@
-import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useNowPlaying } from '@/hooks/use-now-playing';
 import type { Track } from '@/shared';
 
 interface Props {
@@ -6,7 +6,7 @@ interface Props {
 }
 
 export function TrackTitleCell({ track }: Props) {
-  const { currentTrack } = useMusicPlayer();
-  const isCurrentTrack = currentTrack?.id === track.id;
+  const { track: nowPlaying } = useNowPlaying();
+  const isCurrentTrack = nowPlaying?.id === track.id;
   return <div className={`font-medium truncate ${isCurrentTrack ? 'text-primary' : ''}`}>{track.title}</div>;
 }
