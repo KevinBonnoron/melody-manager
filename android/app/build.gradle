@@ -7,8 +7,10 @@ android {
         applicationId "com.melodymanager.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Supplied by the release workflow from the tag being built. The defaults
+        // are for a local build, which never installs over a released one.
+        versionCode project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 1
+        versionName project.hasProperty('appVersionName') ? project.appVersionName : "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
