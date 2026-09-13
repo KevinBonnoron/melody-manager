@@ -1,10 +1,9 @@
-import type { Expand } from './pocketbase.type';
-import type { Track } from './track.type';
-import type { User } from './user.type';
+import type { PocketBaseRecord } from './pocketbase.type';
 
-export interface ShareLink extends Expand<{ track: Track; createdBy: User }> {
+export interface ShareLink extends PocketBaseRecord {
   token: string;
   track: string;
   createdBy: string;
   expiresAt: string;
+  plays: number;
 }
