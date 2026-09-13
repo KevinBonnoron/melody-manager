@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useState } from 'react';
@@ -11,7 +11,6 @@ import { pb } from '@/lib/pocketbase';
 
 export function RegisterForm() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { signIn } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,7 +43,11 @@ export function RegisterForm() {
       await signIn.email(email, password);
 
       toast.success(t('RegisterForm.success'));
-      navigate({ to: '/' });
+      // A full reload, not a route change: the realtime stream and the
+      // collections were started before anyone was signed in, so they carry
+      // no token and never retry. Everything that reads the session once, at
+      // startup, has to start again now that there is one.
+      window.location.replace('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('RegisterForm.errors.createFailed');
       toast.error(message);

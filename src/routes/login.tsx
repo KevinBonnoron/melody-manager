@@ -1,14 +1,14 @@
-import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { LoginForm } from '@/components/auth/login-form';
+import { isStandaloneClient } from '@/lib/client-target';
 import { pb } from '@/lib/pocketbase';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
-    if (Capacitor.isNativePlatform()) {
+    if (isStandaloneClient) {
       const { value } = await Preferences.get({ key: 'serverUrl' });
       if (!value) {
         throw redirect({ to: '/setup' });
