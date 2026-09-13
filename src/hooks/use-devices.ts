@@ -1,0 +1,27 @@
+import { useSyncExternalStore } from 'react';
+import { getDevices, subscribeDevices } from '@/lib/device-presence';
+import { getSessionId } from '@/lib/session-device';
+import type { ClientDevice, Device, SonosDevice } from '@/shared';
+
+export function useDevices() {
+  const devices = useSyncExternalStore(subscribeDevices, getDevices);
+  const sessionId = getSessionId();
+  const clients = devices.filter((d): d is ClientDevice => d.type !== 'sonos');
+  const others = clients.filter((d) => d.session !== sessionId);
+  const speakers = devices.filter((d): d is SonosDevice => d.type === 'sonos');
+  // A speaker plays somewhere else just as much as another browser does, and it
+  // outlives the page that started it: after a reload, or a server restart, it
+  // is the only thing that still knows sound is coming out.
+  const elsewhere: (ClientDevice | SonosDevice)[] = [...others, ...speakers];
+
+  return {
+    devices,
+    speakers,
+    others,
+    // A device that paused still holds the track and has to stay on screen, or
+    // pausing from elsewhere would remove the very bar used to resume it.
+    remoteActive: elsewhere.find((d) => d.playing) ?? elsewhere.find((d) => d.trackId),
+  };
+}
+
+export type { Device };

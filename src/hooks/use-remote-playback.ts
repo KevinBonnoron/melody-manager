@@ -1,0 +1,38 @@
+import { eq, useLiveQuery } from '@tanstack/react-db';
+import { deviceClient } from '@/clients/device.client';
+import { trackCollection } from '@/collections/track.collection';
+import type { Track } from '@/shared';
+import { useDevices } from './use-devices';
+import { useReportedPosition } from './use-reported-position';
+
+export function useRemotePlayback() {
+  const { remoteActive } = useDevices();
+  const playing = remoteActive?.playing ?? false;
+  const position = useReportedPosition(remoteActive);
+  // Queried rather than read straight out of the collection: a device can name a
+  // track this client has not loaded yet, and reading it once leaves the bar
+  // showing a placeholder for as long as the page lives.
+  const trackId = remoteActive?.trackId ?? '';
+  const { data: rows = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.id, trackId)) });
+
+  if (!remoteActive) {
+    return null;
+  }
+
+  const track = (rows as unknown as Track[])[0];
+
+  return {
+    device: remoteActive,
+    track,
+    isPlaying: playing,
+    currentTime: Math.min(track?.duration ?? Number.POSITIVE_INFINITY, position),
+    duration: track?.duration ?? 0,
+    togglePlayPause: () => (playing ? deviceClient.pause(remoteActive.id) : deviceClient.play(remoteActive.id)),
+    playNext: () => deviceClient.next(remoteActive.id),
+    playPrevious: () => deviceClient.previous(remoteActive.id),
+    seek: (time: number) => deviceClient.seek(remoteActive.id, Math.round(time)),
+    volume: (remoteActive.volume ?? 100) / 100,
+    setVolume: (level: number) => deviceClient.setVolume(remoteActive.id, Math.round(level * 100)),
+    stop: () => deviceClient.stop(remoteActive.id),
+  };
+}
