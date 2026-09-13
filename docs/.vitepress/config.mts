@@ -6,6 +6,10 @@ export default defineConfig({
 
   base: '/melody-manager/',
 
+  // The guide points at the admin UI and the API on the machine the reader is
+  // setting up, which the link checker cannot reach and reports as dead.
+  ignoreDeadLinks: 'localhostLinks',
+
   vite: {
     server: { port: 5000 },
   },
