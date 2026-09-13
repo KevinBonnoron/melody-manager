@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+reviews:
+  auto_review:
+    # A large change is opened as a stack of pull requests, each part based on
+    # the one below it. Without this, only the part aiming at the default branch
+    # is ever reviewed.
+    base_branches:
+      - main
+      - 'feat/.*'
+      - 'fix/.*'
+      - 'test/.*'
+  path_filters:
+    - '!bun.lock'
+    - '!**/go.sum'
+    - '!src/routeTree.gen.ts'
+    - '!src/components/ui/**'
