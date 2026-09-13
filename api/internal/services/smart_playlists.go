@@ -63,7 +63,7 @@ func RefreshSmartPlaylists(app core.App, userID string) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	likes, err := app.FindRecordsByFilter("playlist_likes", "user = {:u}", "", 0, 0, dbx.Params{"u": userID})
+	likes, err := app.FindRecordsByFilter("playlist_ratings", "user = {:u} && value = 'like'", "", 0, 0, dbx.Params{"u": userID})
 	if err != nil {
 		return
 	}
@@ -117,12 +117,13 @@ func createSmartPlaylist(app core.App, userID string, def smartDefault) {
 		return
 	}
 
-	likeCol, err := app.FindCollectionByNameOrId("playlist_likes")
+	ratings, err := app.FindCollectionByNameOrId("playlist_ratings")
 	if err == nil {
-		like := core.NewRecord(likeCol)
-		like.Set("user", userID)
-		like.Set("playlist", rec.Id)
-		_ = app.Save(like)
+		rating := core.NewRecord(ratings)
+		rating.Set("user", userID)
+		rating.Set("playlist", rec.Id)
+		rating.Set("value", "like")
+		_ = app.Save(rating)
 	}
 	refreshSmartPlaylist(app, rec, userID)
 }
@@ -170,7 +171,7 @@ func completedPlays(app core.App, userID string) map[string]int {
 }
 
 func likedTrackIDs(app core.App, userID string) []string {
-	recs, err := app.FindRecordsByFilter("track_likes", "user = {:u}", "", 0, 0, dbx.Params{"u": userID})
+	recs, err := app.FindRecordsByFilter("track_ratings", "user = {:u} && value = 'like'", "", 0, 0, dbx.Params{"u": userID})
 	if err != nil {
 		return nil
 	}
@@ -183,7 +184,7 @@ func likedTrackIDs(app core.App, userID string) []string {
 
 func dislikedTrackIDs(app core.App, userID string) map[string]bool {
 	set := map[string]bool{}
-	recs, err := app.FindRecordsByFilter("track_dislikes", "user = {:u}", "", 0, 0, dbx.Params{"u": userID})
+	recs, err := app.FindRecordsByFilter("track_ratings", "user = {:u} && value = 'dislike'", "", 0, 0, dbx.Params{"u": userID})
 	if err != nil {
 		return set
 	}
