@@ -31,7 +31,7 @@ func ScanLocalTask(ctx context.Context, app core.App, taskSvc *tasks.Service) *t
 	task := taskSvc.Create("scan", "")
 	go func() {
 		taskSvc.Update(task.ID, func(t *tasks.Task) { t.Status = tasks.Running; t.Progress = 10 })
-		n, err := ScanLocal(ctx, app)
+		res, err := ScanLocal(ctx, app)
 		taskSvc.Update(task.ID, func(t *tasks.Task) {
 			if err != nil {
 				t.Status = tasks.Failed
@@ -40,21 +40,32 @@ func ScanLocalTask(ctx context.Context, app core.App, taskSvc *tasks.Service) *t
 			}
 			t.Status = tasks.Completed
 			t.Progress = 100
-			t.Count = n
+			// What the walk changed, found and put back alike: a scan that only
+			// puts files back reporting nothing is what sends someone looking for
+			// a fault that is already fixed.
+			t.Count = res.Added + res.Restored
 		})
 	}()
 	return task
 }
 
+// ScanResult is what a walk did: what it saw for the first time, and what it put
+// back, a file the library had down as missing and that is plainly still there.
+type ScanResult struct {
+	Added    int
+	Restored int
+}
+
 // ScanLocal walks the local provider's configured directory, reads tags and
-// persists any audio files not yet in the library. Returns the count added.
-func ScanLocal(ctx context.Context, app core.App) (int, error) {
+// persists any audio files not yet in the library.
+func ScanLocal(ctx context.Context, app core.App) (ScanResult, error) {
 	dir := pbx.EffectiveConfig(app, "", "local").String("path")
 	if dir == "" {
-		return 0, nil
+		return ScanResult{}, nil
 	}
 
 	added := 0
+	restored := 0
 	albumIDs := map[string]bool{}
 	downloaded := downloadedDirs(app)
 	var firstErr error
@@ -67,7 +78,22 @@ func ScanLocal(ctx context.Context, app core.App) (int, error) {
 		}
 		abs, _ := filepath.Abs(path)
 		sourceURL := "file://" + abs
+		// A file already known is not read again: the tags and the duration cost
+		// a probe apiece, and they have not changed. What may have changed is
+		// whether the record still believes the file is there, and a scan that
+		// just walked over it is in a position to say. That is the first thing
+		// anyone reaches for when files have gone astray, and it used to be the
+		// one pass that could see them and not say so.
+		//
+		// Through the same helper the watcher uses, rather than a second way of
+		// saying it here: a path can name more than one record, and that is the
+		// sort of thing two implementations disagree about.
 		if n, _ := app.CountRecords("tracks", dbx.NewExp("origin = {:u}", dbx.Params{"u": sourceURL})); n > 0 {
+			back, serr := SetLocalFilePresence(app, abs, true)
+			restored += back
+			if serr != nil && firstErr == nil {
+				firstErr = serr
+			}
 			return nil
 		}
 		if downloaded[filepath.Dir(abs)] {
@@ -95,7 +121,7 @@ func ScanLocal(ctx context.Context, app core.App) (int, error) {
 	if err == nil {
 		err = firstErr
 	}
-	return added, err
+	return ScanResult{Added: added, Restored: restored}, err
 }
 
 // downloadedDirs are the album folders another source downloaded into. A
@@ -193,8 +219,8 @@ func ImportLocalPath(ctx context.Context, app core.App, path string) error {
 	// A file that comes back is the same track returning, not a new one: its
 	// likes, plays and playlists are still pointing at it.
 	if known, err := app.FindRecordsByFilter("tracks", "origin = {:u}", "", 0, 0, dbx.Params{"u": sourceURL}); err == nil && len(known) > 0 {
-		SetLocalFilePresence(app, path, true)
-		return nil
+		_, serr := SetLocalFilePresence(app, path, true)
+		return serr
 	}
 	if fileClaimed(app, abs) {
 		return nil
@@ -208,15 +234,23 @@ func ImportLocalPath(ctx context.Context, app core.App, path string) error {
 }
 
 // SetLocalFilePresence records that the file behind a path appeared or went
-// away. A file disappearing used to delete the record outright, which threw
-// away the likes, the play counts and every playlist entry pointing at it, for
-// what is often a disk being unmounted or a folder being moved.
-func SetLocalFilePresence(app core.App, path string, present bool) {
+// away, and returns how many records that changed. A file disappearing used to
+// delete the record outright, which threw away the likes, the play counts and
+// every playlist entry pointing at it, for what is often a disk being unmounted
+// or a folder being moved.
+//
+// Every record naming that path, not the first: nothing stops two tracks
+// sharing an origin, and leaving the others behind is how half a library comes
+// back.
+func SetLocalFilePresence(app core.App, path string, present bool) (int, error) {
 	abs, _ := filepath.Abs(path)
 	recs, err := app.FindRecordsByFilter("tracks", "origin = {:u}", "", 0, 0, dbx.Params{"u": "file://" + abs})
 	if err != nil {
-		return
+		return 0, err
 	}
+
+	changed := 0
+	var firstErr error
 	for _, r := range recs {
 		next := AvailabilityFile
 		if !present {
@@ -231,8 +265,20 @@ func SetLocalFilePresence(app core.App, path string, present bool) {
 			continue
 		}
 		r.Set("availability", next)
-		_ = app.Save(r)
+		// The rest of the records are still written: they name the same file and
+		// one refusing says nothing about the others. The failure travels, so a
+		// scan that repaired half a library reports as much rather than as a
+		// success.
+		if err := app.Save(r); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		changed++
 	}
+
+	return changed, firstErr
 }
 
 func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string) (string, error) {
@@ -312,7 +358,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 
 	// The origin is the file: nothing else has to record where it sits.
 	meta := domain.TrackMetadata{Format: strings.TrimPrefix(filepath.Ext(path), "."), Year: year}
-	_, err = getOrCreate(app, "tracks", "origin = {:u}", dbx.Params{"u": sourceURL}, func(r *core.Record) {
+	rec, err := getOrCreate(app, "tracks", "origin = {:u}", dbx.Params{"u": sourceURL}, func(r *core.Record) {
 		r.Set("title", title)
 		r.Set("duration", duration)
 		r.Set("origin", sourceURL)
@@ -323,7 +369,21 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 		r.Set("genres", genreIDs)
 		r.Set("metadata", meta)
 	})
-	return album.Id, err
+	if err != nil {
+		return "", err
+	}
+
+	// Reached for a file the walk did not already know, but ImportLocalPath comes
+	// through here too, and a record that says the file is missing has just been
+	// contradicted by reading it.
+	if rec.GetString("availability") != AvailabilityFile {
+		rec.Set("availability", AvailabilityFile)
+		if err := app.Save(rec); err != nil {
+			return "", err
+		}
+	}
+
+	return album.Id, nil
 }
 
 // creditOnAlbum adds anyone credited on a track to the album they appear on, so
