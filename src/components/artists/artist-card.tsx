@@ -2,20 +2,20 @@ import { Link } from '@tanstack/react-router';
 import { User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumsForArtist } from '@/hooks/use-album';
-import { useArtistTracks } from '@/hooks/use-tracks';
 import { getArtistCoverUrl } from '@/lib/cover-url';
 import type { Artist } from '@/shared';
 
 interface Props {
   artist: Artist;
+  // Restricts the count to a set of albums, so a source-scoped screen does not
+  // advertise albums that screen does not contain.
+  albumIds?: Set<string> | null;
 }
 
-export function ArtistCard({ artist }: Props) {
+export function ArtistCard({ artist, albumIds }: Props) {
   const { t } = useTranslation();
-  const { data: tracks = [] } = useArtistTracks(artist.id);
   const { data: albums = [] } = useAlbumsForArtist(artist.id);
-  const trackCount = tracks.length;
-  const albumCount = albums.length;
+  const albumCount = albumIds ? albums.filter((album) => albumIds.has(album.id)).length : albums.length;
   const imageUrl = getArtistCoverUrl(artist);
   return (
     <Link to="/artists/$artistId" params={{ artistId: artist.id }} className="group flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer">
@@ -25,7 +25,7 @@ export function ArtistCard({ artist }: Props) {
       <div className="flex flex-col items-center gap-0 text-center w-full px-1">
         <h3 className="font-semibold text-xs sm:text-sm line-clamp-1">{artist.name}</h3>
         <p className="hidden sm:block text-[11px] text-muted-foreground">
-          {albumCount} {t('ArtistPage.albums', { count: albumCount })} · {trackCount} {t('ArtistPage.tracks', { count: trackCount })}
+          {albumCount} {t('ArtistPage.albums', { count: albumCount })}
         </p>
       </div>
     </Link>

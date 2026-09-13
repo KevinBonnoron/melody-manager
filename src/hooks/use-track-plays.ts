@@ -1,42 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { config } from '@/lib/config';
-import { pb } from '@/lib/pocketbase';
+import { useLiveQuery } from '@tanstack/react-db';
+import { useCallback, useMemo } from 'react';
+import { trackPlayCollection } from '@/collections/track-play.collection';
+import type { TrackPlay } from '@/shared';
 
+// Counted from the rows the collection already holds. The endpoint that used to
+// answer this did the same grouping server-side, then had to be told about
+// every new play through a realtime subscription of its own, in parallel with
+// the one the collection already keeps.
 export function useTrackPlays() {
-  const [playCounts, setPlayCounts] = useState<Record<string, number>>({});
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const response = await fetch(`${config.server.url}/stats/play-counts`, {
-          headers: { Authorization: `Bearer ${pb.authStore.token}` },
-        });
-        if (response.ok) {
-          setPlayCounts(await response.json());
-        }
-      } catch (error) {
-        console.warn('Failed to fetch play counts:', error);
-      }
-    };
+  const { data = [] } = useLiveQuery({ query: (q) => q.from({ plays: trackPlayCollection }) });
 
-    fetchCounts();
+  const counts = useMemo(() => {
+    const out = new Map<string, number>();
+    for (const play of data as unknown as TrackPlay[]) {
+      out.set(play.track, (out.get(play.track) ?? 0) + 1);
+    }
+    return out;
+  }, [data]);
 
-    // Subscribe to track_plays changes to refresh counts
-    const unsubscribe = pb.collection('track_plays').subscribe('*', () => {
-      fetchCounts();
-    });
-
-    return () => {
-      unsubscribe.then((unsub) => unsub());
-    };
-  }, []);
-
-  const playCountMap = useMemo(() => new Map(Object.entries(playCounts)), [playCounts]);
-  const getPlayCount = useCallback(
-    (trackId: string) => {
-      return playCountMap.get(trackId) ?? 0;
-    },
-    [playCountMap],
-  );
-
+  const getPlayCount = useCallback((trackId: string) => counts.get(trackId) ?? 0, [counts]);
   return { getPlayCount };
 }

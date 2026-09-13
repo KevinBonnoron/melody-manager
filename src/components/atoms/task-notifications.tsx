@@ -1,4 +1,5 @@
 import { AlertCircle, Bell, CheckCircle2, Loader2, X } from 'lucide-react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -9,6 +10,9 @@ export function TaskNotifications() {
   const { t } = useTranslation();
   const { tasks, activeTasks, hasActiveTasks, clearCompleted } = useTasks();
   const recentTasks = tasks.slice(0, 10);
+  // Radix hands focus back to the trigger on close, which leaves a focus ring on
+  // a button the mouse just dismissed. Keyboard dismissals still get it back.
+  const closedByKeyboard = useRef(false);
   const hasCompletedTasks = tasks.length > activeTasks.length;
   return (
     <DropdownMenu>
@@ -18,7 +22,20 @@ export function TaskNotifications() {
           {hasActiveTasks && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent
+        align="end"
+        className="w-80"
+        onEscapeKeyDown={() => {
+          closedByKeyboard.current = true;
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!closedByKeyboard.current) {
+            event.preventDefault();
+          }
+
+          closedByKeyboard.current = false;
+        }}
+      >
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">{t('Tasks.title')}</DropdownMenuLabel>
           {hasCompletedTasks && (
@@ -36,7 +53,7 @@ export function TaskNotifications() {
             <DropdownMenuItem key={task.id} className="flex items-start gap-3 py-2 cursor-default" onSelect={(e) => e.preventDefault()}>
               <TaskStatusIcon status={task.status} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{task.name ? `${t(`Tasks.types.${task.type}`)} — ${task.name}` : t(`Tasks.types.${task.type}`)}</p>
+                <p className="text-sm font-medium truncate">{task.name ? `${t(`Tasks.types.${task.type}`)} : ${task.name}` : t(`Tasks.types.${task.type}`)}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   {t(`Tasks.status.${task.status}`)}
                   {task.count ? ` · ${t('Tasks.result.tracks', { count: task.count })}` : ''} · {new Date(task.updatedAt).toLocaleTimeString()}

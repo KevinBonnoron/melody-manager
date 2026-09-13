@@ -1,11 +1,11 @@
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Clock, Headphones } from 'lucide-react';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useMusicPlayer } from '@/contexts/music-player-context';
-import { useTrackDislikes } from '@/hooks/use-track-dislikes';
+import { useNowPlaying } from '@/hooks/use-now-playing';
+import { useTrackRatings } from '@/hooks/use-ratings';
 import { useTrackPlays } from '@/hooks/use-track-plays';
 import { cn } from '@/lib/utils';
 import type { Track } from '@/shared';
@@ -28,14 +28,15 @@ interface Props {
 
 export function TrackTable({ tracks }: Props) {
   const { t } = useTranslation();
-  const { playTrackWithContext, togglePlayPause, currentTrack, isPlaying } = useMusicPlayer();
-  const { isDisliked } = useTrackDislikes();
+  const { playTrackWithContext, togglePlayPause, currentTrack } = useMusicPlayer();
+  const { track: nowPlaying, isPlaying } = useNowPlaying();
+  const { isDisliked } = useTrackRatings();
   const { getPlayCount } = useTrackPlays();
   const currentTrackId = currentTrack?.id;
-  const queueableTracks = useMemo(() => tracks.filter((track) => !isDisliked(track.id)), [tracks, isDisliked]);
+  const queueableTracks = useMemo(() => tracks.filter((track) => !isDisliked(track.id) && track.availability !== 'none'), [tracks, isDisliked]);
   const handleTrackClick = useCallback(
     (track: Track) => {
-      if (isDisliked(track.id)) {
+      if (isDisliked(track.id) || track.availability === 'none') {
         return;
       }
 
@@ -104,7 +105,7 @@ export function TrackTable({ tracks }: Props) {
         ),
         cell: ({ row }) => {
           const count = getPlayCount(row.original.id);
-          return <span className="text-muted-foreground text-sm">{count > 0 ? count : '—'}</span>;
+          return <span className="text-muted-foreground text-sm">{count > 0 ? count : ''}</span>;
         },
         meta: {
           className: 'justify-center hidden sm:flex',
@@ -133,18 +134,12 @@ export function TrackTable({ tracks }: Props) {
   });
 
   const { rows } = table.getRowModel();
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useWindowVirtualizer({
-    count: rows.length,
-    estimateSize: () => 49,
-    overscan: 5,
-    scrollMargin: tableContainerRef.current?.offsetTop ?? 0,
-  });
 
-  const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = virtualizer.getTotalSize();
+  // Not virtualised: this table holds one album or one playlist, which is tens
+  // of rows. Virtualising the window for that bought nothing and cost the rows
+  // being placed against an offset measured before the page had settled.
   return (
-    <div ref={tableContainerRef} className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden">
       <table className="grid w-full text-sm">
         <TableHeader className="sticky top-0 bg-background z-10 border-b grid">
           {table.getHeaderGroups().map((headerGroup) => (
@@ -162,19 +157,17 @@ export function TrackTable({ tracks }: Props) {
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody className="grid relative" style={{ height: `${totalSize}px` }}>
-          {virtualItems.map((virtualRow) => {
-            const row = rows[virtualRow.index];
+        <TableBody className="grid">
+          {rows.map((row) => {
             const track = row.original;
-            const isCurrentTrack = currentTrackId === track.id && isPlaying;
+            const isCurrentTrack = nowPlaying?.id === track.id && isPlaying;
             const isTrackDisliked = isDisliked(track.id);
+            const unplayable = track.availability === 'none';
             return (
               <TableRow
                 key={row.id}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                className={`flex w-full items-center absolute group ${isTrackDisliked ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${isCurrentTrack ? 'bg-primary/5' : ''}`}
-                style={{ transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)` }}
+                title={unplayable ? t('Track.unavailable') : undefined}
+                className={`flex w-full items-center group ${unplayable ? 'opacity-40 saturate-0 cursor-not-allowed' : isTrackDisliked ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${isCurrentTrack ? 'bg-primary/5' : ''}`}
                 onClick={(e) => {
                   const target = e.target as HTMLElement;
                   if (target.closest('button, a, input, select, textarea, [role="button"]')) {

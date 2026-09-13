@@ -18,7 +18,11 @@ import { pb } from '@/lib/pocketbase';
 import { formatListeningTime, formatMonth } from '@/lib/utils';
 import type { Album, Artist, Track } from '@/shared';
 
-const CHART_COLORS = ['#7c3aed', '#c026d3', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f97316'];
+// Read from the theme, which carries a light and a dark step for each slot.
+// Assigned in this order and never cycled: past the last slot the tail is
+// folded into one "other" share rather than repeating a hue already in use.
+const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)'];
+const OTHER_COLOR = 'var(--muted-foreground)';
 interface StatsData {
   totalPlays: number;
   totalSeconds: number;
@@ -38,10 +42,10 @@ export function StatsPage() {
   const [expandedTracks, setExpandedTracks] = useState(false);
   const [expandedArtists, setExpandedArtists] = useState(false);
   const [expandedAlbums, setExpandedAlbums] = useState(false);
-  const { data: tracks = [] } = useLiveQuery((q) => q.from({ tracks: trackCollection }));
-  const { data: albums = [] } = useLiveQuery((q) => q.from({ albums: albumCollection }));
-  const { data: artists = [] } = useLiveQuery((q) => q.from({ artists: artistCollection }));
-  const { data: genres = [] } = useLiveQuery((q) => q.from({ genres: genreCollection }));
+  const { data: tracks = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
+  const { data: albums = [] } = useLiveQuery({ query: (q) => q.from({ albums: albumCollection }) });
+  const { data: artists = [] } = useLiveQuery({ query: (q) => q.from({ artists: artistCollection }) });
+  const { data: genres = [] } = useLiveQuery({ query: (q) => q.from({ genres: genreCollection }) });
   const trackMap = useMemo(() => new Map(tracks.map((track) => [track.id, track])), [tracks]);
   const albumMap = useMemo(() => new Map(albums.map((album) => [album.id, album])), [albums]);
   const artistMap = useMemo(() => new Map(artists.map((artist) => [artist.id, artist])), [artists]);
@@ -89,7 +93,7 @@ export function StatsPage() {
   }));
 
   return (
-    <div className="space-y-6 pb-48">
+    <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Headphones} label={t('StatsPage.totalPlays')} value={stats.totalPlays.toLocaleString()} />
         <StatCard icon={Clock} label={t('StatsPage.listeningTime')} value={formattedTime} />
@@ -110,8 +114,11 @@ export function StatsPage() {
               <BarChart data={monthlyData}>
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={30} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)', fontSize: '13px' }} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#7c3aed" />
+                {/* The default hover cursor is an opaque light grey block, which
+                    on a dark surface reads as a hole in the chart. */}
+                <Tooltip cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.12 }} contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)', fontSize: '13px' }} />
+                {/* Named, or the tooltip labels the series with the raw key. */}
+                <Bar dataKey="count" name={t('StatsPage.plays')} radius={[4, 4, 0, 0]} fill="var(--chart-1)" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -128,7 +135,7 @@ export function StatsPage() {
               </CardTitle>
               {stats.topTracks.length > 5 && (
                 <Button variant="ghost" size="sm" onClick={() => setExpandedTracks((prev) => !prev)} className="text-muted-foreground hover:text-foreground">
-                  {expandedTracks ? t('LibraryPage.showLess') : t('LibraryPage.seeAll')}
+                  {expandedTracks ? t('LibraryPage.showLess') : t('LibraryPage.seeMore')}
                   <ChevronRight className={`ml-1 h-4 w-4 transition-transform ${expandedTracks ? 'rotate-90' : ''}`} />
                 </Button>
               )}
@@ -158,7 +165,7 @@ export function StatsPage() {
                 </CardTitle>
                 {stats.topArtists.length > 5 && (
                   <Button variant="ghost" size="sm" onClick={() => setExpandedArtists((prev) => !prev)} className="text-muted-foreground hover:text-foreground">
-                    {expandedArtists ? t('LibraryPage.showLess') : t('LibraryPage.seeAll')}
+                    {expandedArtists ? t('LibraryPage.showLess') : t('LibraryPage.seeMore')}
                     <ChevronRight className={`ml-1 h-4 w-4 transition-transform ${expandedArtists ? 'rotate-90' : ''}`} />
                   </Button>
                 )}
@@ -190,7 +197,7 @@ export function StatsPage() {
               </CardTitle>
               {stats.topAlbums.length > 5 && (
                 <Button variant="ghost" size="sm" onClick={() => setExpandedAlbums((prev) => !prev)} className="text-muted-foreground hover:text-foreground">
-                  {expandedAlbums ? t('LibraryPage.showLess') : t('LibraryPage.seeAll')}
+                  {expandedAlbums ? t('LibraryPage.showLess') : t('LibraryPage.seeMore')}
                   <ChevronRight className={`ml-1 h-4 w-4 transition-transform ${expandedAlbums ? 'rotate-90' : ''}`} />
                 </Button>
               )}
@@ -312,22 +319,68 @@ function AlbumRow({ rank, album, count, artistMap }: { rank: number; album: Albu
 }
 
 function GenreChart({ data }: { data: { name: string; value: number }[] }) {
-  const coloredData = data.map((d, i) => ({ ...d, fill: CHART_COLORS[i % CHART_COLORS.length] }));
+  const { t } = useTranslation();
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  // Colour belongs to the genre, not to its rank: assigned once over the whole
+  // list, so hiding one does not repaint the others.
+  const series = useMemo(() => {
+    const head = data.slice(0, CHART_COLORS.length).map((d, i) => ({ ...d, fill: CHART_COLORS[i] }));
+    const tail = data.slice(CHART_COLORS.length);
+    if (tail.length === 0) {
+      return head;
+    }
+
+    return [...head, { name: t('StatsPage.otherGenres'), value: tail.reduce((sum, d) => sum + d.value, 0), fill: OTHER_COLOR }];
+  }, [data, t]);
+
+  const visible = series.filter((item) => !hidden.has(item.name));
+  const shown = visible.reduce((sum, item) => sum + item.value, 0);
+  const toggle = (name: string) =>
+    setHidden((previous) => {
+      const next = new Set(previous);
+      // Hiding the last one would leave nothing to compare, so it stays.
+      if (next.has(name)) {
+        next.delete(name);
+      } else if (visible.length > 1) {
+        next.add(name);
+      }
+      return next;
+    });
+
   return (
-    <div className="flex flex-col lg:flex-row items-center gap-4">
+    <div className="flex flex-col gap-4">
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
-          <Pie data={coloredData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={55} paddingAngle={2} strokeWidth={0} />
-          <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)', fontSize: '13px' }} />
+          {/* The arcs are not in the tab order: a focus ring follows a bounding
+              box, so on a slice it draws a rectangle across the chart. The
+              legend below carries every value and share and is made of real
+              buttons, so nothing is lost by keeping one keyboard path. */}
+          <Pie data={visible} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={55} paddingAngle={2} strokeWidth={0} rootTabIndex={-1} />
+          <Tooltip
+            formatter={(value, name) => {
+              const count = typeof value === 'number' ? value : 0;
+              return [`${count} · ${Math.round((count / Math.max(shown, 1)) * 100)}%`, String(name)];
+            }}
+            contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)', fontSize: '13px' }}
+          />
         </PieChart>
       </ResponsiveContainer>
-      <div className="flex flex-wrap gap-1.5 justify-center">
-        {coloredData.map((item) => (
-          <Badge key={item.name} variant="outline" className="gap-1.5 text-xs">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.fill }} />
-            {item.name} ({item.value})
-          </Badge>
-        ))}
+
+      {/* The legend is also the filter: set a genre aside and the shares are
+          recomputed among those left, which is the whole point of looking. */}
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {series.map((item) => {
+          const isHidden = hidden.has(item.name);
+          const share = isHidden ? 0 : Math.round((item.value / Math.max(shown, 1)) * 100);
+          return (
+            <button key={item.name} type="button" onClick={() => toggle(item.name)} aria-pressed={!isHidden} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-opacity ${isHidden ? 'opacity-40' : ''}`}>
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.fill }} />
+              <span className={isHidden ? 'line-through' : undefined}>{item.name}</span>
+              <span className="text-muted-foreground tabular-nums">{isHidden ? item.value : `${item.value} · ${share}%`}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

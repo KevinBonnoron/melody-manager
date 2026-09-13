@@ -1,7 +1,7 @@
 import type { Artist } from './artist.type';
-import type { Expand } from './pocketbase.type';
+import type { PocketBaseRecord } from './pocketbase.type';
 
-export interface Album extends Expand<{ artists: Artist[] }> {
+export interface Album extends PocketBaseRecord {
   name: string;
   cover?: string;
   year?: number;

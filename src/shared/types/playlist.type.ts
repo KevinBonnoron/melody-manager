@@ -1,5 +1,4 @@
-import type { Expand } from './pocketbase.type';
-import type { Track } from './track.type';
+import type { PocketBaseRecord } from './pocketbase.type';
 
 export type PlaylistType = 'manual' | 'smart';
 
@@ -12,12 +11,12 @@ export interface PlaylistMetadata {
   limit?: number;
 }
 
-export interface Playlist extends Expand<{ tracks: Track[] }> {
+export interface Playlist extends PocketBaseRecord {
   name: string;
   type: PlaylistType;
   description?: string;
   cover?: string;
-  sourceUrl?: string;
+  origin?: string;
   metadata?: PlaylistMetadata;
   tracks: string[];
 }

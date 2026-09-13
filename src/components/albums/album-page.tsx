@@ -1,14 +1,15 @@
 import { Link } from '@tanstack/react-router';
-import { Check, Disc3, ExternalLink, Library, Music2 } from 'lucide-react';
+import { Disc3, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAlbumLikes } from '@/hooks/use-album-likes';
+import { useAlbumRatings } from '@/hooks/use-ratings';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
 import type { Album, Artist, Track } from '@/shared';
+import { LibraryButton } from '../atoms/library-button';
+import { PageHeader } from '../layout/page-header-block';
 import { PlayButton } from '../tracks/play-button';
 import { TrackTable } from '../tracks/track-table';
 import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AlbumActionsMenu } from './album-actions-menu';
 
@@ -20,13 +21,13 @@ interface Props {
 
 export function AlbumPage({ album, tracks, artists }: Props) {
   const { t } = useTranslation();
-  const { isLiked, toggleLike } = useAlbumLikes();
+  const { ratingOf, toggleLike, toggleDislike, isReady: ratingsReady } = useAlbumRatings();
   const coverUrl = getAlbumCoverUrl(album);
   const totalDuration = tracks.reduce((sum, { duration }) => sum + duration, 0);
-  const sourceUrl = (() => {
+  const origin = (() => {
     const raw = tracks.find((t) => {
-      return t.sourceUrl;
-    })?.sourceUrl;
+      return t.origin;
+    })?.origin;
     if (!raw) {
       return null;
     }
@@ -41,21 +42,21 @@ export function AlbumPage({ album, tracks, artists }: Props) {
 
   return (
     <>
-      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 xl:gap-x-8 xl:gap-y-4 mb-8">
-        <div className="row-span-2">
-          <div className="w-32 h-32 xl:w-64 xl:h-64 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">
-            {coverUrl ? <img src={coverUrl} alt={album.name} className="w-full h-full object-cover" /> : <Disc3 className="h-16 w-16 xl:h-32 xl:w-32 text-primary/60" />}
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-end">
-          <h1 className="text-2xl xl:text-4xl font-bold leading-tight line-clamp-2">{album.name}</h1>
-          <p className="text-base xl:text-xl text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
-            {artists.slice(0, 1).map((artist) => (
-              <Link key={artist.id} to="/artists/$artistId" params={{ artistId: artist.id }} className="hover:text-foreground hover:underline transition-colors">
-                {artist.name}
+      {/* Title, one subtitle, one row of actions: the same three parts as the
+          artist header. Year, track count and duration join the artist on the
+          subtitle rather than taking a line of their own. */}
+      <PageHeader
+        media={<div className="h-full w-full rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">{coverUrl ? <img src={coverUrl} alt={album.name} className="w-full h-full object-cover" /> : <Disc3 className="h-1/2 w-1/2 text-primary/60" />}</div>}
+        title={album.name}
+        subtitle={
+          <>
+            {artists.length > 0 ? (
+              <Link to="/artists/$artistId" params={{ artistId: artists[0].id }} className="truncate hover:text-foreground hover:underline transition-colors">
+                {artists[0].name}
               </Link>
-            )) ?? t('AlbumPage.unknownArtist')}
+            ) : (
+              t('AlbumPage.unknownArtist')
+            )}
             {artists.length > 1 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -72,32 +73,28 @@ export function AlbumPage({ album, tracks, artists }: Props) {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {album.year && <>{album.year} · </>}
-            {tracks.length} {t('AlbumPage.tracks', { count: tracks.length })} · {formatDuration(totalDuration, 'long')}
-          </p>
-        </div>
-
-        <div className="col-span-2 xl:col-span-1 flex flex-wrap items-center gap-3 xl:gap-4">
-          <PlayButton tracks={tracks} label={t('AlbumPage.playAlbum')} />
-          <Button variant={isLiked(album.id) ? 'secondary' : 'outline'} size="icon" className="sm:w-auto sm:px-3 h-9 w-9" onClick={() => toggleLike(album.id)} aria-label={isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}>
-            {isLiked(album.id) ? <Check className="h-4 w-4 sm:mr-2" /> : <Library className="h-4 w-4 sm:mr-2" />}
-            <span className="hidden sm:inline">{isLiked(album.id) ? t('AlbumPage.inLibrary') : t('AlbumPage.addToLibrary')}</span>
-          </Button>
-          {sourceUrl && (
-            <Button variant="ghost" size="icon" className="sm:w-auto sm:px-3 h-9 w-9" asChild>
-              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={t('AlbumPage.openExternal')} aria-label={t('AlbumPage.openExternal')}>
-                <ExternalLink className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('AlbumPage.openExternal')}</span>
-              </a>
-            </Button>
-          )}
-          <div className="ml-auto">
-            <AlbumActionsMenu album={album} />
-          </div>
-        </div>
-      </div>
+            <span>·</span>
+            {album.year && (
+              <>
+                <span>{album.year}</span>
+                <span>·</span>
+              </>
+            )}
+            <span>
+              {tracks.length} {t('AlbumPage.tracks', { count: tracks.length })}
+            </span>
+            <span>·</span>
+            <span>{formatDuration(totalDuration, 'long')}</span>
+          </>
+        }
+        actions={
+          <>
+            <PlayButton tracks={tracks} label={t('AlbumPage.playAlbum')} />
+            <LibraryButton value={ratingOf(album.id)?.value} ready={ratingsReady} onLike={() => toggleLike(album.id)} onUndislike={() => toggleDislike(album.id)} />
+          </>
+        }
+        menu={<AlbumActionsMenu album={album} currentArtistId={artists[0]?.id} origin={origin ?? undefined} />}
+      />
 
       {tracks.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">

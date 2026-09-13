@@ -8,7 +8,7 @@ export function getAlbumDownloadStatus(tracks: Track[]): { status: AlbumDownload
     return { status: 'none', downloaded: 0, total: 0 };
   }
 
-  const downloaded = tracks.filter((track) => track.metadata?.localPath).length;
+  const downloaded = tracks.filter((track) => track.availability === 'file').length;
   if (downloaded === 0) {
     return { status: 'none', downloaded, total };
   }

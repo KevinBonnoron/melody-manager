@@ -9,7 +9,7 @@ export interface LibraryStatus {
 interface BaseSearchResult {
   type: SearchType;
   provider: string;
-  sourceUrl: string;
+  origin: string;
   libraryStatus?: LibraryStatus;
 }
 

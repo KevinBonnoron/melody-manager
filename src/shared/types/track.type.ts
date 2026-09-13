@@ -1,7 +1,7 @@
 import type { Album } from './album.type';
 import type { Artist } from './artist.type';
 import type { Genre } from './genre.type';
-import type { Expand } from './pocketbase.type';
+import type { PocketBaseRecord } from './pocketbase.type';
 
 export interface Chapter {
   title: string;
@@ -26,18 +26,22 @@ export interface TrackMetadata {
   musicbrainzId?: string;
   spotifyId?: string;
   youtubeId?: string;
-  localPath?: string;
 }
 
-export interface Track extends Expand<{ artists: Artist[]; album: Album; genres: Genre[] }> {
+export type TrackAvailability = 'file' | 'stream' | 'none';
+
+export interface Track extends PocketBaseRecord {
   id: string;
   title: string;
   duration: number;
-  sourceUrl: string;
+  origin: string;
   metadata?: TrackMetadata;
   artists: Artist['id'][];
   album: Album['id'];
   source: string;
+  // Where this track's audio can be read from. The same three answers whatever
+  // the source, so nothing has to be interpreted per provider.
+  availability: TrackAvailability;
   genres: Genre['id'][];
   created: string;
   updated: string;
