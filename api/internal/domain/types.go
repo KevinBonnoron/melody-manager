@@ -1,5 +1,5 @@
 // Package domain holds the core data types shared across providers and
-// services — the Go counterpart of the TS shared/ package (which the client
+// services, the Go counterpart of the TS shared/ package (which the client
 // still uses; a unified contract is a deferred decision).
 package domain
 
@@ -32,20 +32,20 @@ type TrackMetadata struct {
 	MusicbrainzID string    `json:"musicbrainzId,omitempty"`
 	SpotifyID     string    `json:"spotifyId,omitempty"`
 	YoutubeID     string    `json:"youtubeId,omitempty"`
-	LocalPath     string    `json:"localPath,omitempty"`
 }
 
-// ResolvedTrack is what a provider returns when resolving a URL — not yet
+// ResolvedTrack is what a provider returns when resolving a URL, not yet
 // persisted. ArtistName/AlbumName are resolved to ids at persist time.
 type ResolvedTrack struct {
-	Title      string        `json:"title"`
-	Duration   int           `json:"duration"`
-	SourceURL  string        `json:"sourceUrl"`
-	ArtistName string        `json:"artistName"`
-	AlbumName  string        `json:"albumName"`
-	CoverURL   string        `json:"coverUrl,omitempty"`
-	Source     string        `json:"source"`
-	Metadata   TrackMetadata `json:"metadata"`
+	Title          string        `json:"title"`
+	Duration       int           `json:"duration"`
+	Origin         string        `json:"origin"`
+	ArtistName     string        `json:"artistName"`
+	AlbumName      string        `json:"albumName"`
+	CoverURL       string        `json:"coverUrl,omitempty"`
+	ArtistImageURL string        `json:"artistImageUrl,omitempty"`
+	Source         string        `json:"source"`
+	Metadata       TrackMetadata `json:"metadata"`
 }
 
 // SearchResultType enumerates the kinds of search results.
@@ -65,7 +65,7 @@ type SearchResult struct {
 	Title     string           `json:"title"`
 	Subtitle  string           `json:"subtitle,omitempty"`
 	Source    string           `json:"source"`
-	SourceURL string           `json:"sourceUrl,omitempty"`
+	Origin    string           `json:"origin,omitempty"`
 	CoverURL  string           `json:"coverUrl,omitempty"`
 	Duration  int              `json:"duration,omitempty"`
 	InLibrary bool             `json:"inLibrary"`

@@ -173,3 +173,62 @@ func TestSearchSpecShape(t *testing.T) {
 		}
 	}
 }
+
+func TestNeedsChapterRecovery(t *testing.T) {
+	even := []Chapter{
+		{Title: "One", StartTime: 0, EndTime: 100},
+		{Title: "Two", StartTime: 100, EndTime: 200},
+		{Title: "Three", StartTime: 200, EndTime: 320},
+	}
+	truncated := []Chapter{
+		{Title: "One", StartTime: 0, EndTime: 100},
+		{Title: "Two", StartTime: 100, EndTime: 200},
+		{Title: "Check Comments :)", StartTime: 200, EndTime: 12000},
+	}
+	numbered := []Chapter{
+		{Title: "1.", StartTime: 0, EndTime: 100},
+		{Title: "2.", StartTime: 100, EndTime: 200},
+	}
+
+	cases := []struct {
+		name string
+		info TrackInfo
+		want bool
+	}{
+		{"chapters of a comparable length are kept", TrackInfo{Chapters: even}, false},
+		{"a last chapter running far longer means the list stops early", TrackInfo{Chapters: truncated}, true},
+		{"titles that are only numbers name nothing", TrackInfo{Chapters: numbered}, true},
+		{"a single chapter is no chapter list", TrackInfo{Chapters: even[:1]}, true},
+		{"no chapters at all", TrackInfo{}, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := needsChapterRecovery(tc.info); got != tc.want {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPickChapters(t *testing.T) {
+	short := []Chapter{{Title: "One", EndTime: 100}, {Title: "Two", EndTime: 200}}
+	long := []Chapter{{Title: "One", EndTime: 100}, {Title: "Two", EndTime: 200}, {Title: "Three", EndTime: 300}}
+	sameCountFurther := []Chapter{{Title: "One", EndTime: 150}, {Title: "Two", EndTime: 900}}
+
+	if got := pickChapters(nil, long, 300); len(got) != 3 {
+		t.Fatalf("with no description chapters the comments win, got %d", len(got))
+	}
+	if got := pickChapters(long, nil, 300); len(got) != 3 {
+		t.Fatalf("with no comment chapters the description wins, got %d", len(got))
+	}
+	if got := pickChapters(short, long, 300); len(got) != 3 {
+		t.Fatalf("the longer list wins, got %d", len(got))
+	}
+	if got := pickChapters(long, short, 300); len(got) != 3 {
+		t.Fatalf("the longer list wins whichever side it is on, got %d", len(got))
+	}
+	if got := pickChapters(short, sameCountFurther, 1000); got[len(got)-1].EndTime != 900 {
+		t.Fatalf("on a tie the list reaching further wins, got %v", got)
+	}
+}

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 // StreamTrack serves a track's audio: local files with HTTP range support,
 // remote URLs proxied (range forwarded), and chaptered/transcoded streams piped
 // through ffmpeg.
+// diagnostics reports what the transcoder said, when it can say anything.
 func StreamTrack(ctx context.Context, app core.App, reg *providers.Registry, audio *cache.Cache, e *core.RequestEvent, trackID, transcode, userID string) error {
 	track, err := app.FindRecordById("tracks", trackID)
 	if err != nil {
@@ -33,14 +35,14 @@ func StreamTrack(ctx context.Context, app core.App, reg *providers.Registry, aud
 	var meta domain.TrackMetadata
 	_ = track.UnmarshalJSONField("metadata", &meta)
 	source := track.GetString("source")
-	sourceURL := track.GetString("sourceUrl")
+	sourceURL := track.GetString("origin")
 	hasSegment := meta.StartTime != nil && meta.EndTime != nil
 
 	// Resolve a playable input (local path) or a remote URL to proxy.
-	input := localInput(meta, sourceURL, localRoots(app))
+	input := localFile(app, track, localRoots(app))
 	if input != "" {
-		// The track has a file of its own — a downloaded chapter is already cut
-		// — so the window must not be applied a second time. Re-cutting asked
+		// The track has a file of its own, a downloaded chapter is already cut
+		//, so the window must not be applied a second time. Re-cutting asked
 		// for 335-508 s inside a 173 s file and produced silence.
 		hasSegment = false
 	}
@@ -79,22 +81,10 @@ func StreamTrack(ctx context.Context, app core.App, reg *providers.Registry, aud
 		return serveSegment(ctx, e, audio, sourceURL, input, *meta.StartTime, *meta.EndTime)
 	}
 
-	if transcode != "" {
-		var start, end float64
-		format := transcode
-		if format == "" {
-			format = "mp3"
-		}
-		rc, mime, err := ffmpeg.Transcode(ctx, input, start, end, format)
-		if err != nil {
-			return e.InternalServerError("transcode", err)
-		}
-		defer rc.Close()
-		e.Response.Header().Set("Content-Type", mime)
-		e.Response.Header().Set("Accept-Ranges", "none")
-		e.Response.WriteHeader(http.StatusOK)
-		_, _ = io.Copy(e.Response, rc)
-		return nil
+	// Re-encoding a file that already is in the requested format costs quality
+	// and time and buys nothing.
+	if transcode != "" && !sameFormat(input, transcode) {
+		return serveTranscode(ctx, e, audio, sourceURL, input, transcode)
 	}
 
 	f, err := os.Open(input)
@@ -105,6 +95,9 @@ func StreamTrack(ctx context.Context, app core.App, reg *providers.Registry, aud
 	info, err := f.Stat()
 	if err != nil {
 		return e.InternalServerError("stat", err)
+	}
+	if mime := MimeFor(filepath.Ext(input)); mime != "" {
+		e.Response.Header().Set("Content-Type", mime)
 	}
 	http.ServeContent(e.Response, e.Request, filepath.Base(input), info.ModTime(), f)
 	return nil
@@ -148,9 +141,9 @@ func TrackPeaks(ctx context.Context, app core.App, reg *providers.Registry, audi
 	}
 	var meta domain.TrackMetadata
 	_ = track.UnmarshalJSONField("metadata", &meta)
-	sourceURL := track.GetString("sourceUrl")
+	sourceURL := track.GetString("origin")
 	hasSegment := meta.StartTime != nil && meta.EndTime != nil
-	input := localInput(meta, sourceURL, localRoots(app))
+	input := localFile(app, track, localRoots(app))
 	if input == "" {
 		sr := reg.StreamResolver(track.GetString("source"))
 		if sr == nil {
@@ -251,7 +244,7 @@ func segmentFile(ctx context.Context, audio *cache.Cache, sourceURL, input strin
 
 	// Detached from the request: the browser aborts the previous audio request
 	// as soon as the listener skips, and cancelling the extraction there meant
-	// nothing was ever cached — every play started from scratch.
+	// nothing was ever cached, every play started from scratch.
 	work, cancel := context.WithTimeout(context.WithoutCancel(ctx), extractionTimeout)
 	defer cancel()
 
@@ -294,6 +287,118 @@ func serveSegment(ctx context.Context, e *core.RequestEvent, audio *cache.Cache,
 	return nil
 }
 
+// serveTranscode answers with a complete transcoded file rather than ffmpeg's
+// pipe. A piped response carries no length and no byte ranges, and a player
+// told to seek in one restarts the track instead: that is what Sonos does, and
+// its reported position then disagrees with the interface asking for the seek.
+func serveTranscode(ctx context.Context, e *core.RequestEvent, audio *cache.Cache, sourceURL, input, format string) error {
+	path, cleanup, err := transcodeFile(ctx, audio, sourceURL, input, format)
+	if err != nil {
+		return e.InternalServerError("transcode", err)
+	}
+	defer cleanup()
+
+	f, err := os.Open(path)
+	if err != nil {
+		return e.InternalServerError("transcode", err)
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return e.InternalServerError("transcode", err)
+	}
+	if spec, ok := ffmpeg.FormatFor(format); ok {
+		e.Response.Header().Set("Content-Type", spec.MimeType)
+	}
+	http.ServeContent(e.Response, e.Request, filepath.Base(path), info.ModTime(), f)
+	return nil
+}
+
+func transcodeFile(ctx context.Context, audio *cache.Cache, sourceURL, input, format string) (string, func(), error) {
+	produce := func(ctx context.Context) (string, error) {
+		src := input
+		if isRemote(input) {
+			full, err := downloadPrefix(ctx, input, 0)
+			if err != nil {
+				return "", err
+			}
+			defer os.Remove(full)
+			src = full
+		}
+		tmp, err := os.CreateTemp("", "transcode-*"+ffmpeg.Extension(format))
+		if err != nil {
+			return "", err
+		}
+		path := tmp.Name()
+		_ = tmp.Close()
+		if err := ffmpeg.SaveTranscode(ctx, src, format, path); err != nil {
+			_ = os.Remove(path)
+			return "", err
+		}
+		// ffmpeg failing on its first frame leaves an empty file behind, which a
+		// player accepts and then sits silent on: a failure with no error
+		// anywhere, and the hardest kind to chase.
+		if info, err := os.Stat(path); err != nil || info.Size() == 0 {
+			_ = os.Remove(path)
+			return "", errors.New("transcode produced no audio")
+		}
+		return path, nil
+	}
+
+	// Detached from the request for the same reason as an extract: a listener
+	// who skips aborts the request, and cancelling the encode there would mean
+	// nothing is ever cached.
+	work, cancel := context.WithTimeout(context.WithoutCancel(ctx), extractionTimeout)
+	defer cancel()
+
+	if audio == nil {
+		path, err := produce(work)
+		return path, func() { _ = os.Remove(path) }, err
+	}
+	path, err := audio.Fetch(work, transcodeKey(sourceURL, format), produce)
+	return path, func() {}, err
+}
+
+func transcodeKey(sourceURL, format string) string {
+	return fmt.Sprintf("%s#transcode:%s", sourceURL, format)
+}
+
+// mimeTypes name what each container is served and announced as. Only
+// containers that imply a codec are listed: an .ogg may hold Vorbis or Opus,
+// and handing a speaker the one it cannot decode plays silence, so it is left
+// out and transcoded instead.
+var mimeTypes = map[string]string{
+	"mp3":  "audio/mpeg",
+	"flac": "audio/flac",
+	"wav":  "audio/wav",
+	"m4a":  "audio/mp4",
+	"aiff": "audio/aiff",
+	"aif":  "audio/aiff",
+}
+
+// MimeFor returns the MIME type a format is served as, empty when unknown.
+func MimeFor(format string) string {
+	return mimeTypes[strings.ToLower(strings.TrimPrefix(format, "."))]
+}
+
+// LocalFormat reports the container a track's own file is in, empty when the
+// track has no file and has to be fetched from its source.
+func LocalFormat(app core.App, track *core.Record) string {
+	input := localFile(app, track, localRoots(app))
+	if input == "" {
+		return ""
+	}
+	return strings.ToLower(strings.TrimPrefix(filepath.Ext(input), "."))
+}
+
+// sameFormat reports whether a local file already is in the requested format.
+func sameFormat(input, format string) bool {
+	if input == "" || isRemote(input) {
+		return false
+	}
+	return strings.EqualFold(strings.TrimPrefix(filepath.Ext(input), "."), format)
+}
+
 // prefixChunk is the range size used to pull a source down. googlevideo
 // throttles a single continuous read to a trickle but serves bounded ranges at
 // full speed: measured on a 12 MB window, one connection took 82 s and 4 MiB
@@ -304,7 +409,8 @@ const prefixChunk = 4 << 20
 const extractionTimeout = 5 * time.Minute
 
 // downloadPrefix fetches enough of url to cover the first `seconds` of audio,
-// in ranged chunks, and returns the path to the temporary file.
+// in ranged chunks, and returns the path to the temporary file. seconds <= 0
+// takes the whole source.
 func downloadPrefix(ctx context.Context, url string, seconds float64) (string, error) {
 	f, err := os.CreateTemp("", "source-*.bin")
 	if err != nil {
@@ -332,6 +438,10 @@ func downloadPrefix(ctx context.Context, url string, seconds float64) (string, e
 		// The container header carries the full duration, so after the first
 		// chunk we know how many bytes the wanted window needs.
 		if need == 0 && total > 0 {
+			if seconds <= 0 {
+				need = total
+				continue
+			}
 			duration, err := ffmpeg.ProbeDuration(ctx, path)
 			if err != nil || duration <= 0 {
 				need = total // cannot tell; take everything
@@ -377,31 +487,84 @@ func fetchRange(ctx context.Context, url string, offset, length int64, w io.Writ
 
 // localRoots are the directories a track may legitimately point into: the
 // scanned music library, plus wherever each provider was told to download.
+// Deduplicated, and not only for tidiness: pointing a provider's downloads at
+// the local library is an ordinary setup, and a root listed twice makes a
+// rename plan the same folder move twice, where the second attempt finds
+// nothing to move and takes the whole rename down with it.
 func localRoots(app core.App) []string {
-	roots := []string{pbx.EffectiveConfig(app, "", "local").String("path")}
-	for _, mf := range providers.Manifests() {
-		if p := pbx.EffectiveConfig(app, "", mf.ID).String("downloadPath"); p != "" {
-			roots = append(roots, p)
+	var roots []string
+	seen := map[string]bool{}
+	add := func(path string) {
+		if path == "" {
+			return
 		}
+		clean := filepath.Clean(path)
+		if seen[clean] {
+			return
+		}
+		seen[clean] = true
+		roots = append(roots, clean)
+	}
+
+	add(pbx.EffectiveConfig(app, "", "local").String("path"))
+	for _, mf := range providers.Manifests() {
+		add(pbx.EffectiveConfig(app, "", mf.ID).String("downloadPath"))
 	}
 	return roots
 }
 
-func localInput(meta domain.TrackMetadata, sourceURL string, roots []string) string {
-	candidates := make([]string, 0, 2)
-	if meta.LocalPath != "" {
-		candidates = append(candidates, meta.LocalPath)
-	}
-	if strings.HasPrefix(sourceURL, "file://") {
-		candidates = append(candidates, strings.TrimPrefix(sourceURL, "file://"))
-	}
-	for _, c := range candidates {
+// localFile returns the audio this track can be played from on disk, if any.
+//
+// For a track whose origin is a file, that is the file. For a downloaded one it
+// is derived: the downloader lays files out as artist/album/NN - Title.ext, so
+// the directory follows from the record and the entry is found by name. Storing
+// that path would mean storing a cache's address, and a stale one at that.
+func localFile(app core.App, track *core.Record, roots []string) string {
+	if origin := track.GetString("origin"); strings.HasPrefix(origin, "file://") {
+		path := strings.TrimPrefix(origin, "file://")
 		for _, root := range roots {
-			if p, ok := withinRoot(root, c); ok && fileExists(p) {
+			if p, ok := withinRoot(root, path); ok && fileExists(p) {
+				return p
+			}
+		}
+		return ""
+	}
+
+	album, err := app.FindRecordById("albums", track.GetString("album"))
+	if err != nil {
+		return ""
+	}
+
+	// The track number prefix is not always known after the fact and the
+	// extension depends on what the downloader got, so the match is on the part
+	// that is ours to predict.
+	suffix := " - " + sanitizeFilename(track.GetString("title"))
+	for _, root := range roots {
+		if root == "" {
+			continue
+		}
+
+		dir := filepath.Join(root, sanitizeFilename(artistName(app, track, album)), sanitizeFilename(album.GetString("name")))
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			name := entry.Name()
+			if !strings.HasSuffix(strings.TrimSuffix(name, filepath.Ext(name)), suffix) {
+				continue
+			}
+			if p, ok := withinRoot(root, filepath.Join(dir, name)); ok {
 				return p
 			}
 		}
 	}
+
 	return ""
 }
 
