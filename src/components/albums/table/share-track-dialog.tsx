@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import type { ShareLink, Track } from '@/shared';
@@ -24,17 +25,20 @@ export function ShareTrackDialog({ track, children }: Props) {
   const [isCreating, setIsCreating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // A link that never expires is what people mean by "share": the date is the
+  // exception, so it stays out of the way until asked for.
+  const [expires, setExpires] = useState(false);
   const [expiresAt, setExpiresAt] = useState('');
   const handleCreate = async () => {
     setIsCreating(true);
     try {
       const token = nanoid(12);
       shareLinkCollection.insert({
-        id: 'tmp',
+        id: shareLinkCollection.utils.newId(),
         token,
         track: track.id,
         createdBy: user.id,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : '',
+        expiresAt: expires && expiresAt ? new Date(expiresAt).toISOString() : '',
       } as ShareLink);
       setShareUrl(`${config.server.url}/share/stream/${token}`);
     } catch {
@@ -60,6 +64,7 @@ export function ShareTrackDialog({ track, children }: Props) {
     if (!value) {
       setShareUrl(null);
       setCopied(false);
+      setExpires(false);
       setExpiresAt('');
     }
   };
@@ -75,10 +80,14 @@ export function ShareTrackDialog({ track, children }: Props) {
 
         {!shareUrl ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="expiresAt">{t('TrackActionsMenu.expiresAt')}</Label>
-              <Input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-              <p className="text-xs text-muted-foreground">{t('TrackActionsMenu.expiresAtHint')}</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="expires" className="font-normal">
+                  {t('TrackActionsMenu.expires')}
+                </Label>
+                <Switch id="expires" checked={expires} onCheckedChange={setExpires} />
+              </div>
+              {expires ? <Input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} aria-label={t('TrackActionsMenu.expiresAt')} /> : <p className="text-xs text-muted-foreground">{t('TrackActionsMenu.neverExpires')}</p>}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => handleOpenChange(false)}>

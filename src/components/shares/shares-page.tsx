@@ -6,11 +6,13 @@ import { shareLinkCollection } from '@/collections/share-link.collection';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useTracksById } from '@/hooks/use-library-index';
 import { useShareLinks } from '@/hooks/use-share-links';
 
 export function SharesPage() {
   const { t } = useTranslation();
   const { data: shareLinks = [], isLoading } = useShareLinks();
+  const tracksById = useTracksById();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -70,13 +72,14 @@ export function SharesPage() {
   }
 
   return (
-    <div className="pb-48">
+    <div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>{t('SharesPage.track')}</TableHead>
             <TableHead>{t('SharesPage.createdAt')}</TableHead>
             <TableHead>{t('SharesPage.expiresAt')}</TableHead>
+            <TableHead className="tabular-nums">{t('SharesPage.plays')}</TableHead>
             <TableHead>{t('SharesPage.status')}</TableHead>
             <TableHead className="text-right">{t('SharesPage.actions')}</TableHead>
           </TableRow>
@@ -86,9 +89,10 @@ export function SharesPage() {
             const expired = isExpired(link.expiresAt);
             return (
               <TableRow key={link.id} className={expired ? 'opacity-50' : undefined}>
-                <TableCell className="font-medium">{link.expand?.track?.title ?? link.track}</TableCell>
+                <TableCell className="font-medium">{tracksById.get(link.track)?.title ?? link.track}</TableCell>
                 <TableCell>{new Date(link.created).toLocaleDateString()}</TableCell>
                 <TableCell>{link.expiresAt ? new Date(link.expiresAt).toLocaleDateString() : t('SharesPage.never')}</TableCell>
+                <TableCell className="tabular-nums">{link.plays ?? 0}</TableCell>
                 <TableCell>{expired ? <span className="text-destructive text-sm">{t('SharesPage.expired')}</span> : <span className="text-green-600 dark:text-green-400 text-sm">{t('SharesPage.active')}</span>}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
