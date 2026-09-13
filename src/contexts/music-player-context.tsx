@@ -92,6 +92,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const playCompletedForTrackIdRef = useRef<string | null>(null);
   const listenedTimeRef = useRef(0);
   const lastTimeUpdateRef = useRef(0);
+  const playRequestRef = useRef(0);
+  // Speaker commands from this tab leave one at a time. Two of them in flight
+  // race at the speaker, and the loser decides: a stop issued while a play is
+  // still on its way can land first, and the speaker starts anyway, in the room
+  // the listener has just left. Ordering between tabs is the server's to give,
+  // per speaker; this is the half a single listener can create.
+  const speakerQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const seekRequestRef = useRef(0);
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
   // The speaker as the server last saw it. It plays on its own, so what it
   // reports wins over anything this tab believes.
@@ -123,6 +131,43 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     endedHandledForTrackIdRef.current = null;
   }, []);
 
+  // Retires whatever this tab is still waiting on from a speaker. Picking a
+  // device, asking for a track, or losing the device does it: from then on, the
+  // answers to the commands already in flight concern a session nobody is in.
+  const retireSpeakerWork = useCallback(() => ++playRequestRef.current, []);
+
+  // Everything this tab asks of a speaker goes through here, because these
+  // commands all need two things and no caller should have to remember either.
+  //
+  // They leave one at a time. Two in flight race at the speaker and the loser
+  // decides: a stop issued during a handover could land before the play it was
+  // meant to undo, and the speaker would start in the room just left.
+  //
+  // And their answer is dropped once the listener has moved on. A command that
+  // waits its turn answers late, for a device, a track or a position that may no
+  // longer be the one on screen. That is why `done` and `failed` are handed in
+  // rather than written after an await: there is no spelling of this that
+  // forgets the check.
+  const speakerOp = useCallback(async <T,>(run: () => Promise<T>, handlers: { done?: (value: T) => void; failed?: (error: unknown) => void } = {}) => {
+    const playAt = playRequestRef.current;
+    const seekAt = seekRequestRef.current;
+    const current = () => playAt === playRequestRef.current && seekAt === seekRequestRef.current;
+
+    const queued = speakerQueueRef.current.then(run, run);
+    speakerQueueRef.current = queued.catch(() => undefined);
+
+    try {
+      const value = await queued;
+      if (current()) {
+        handlers.done?.(value);
+      }
+    } catch (error) {
+      if (current()) {
+        handlers.failed?.(error);
+      }
+    }
+  }, []);
+
   const playTrack = useCallback(
     async (track: Track, startAt = 0) => {
       // Asking for a track is itself a decision about where it plays: whatever
@@ -130,6 +175,11 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       // adoption below could still fire in the gap before the audio starts and
       // hand the session to a speaker the listener did not pick.
       deviceDecidedRef.current = true;
+      // Which request this is. Starting a track waits on a stream token and on
+      // the speaker, and a listener skipping through a queue outruns both: the
+      // older call would come back afterwards and set the source, or report a
+      // failure, for a track that is no longer the one playing.
+      const request = retireSpeakerWork();
       endedHandledForTrackIdRef.current = null;
       playCompletedForTrackIdRef.current = null;
       listenedTimeRef.current = 0;
@@ -163,19 +213,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       }));
 
       if (activeDevice && activeDevice.type === 'sonos') {
-        try {
-          setIsLoading(true);
-          // The position travels with the play request: asking separately meant
-          // a seek the speaker refused reported the whole playback as failed,
-          // where the server treats it as a speaker that simply started at nought.
-          await deviceClient.play(activeDevice.id, track.id, Math.round(startAt));
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Sonos playback failed:', error);
-          toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
-          setPlayerState((prev) => ({ ...prev, isPlaying: false }));
-          setIsLoading(false);
-        }
+        setIsLoading(true);
+        // The position travels with the play request: asking separately meant a
+        // seek the speaker refused reported the whole playback as failed, where
+        // the server treats it as a speaker that simply started at nought.
+        await speakerOp(() => deviceClient.play(activeDevice.id, track.id, Math.round(startAt)), {
+          done: () => setIsLoading(false),
+          failed: (error) => {
+            console.error('Sonos playback failed:', error);
+            toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
+            setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+            setIsLoading(false);
+          },
+        });
 
         return;
       }
@@ -190,12 +240,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         params.set('transcode', audioFormat);
       }
       try {
-        params.set('token', await getStreamToken());
+        params.set('token', await getStreamToken(track.id));
       } catch (error) {
         console.error('Stream token failed:', error);
+        if (request !== playRequestRef.current) {
+          return;
+        }
         toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
         setIsLoading(false);
+        return;
+      }
+
+      if (request !== playRequestRef.current) {
         return;
       }
       const audio = audioRef.current;
@@ -223,12 +280,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         }
 
         console.error('Playback failed:', error);
+        // The promise outlives the request that made it, and a track replaced
+        // before it settles fails by definition. Reporting that would put the
+        // track now playing on screen as stopped.
+        if (request !== playRequestRef.current) {
+          return;
+        }
+
         toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
         setIsLoading(false);
       });
     },
-    [activeDevice, audioFormat],
+    [activeDevice, audioFormat, retireSpeakerWork, speakerOp],
   );
 
   const playTrackRef = useRef(playTrack);
@@ -386,13 +450,18 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const pause = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {
-      try {
-        await deviceClient.pause(activeDevice.id);
-        setPlayerState((prev) => ({ ...prev, isPlaying: false }));
-      } catch (error) {
-        console.error('Sonos pause failed:', error);
-        toast.error(i18n.t('MusicPlayer.deviceError'));
-      }
+      // Recorded before the command goes out, not after it comes back. The
+      // command waits its turn behind the others, and a listener who pauses and
+      // switches device in that gap would otherwise be resumed here on the
+      // strength of a transport state they had already changed.
+      setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+      await speakerOp(() => deviceClient.pause(activeDevice.id), {
+        failed: (error) => {
+          console.error('Sonos pause failed:', error);
+          toast.error(i18n.t('MusicPlayer.deviceError'));
+          setPlayerState((prev) => ({ ...prev, isPlaying: true }));
+        },
+      });
 
       return;
     }
@@ -402,32 +471,30 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     audioRef.current.pause();
-  }, [activeDevice]);
+  }, [activeDevice, speakerOp]);
 
   const play = useCallback(async () => {
     if (activeDevice?.type === 'sonos') {
-      try {
-        await deviceClient.play(activeDevice.id);
-        setPlayerState((prev) => ({ ...prev, isPlaying: true }));
-      } catch (error) {
-        // A speaker with nothing loaded has nothing to resume: hand it the
-        // current track rather than reporting a failure the user cannot act on.
-        const track = currentTrackRef.current;
-        if (track) {
-          try {
-            await deviceClient.play(activeDevice.id, track.id, Math.round(speakerReachedRef.current));
-            setPlayerState((prev) => ({ ...prev, isPlaying: true }));
-            return;
-          } catch (retryError) {
-            console.error('Sonos play failed:', retryError);
-            toast.error(i18n.t('MusicPlayer.deviceError'));
-            return;
-          }
-        }
-
+      const playing = () => setPlayerState((prev) => ({ ...prev, isPlaying: true }));
+      const gaveUp = (error: unknown) => {
         console.error('Sonos play failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
-      }
+      };
+
+      await speakerOp(() => deviceClient.play(activeDevice.id), {
+        done: playing,
+        // A speaker with nothing loaded has nothing to resume: hand it the
+        // current track rather than reporting a failure the user cannot act on.
+        failed: (error) => {
+          const track = currentTrackRef.current;
+          if (!track) {
+            gaveUp(error);
+            return;
+          }
+
+          void speakerOp(() => deviceClient.play(activeDevice.id, track.id, Math.round(speakerReachedRef.current)), { done: playing, failed: gaveUp });
+        },
+      });
 
       return;
     }
@@ -446,7 +513,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       toast.error(title ? i18n.t('MusicPlayer.playbackError', { title }) : i18n.t('MusicPlayer.playbackErrorGeneric'));
       setPlayerState((prev) => ({ ...prev, isPlaying: false }));
     });
-  }, [activeDevice, playerState.currentTrack?.title]);
+  }, [activeDevice, playerState.currentTrack?.title, speakerOp]);
 
   const togglePlayPause = useCallback(() => {
     if (playerState.isPlaying) {
@@ -507,16 +574,28 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const seek = useCallback(
     async (time: number) => {
       if (activeDevice?.type === 'sonos') {
-        try {
-          await deviceClient.seek(activeDevice.id, time);
-          // A poll in flight when the seek lands answers the position before
-          // it, which drags the bar back to where the listener just left.
-          seekedAtRef.current = Date.now();
-          setPlayerState((prev) => ({ ...prev, currentTime: time }));
-        } catch (error) {
-          console.error('Sonos seek failed:', error);
-          toast.error(i18n.t('MusicPlayer.deviceError'));
-        }
+        // A poll in flight when the seek lands answers the position before it,
+        // which drags the bar back to where the listener just left. Said before
+        // the command rather than after it, for the same reason as pause: the
+        // handover reads this position to decide where to pick the track up.
+        // Bumped before the command is queued, so a newer seek retires this one
+        // the way picking a device retires a play: what it said is taken back
+        // only while it is still the last thing said.
+        seekRequestRef.current++;
+        const settledAt = seekedAtRef.current;
+        const reached = speakerReachedRef.current;
+        seekedAtRef.current = Date.now();
+        speakerReachedRef.current = time;
+        setPlayerState((prev) => ({ ...prev, currentTime: time }));
+        await speakerOp(() => deviceClient.seek(activeDevice.id, time), {
+          failed: (error) => {
+            console.error('Sonos seek failed:', error);
+            seekedAtRef.current = settledAt;
+            speakerReachedRef.current = reached;
+            setPlayerState((prev) => ({ ...prev, currentTime: reached }));
+            toast.error(i18n.t('MusicPlayer.deviceError'));
+          },
+        });
 
         return;
       }
@@ -528,7 +607,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       audioRef.current.currentTime = time;
       setPlayerState((prev) => ({ ...prev, currentTime: time }));
     },
-    [activeDevice],
+    [activeDevice, speakerOp],
   );
 
   const setVolume = useCallback(
@@ -619,6 +698,15 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       const wasPlaying = playerState.isPlaying;
       const previous = activeDevice;
       deviceDecidedRef.current = true;
+      // Picking a device retires whatever the last one was still waiting for. A
+      // play still holding a stream token would otherwise come back and start
+      // the browser on the track that was just handed to a speaker, and the two
+      // would play it in two rooms. The spinner it put up goes with it: the
+      // request it belonged to now returns at the guard without reaching the
+      // line that would have taken it down, and every command still queued for
+      // the speaker answers into the void from here on.
+      retireSpeakerWork();
+      setIsLoading(false);
       setActiveDevice(device);
 
       if (wasPlaying && audioRef.current) {
@@ -637,36 +725,42 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       if (!device && previous?.type === 'sonos' && wasPlaying && track) {
         const resumeAt = playbackPosition;
-        try {
-          await deviceClient.stop(previous.id);
-        } catch (error) {
-          console.error('Sonos stop failed:', error);
-        }
-
         // playTrack sends the track to whichever device it was built against;
         // let the switch land first, or it goes straight back to the speaker.
-        setTimeout(() => playTrackRef.current(track, resumeAt), 0);
+        // A speaker that refuses to stop is still left behind: losing the track
+        // as well as the room would be the worse of the two.
+        const resumeHere = () => setTimeout(() => playTrackRef.current(track, resumeAt), 0);
+        await speakerOp(() => deviceClient.stop(previous.id), {
+          done: resumeHere,
+          failed: (error) => {
+            console.error('Sonos stop failed:', error);
+            resumeHere();
+          },
+        });
+
         return;
       }
 
       // Choosing a speaker moves the playback there rather than ending it: the
       // track carries on from where it was, which is what picking a device means.
       if (device?.type === 'sonos' && wasPlaying && track) {
-        try {
-          // The server tells the chosen speaker to play; nothing tells the one
-          // being left to stop, and two speakers playing the same track in two
-          // rooms is not what picking a device means.
-          if (previous?.type === 'sonos' && previous.id !== device.id) {
-            await deviceClient.stop(previous.id);
-          }
-
-          await deviceClient.play(device.id, track.id, Math.round(playbackPosition));
-          setPlayerState((prev) => ({ ...prev, isPlaying: true }));
-        } catch (error) {
-          console.error('Sonos handover failed:', error);
-          toast.error(i18n.t('MusicPlayer.deviceError'));
-          setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+        // The server tells the chosen speaker to play; nothing tells the one
+        // being left to stop, and two speakers playing the same track in two
+        // rooms is not what picking a device means.
+        if (previous?.type === 'sonos' && previous.id !== device.id) {
+          await speakerOp(() => deviceClient.stop(previous.id), {
+            failed: (error) => console.error('Sonos stop failed:', error),
+          });
         }
+
+        await speakerOp(() => deviceClient.play(device.id, track.id, Math.round(playbackPosition)), {
+          done: () => setPlayerState((prev) => ({ ...prev, isPlaying: true })),
+          failed: (error) => {
+            console.error('Sonos handover failed:', error);
+            toast.error(i18n.t('MusicPlayer.deviceError'));
+            setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+          },
+        });
       } else if (wasPlaying) {
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
       }
@@ -675,7 +769,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         setPlayerState((prev) => ({ ...prev, volume: device.volume / 100 }));
       }
     },
-    [playerState.isPlaying, activeDevice],
+    [playerState.isPlaying, activeDevice, retireSpeakerWork, speakerOp],
   );
 
   // Media Session API for background playback
@@ -809,9 +903,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     if (!devices.some((device) => device.id === activeDevice.id)) {
+      // Losing the device retires what was asked of it, the same as picking
+      // another one would: a command still queued for a speaker that has gone
+      // answers for a session nobody is in.
+      retireSpeakerWork();
       setActiveDevice(null);
     }
-  }, [devices, activeDevice]);
+  }, [devices, activeDevice, retireSpeakerWork]);
 
   // The speaker knows which track it is playing; a tab that has just taken it
   // over does not, and without it there is nothing to show and nowhere in the
@@ -827,7 +925,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     setPlayerState((prev) => (prev.currentTrack ? prev : { ...prev, currentTrack: track }));
   }, [speakerTrackRows]);
 
-  if (speaker?.playing) {
+  // Not while a seek is settling: the speaker keeps answering with the position
+  // from before it for a poll or two, and taking that back would undo what the
+  // listener just asked for, on screen and in a handover.
+  if (speaker?.playing && Date.now() - seekedAtRef.current >= SEEK_SETTLE_MS) {
     speakerReachedRef.current = speakerPosition;
   }
 

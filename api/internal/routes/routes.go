@@ -88,11 +88,12 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	// with a short-lived token in the query string instead (streamUserID), and
 	// share links are meant to be opened by anonymous recipients.
 	se.Router.GET("/api/tracks/{id}/stream", func(e *core.RequestEvent) error {
-		uid, errResp := streamUserID(e)
+		trackID := e.Request.PathValue("id")
+		uid, errResp := streamUserID(e, trackID)
 		if errResp != nil {
 			return errResp
 		}
-		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, e.Request.PathValue("id"), e.Request.URL.Query().Get("transcode"), uid)
+		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, trackID, e.Request.URL.Query().Get("transcode"), uid)
 	})
 	// A stable, public address for an album's artwork. Outside the authenticated
 	// group for the same reason as the stream above: the speaker fetches it itself
@@ -127,7 +128,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 
 	se.Router.GET("/api/tracks/{id}/peaks", func(e *core.RequestEvent) error {
-		uid, errResp := streamUserID(e)
+		// The waveform is drawn from the same audio, so it is reached the same way
+		// and by the same permission.
+		uid, errResp := streamUserID(e, e.Request.PathValue("id"))
 		if errResp != nil {
 			return errResp
 		}
@@ -181,7 +184,13 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 
 	// Mints the token the player and Sonos append to stream URLs.
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
-		token, err := streamToken(e.Auth)
+		// Per track: a token that opened anything the listener could read was a
+		// session in a query string, and stream URLs are made to be handed out.
+		trackID := e.Request.URL.Query().Get("track")
+		if trackID == "" {
+			return e.BadRequestError("missing track", nil)
+		}
+		token, err := mintStreamToken(e.App, e.Auth.Id, trackID)
 		if err != nil {
 			return e.InternalServerError("stream token", err)
 		}
@@ -799,17 +808,9 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	}
 }
 
-// streamTokenTTL bounds how long a leaked stream URL stays usable. Long enough
-// to outlive a queue, short enough that a copied URL is not a permanent grant.
-const streamTokenTTL = 6 * time.Hour
-
-func streamToken(auth *core.Record) (string, error) {
-	return auth.NewStaticAuthToken(streamTokenTTL)
-}
-
-// streamUserID authenticates a stream request either from the Authorization
-// header or from the ?token= minted by GET /api/stream-token.
-func streamUserID(e *core.RequestEvent) (string, error) {
+// streamUserID authenticates a request for one track's audio, either from the
+// Authorization header or from the token minted for that track alone.
+func streamUserID(e *core.RequestEvent, trackID string) (string, error) {
 	if e.Auth != nil {
 		return e.Auth.Id, nil
 	}
@@ -817,11 +818,11 @@ func streamUserID(e *core.RequestEvent) (string, error) {
 	if raw == "" {
 		return "", e.UnauthorizedError("authentication required", nil)
 	}
-	rec, err := e.App.FindAuthRecordByToken(raw, core.TokenTypeAuth)
+	uid, err := readStreamToken(e.App, raw, trackID)
 	if err != nil {
 		return "", e.UnauthorizedError("invalid stream token", err)
 	}
-	return rec.Id, nil
+	return uid, nil
 }
 
 // albumName labels a task with its subject rather than a sentence.
@@ -914,7 +915,7 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		return e.BadRequestError("the server public URL is not reachable from the speaker; set it in the admin settings", nil)
 	}
 
-	tok, err := streamToken(e.Auth)
+	tok, err := mintStreamToken(e.App, e.Auth.Id, trackID)
 	if err != nil {
 		return e.InternalServerError("stream token", err)
 	}
