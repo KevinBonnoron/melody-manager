@@ -5,6 +5,7 @@ package watcher
 import (
 	"context"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -110,10 +111,14 @@ func handle(app core.App, w *fsnotify.Watcher, ev fsnotify.Event) {
 		// Defer slightly so the file is fully written before we probe it.
 		go func(path string) {
 			time.Sleep(time.Second)
-			_ = services.ImportLocalPath(context.Background(), app, path)
+			if err := services.ImportLocalPath(context.Background(), app, path); err != nil {
+				slog.Warn("importing a file that appeared failed", "path", path, "error", err)
+			}
 		}(ev.Name)
 	case ev.Op&(fsnotify.Remove|fsnotify.Rename) != 0:
-		services.SetLocalFilePresence(app, ev.Name, false)
+		if _, err := services.SetLocalFilePresence(app, ev.Name, false); err != nil {
+			slog.Warn("marking a file gone failed", "path", ev.Name, "error", err)
+		}
 	}
 }
 
