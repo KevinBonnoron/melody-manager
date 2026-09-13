@@ -39,7 +39,21 @@
           jdk21
           gradle
           lefthook
+
+          # Desktop client (Wails): it builds against the system webview rather
+          # than shipping one, so the headers have to be here.
+          pkg-config
+          gtk4
+          webkitgtk_6_0
         ];
+
+        # Playwright downloads browsers that a Nix system cannot run: they are
+        # dynamically linked against paths that do not exist here. The store has
+        # patched ones, and the npm package must be pinned to the same version
+        # as this driver or it refuses to use them.
+        PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+        PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
 
         shellHook = ''
           if [ ! -d "$PWD/node_modules" ]; then

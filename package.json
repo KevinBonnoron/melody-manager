@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "type-check": "tsc -b",
+    "type-check": "tsc -b && tsc -b tsconfig.e2e.json",
     "android": "bun run build && bunx cap sync && cd android && ./gradlew assembleDebug",
     "cap:sync": "bunx cap sync",
     "cap:add:android": "bunx cap add android",
