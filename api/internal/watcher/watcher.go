@@ -14,6 +14,7 @@ import (
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/pbx"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
+	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
 
 // Start watches the local provider's configured directory (recursively) and
@@ -23,7 +24,7 @@ import (
 // provider with an empty config, so reading it at boot would leave the watcher
 // permanently off until someone restarted the server after setting the
 // directory. Re-reading also picks up a changed path.
-func Start(app core.App) {
+func Start(app core.App, taskSvc *tasks.Service) {
 	var (
 		current string
 		watch   *fsnotify.Watcher
@@ -45,13 +46,41 @@ func Start(app core.App) {
 					watch = w
 					go run(app, w, stop)
 				}
+
+				// fsnotify only reports what happens next, so the files already
+				// there would stay invisible: a directory just taken up is
+				// walked once. That also covers a server restarted after music
+				// was dropped in while it was down.
+				services.ScanLocalTask(context.Background(), app, taskSvc)
 			}
 		}
-		time.Sleep(configPollInterval)
+		waitForChange()
 	}
 }
 
 const configPollInterval = 30 * time.Second
+
+// A saved configuration should be acted on now, not on the next poll, but the
+// poll stays: it is what notices a path changed straight in the database, and
+// what makes a missed notification cost half a minute rather than a restart.
+var configChanged = make(chan struct{}, 1)
+
+// Nudge tells the watcher to re-read the local provider's configuration at once.
+func Nudge() {
+	select {
+	case configChanged <- struct{}{}:
+	default:
+	}
+}
+
+func waitForChange() {
+	timer := time.NewTimer(configPollInterval)
+	defer timer.Stop()
+	select {
+	case <-configChanged:
+	case <-timer.C:
+	}
+}
 
 func run(app core.App, w *fsnotify.Watcher, stop <-chan struct{}) {
 	for {
@@ -84,7 +113,7 @@ func handle(app core.App, w *fsnotify.Watcher, ev fsnotify.Event) {
 			_ = services.ImportLocalPath(context.Background(), app, path)
 		}(ev.Name)
 	case ev.Op&(fsnotify.Remove|fsnotify.Rename) != 0:
-		services.RemoveLocalByPath(app, ev.Name)
+		services.SetLocalFilePresence(app, ev.Name, false)
 	}
 }
 
