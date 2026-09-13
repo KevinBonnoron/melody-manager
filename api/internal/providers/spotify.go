@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -189,7 +190,7 @@ func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) [
 		for _, it := range out.Tracks.Items {
 			results = append(results, domain.SearchResult{
 				Type: domain.ResultTrack, Title: it.Name, Subtitle: firstArtist(it.Artists),
-				Source: "spotify", SourceURL: it.ExternalURL.Spotify,
+				Source: "spotify", Origin: it.ExternalURL.Spotify,
 				CoverURL: firstImage(it.Album.Images), Duration: it.DurationMs / 1000,
 			})
 		}
@@ -197,14 +198,14 @@ func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) [
 		for _, it := range out.Albums.Items {
 			results = append(results, domain.SearchResult{
 				Type: domain.ResultAlbum, Title: it.Name, Subtitle: firstArtist(it.Artists),
-				Source: "spotify", SourceURL: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
+				Source: "spotify", Origin: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
 			})
 		}
 	case domain.ResultArtist:
 		for _, it := range out.Artists.Items {
 			results = append(results, domain.SearchResult{
 				Type: domain.ResultArtist, Title: it.Name,
-				Source: "spotify", SourceURL: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
+				Source: "spotify", Origin: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
 			})
 		}
 	case domain.ResultPlaylist:
@@ -214,7 +215,7 @@ func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) [
 			}
 			results = append(results, domain.SearchResult{
 				Type: domain.ResultPlaylist, Title: it.Name, Subtitle: it.Owner.DisplayName,
-				Source: "spotify", SourceURL: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
+				Source: "spotify", Origin: it.ExternalURL.Spotify, CoverURL: firstImage(it.Images),
 			})
 		}
 	}
@@ -222,3 +223,66 @@ func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) [
 }
 
 var _ Searcher = Spotify{}
+
+// spotifyTrackID accepts both link shapes the API hands out.
+func spotifyTrackID(raw string) string {
+	if m := regexp.MustCompile(`spotify:track:([A-Za-z0-9]+)`).FindStringSubmatch(raw); m != nil {
+		return m[1]
+	}
+	if m := regexp.MustCompile(`open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]+)`).FindStringSubmatch(raw); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// ResolveCatalogTrack returns what Spotify knows about a track without any
+// audio: the stream is DRM-protected and cannot be fetched. The importer pairs
+// this metadata with a playable source.
+func (Spotify) ResolveCatalogTrack(ctx context.Context, rawURL string, cfg Config) (domain.ResolvedTrack, error) {
+	id := spotifyTrackID(rawURL)
+	if id == "" {
+		return domain.ResolvedTrack{}, fmt.Errorf("not a spotify track URL: %s", rawURL)
+	}
+
+	token, err := spotifyAccessToken(ctx, cfg)
+	if err != nil {
+		return domain.ResolvedTrack{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.spotify.com/v1/tracks/"+id, nil)
+	if err != nil {
+		return domain.ResolvedTrack{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := spotifyClient.Do(req)
+	if err != nil {
+		return domain.ResolvedTrack{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return domain.ResolvedTrack{}, fmt.Errorf("spotify track: unexpected status %d", resp.StatusCode)
+	}
+
+	var out struct {
+		Name       string             `json:"name"`
+		Artists    []spotifyArtistRef `json:"artists"`
+		DurationMs int                `json:"duration_ms"`
+		Album      struct {
+			Name   string         `json:"name"`
+			Images []spotifyImage `json:"images"`
+		} `json:"album"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return domain.ResolvedTrack{}, err
+	}
+
+	return domain.ResolvedTrack{
+		Title:      out.Name,
+		Duration:   out.DurationMs / 1000,
+		ArtistName: firstArtist(out.Artists),
+		AlbumName:  out.Album.Name,
+		CoverURL:   firstImage(out.Album.Images),
+		Source:     "spotify",
+		Metadata:   domain.TrackMetadata{SpotifyID: id},
+	}, nil
+}

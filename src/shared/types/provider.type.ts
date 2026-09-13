@@ -3,8 +3,14 @@ import type { PocketBaseRecord } from './pocketbase.type';
 interface BaseProvider extends PocketBaseRecord {
   type: string;
   category: 'track' | 'device';
-  config: Record<string, unknown>;
   enabled: boolean;
+}
+
+// Server-level configuration, admin-only. Split out of provider_settings so the
+// collection every user reads carries no credentials.
+export interface ProviderConfig extends PocketBaseRecord {
+  type: string;
+  config: Record<string, unknown>;
 }
 
 export interface TrackProvider extends BaseProvider {

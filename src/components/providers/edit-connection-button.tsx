@@ -23,23 +23,21 @@ export function EditConnectionButton({ title, description, connectionId }: Props
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const [open, setOpen] = useState(false);
-  const { data: connection } = useLiveQuery(
-    (q) =>
+  const { data: connection } = useLiveQuery({
+    query: (q) =>
       q
         .from({ connections: connectionCollection })
         .where(({ connections }) => eq(connections.id, connectionId))
         .findOne(),
-    [connectionId],
-  );
+  });
 
-  const { data: provider } = useLiveQuery(
-    (q) =>
+  const { data: provider } = useLiveQuery({
+    query: (q) =>
       q
         .from({ providers: providerCollection })
         .where(({ providers }) => eq(providers.type, connection?.type ?? ''))
         .findOne(),
-    [connection?.type],
-  );
+  });
 
   const type = provider?.type;
   const category = provider?.category;
@@ -88,8 +86,8 @@ export function EditConnectionButton({ title, description, connectionId }: Props
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="min-w-0 flex-1">
-          <Pencil className="h-3.5 w-3.5 xl:mr-1.5" />
-          <span className="hidden xl:inline">{t('ProviderCardActions.edit')}</span>
+          <Pencil className="h-3.5 w-3.5 mr-1.5" />
+          {t('ProviderCardActions.edit')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

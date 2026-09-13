@@ -41,8 +41,17 @@ type Manifest struct {
 	ImportTypes []string `json:"importTypes,omitempty"`
 	URLPatterns []string `json:"urlPatterns,omitempty"`
 
-	// ConfigSchema = server/admin-level (stored in provider_settings.config).
+	// ConfigSchema = server/admin-level (stored in provider_config.config).
 	ConfigSchema []SchemaField `json:"configSchema,omitempty"`
+	// Requires names, per capability, the server-level config fields it cannot
+	// work without. "Required" and "required for X" are not the same:
+	// youtube.downloadPath is mandatory to download and irrelevant to searching,
+	// while spotify cannot answer a single query without its app credentials.
+	Requires map[string][]string `json:"requires,omitempty"`
+	// Unavailable is filled per request by the API: capability -> the config
+	// fields still missing. The client cannot compute it, provider_config being
+	// admin-only, and it needs the field names to say *why* an action is off.
+	Unavailable map[string][]string `json:"unavailable,omitempty"`
 	// ConnectionSchema = per-user (stored in connections.config).
 	ConnectionSchema []SchemaField `json:"connectionSchema,omitempty"`
 
@@ -61,6 +70,7 @@ var manifests = []Manifest{
 		Category:        CategoryTrack,
 		AuthKind:        AuthNone,
 		UserConnectable: false, // server library, admin-only
+		Requires:        map[string][]string{"stream": {"path"}, "import": {"path"}},
 		ConfigSchema: []SchemaField{
 			{Name: "path", Type: "string", Label: "Music directory", Required: true,
 				Description: "Path to the local directory containing music files"},
@@ -76,6 +86,7 @@ var manifests = []Manifest{
 		Category:        CategoryTrack,
 		AuthKind:        AuthNone,
 		UserConnectable: true,
+		Requires:        map[string][]string{"download": {"downloadPath"}},
 		ConfigSchema: []SchemaField{
 			{Name: "downloadPath", Type: "string", Label: "Download path", Required: true,
 				Description: "Server path where YouTube audio files will be downloaded"},
@@ -117,6 +128,7 @@ var manifests = []Manifest{
 		AuthKind:        AuthServerCredential, // app creds (admin) + user-oauth for private import
 		UserConnectable: true,
 		CatalogOnly:     true, // metadata only; audio resolved via youtube
+		Requires:        map[string][]string{"search": {"clientId", "clientSecret"}, "import": {"clientId", "clientSecret"}},
 		ConfigSchema: []SchemaField{
 			{Name: "clientId", Type: "string", Label: "Client ID", Required: true,
 				Description: "Spotify application client ID"},

@@ -5,14 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { connectionCollection } from '@/collections/connection.collection';
 import { providerCollection } from '@/collections/provider.collection';
+import { providerConfigCollection } from '@/collections/provider-config.collection';
 import { useAuthUser } from '@/hooks/use-auth-user';
-import { usePlugins } from '@/hooks/use-plugins';
-import type { Connection, PluginManifest, Provider } from '@/shared';
+import { refreshPluginsAfterWrite, usePlugins } from '@/hooks/use-plugins';
+import { getSourceColor } from '@/lib/source-colors';
+import type { Connection, PluginManifest, Provider, ProviderConfig } from '@/shared';
 import { getDefaultConfigForType } from '../providers/available-provider-types';
 import type { ConfigFormData } from '../providers/provider-config-form';
 import { ProviderConfigForm } from '../providers/provider-config-form';
 import { getProviderInfoFromManifests } from '../providers/provider-info';
-import { getProviderTypeColors } from '../providers/provider-type-colors';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Card, CardAction, CardFooter, CardHeader, CardTitle } from '../ui/card';
@@ -36,44 +37,57 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   const [connectOpen, setConnectOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { data: provider } = useLiveQuery(
-    (q) =>
+  const { data: provider } = useLiveQuery({
+    query: (q) =>
       q
         .from({ providers: providerCollection })
         .where(({ providers }) => eq(providers.type, manifest.id))
         .findOne(),
-    [manifest.id],
-  );
+  });
 
-  const { data: connections = [] } = useLiveQuery((q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.type, manifest.id)), [manifest.id]);
+  const { data: connections = [] } = useLiveQuery({ query: (q) => q.from({ connections: connectionCollection }).where(({ connections }) => eq(connections.type, manifest.id)) });
+  const { data: serverConfigs = [] } = useLiveQuery({ query: (q) => q.from({ configs: providerConfigCollection }).where(({ configs }) => eq(configs.type, manifest.id)) });
+  const serverConfig = (serverConfigs as ProviderConfig[])[0];
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[manifest.id];
-  const colors = getProviderTypeColors(manifest.id);
   const userConnection = connections.find((c) => c.user === user.id);
-  const configInitial = useMemo(() => (provider?.config ?? getDefaultConfigForType(manifests, manifest.id)) as ConfigFormData, [provider?.config, manifests, manifest.id]);
+  const configInitial = useMemo(() => (serverConfig?.config ?? getDefaultConfigForType(manifests, manifest.id)) as ConfigFormData, [serverConfig?.config, manifests, manifest.id]);
   const connectInitial = useMemo(() => (userConnection?.config ?? getDefaultConfigForType(manifests, manifest.id, true)) as ConfigFormData, [userConnection?.config, manifests, manifest.id]);
   const handleConfigure = async (config: ConfigFormData) => {
+    // The provider and its configuration are two records and there is no
+    // transaction across them. An enabled provider with no configuration is the
+    // state the screens cannot make sense of, so the one written here is taken
+    // back when the other fails.
+    let addedProviderId: string | null = null;
     try {
-      if (provider) {
-        const tx = providerCollection.update(provider.id, (draft) => {
-          draft.config = config;
-        });
-        await tx.isPersisted.promise;
-      } else {
-        const tx = providerCollection.insert({
-          id: generateId(),
+      if (!provider) {
+        const id = generateId();
+        await providerCollection.insert({
+          id,
           type: manifest.id,
           category: manifest.features.includes('device') ? 'device' : ('track' as const),
-          config,
           enabled: true,
-        } as Provider);
-        await tx.isPersisted.promise;
+        } as Provider).isPersisted.promise;
+        addedProviderId = id;
       }
+
+      if (serverConfig) {
+        await providerConfigCollection.update(serverConfig.id, (draft) => {
+          draft.config = config;
+        }).isPersisted.promise;
+      } else {
+        await providerConfigCollection.insert({ id: generateId(), type: manifest.id, config } as ProviderConfig).isPersisted.promise;
+      }
+
+      await refreshPluginsAfterWrite();
 
       toast.success(t('ProviderCardActions.providerConnectedSuccess', { title: info?.title }));
       setConfigOpen(false);
     } catch (err) {
       console.error(err);
+      if (addedProviderId) {
+        await providerCollection.delete(addedProviderId).isPersisted.promise.catch((cleanup) => console.error(cleanup));
+      }
       toast.error(t('ProviderCardActions.providerSaveError', { title: info?.title }));
     }
   };
@@ -149,8 +163,8 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   return (
     <Card className={`gap-4 p-5 ${isUnavailable || isAdminManaged ? 'opacity-60' : ''}`}>
       <CardHeader className="flex flex-row items-center gap-4 p-0">
-        <Avatar className={`h-12 w-12 shrink-0 rounded-xl ${colors.bg}`}>
-          <AvatarFallback className={`bg-transparent ${colors.icon}`}>
+        <Avatar className="h-12 w-12 shrink-0 rounded-xl" style={{ backgroundColor: getSourceColor(manifest.id) }}>
+          <AvatarFallback className="bg-transparent text-white">
             <Icon className="h-6 w-6" />
           </AvatarFallback>
         </Avatar>

@@ -61,8 +61,8 @@ func TestMapSpotifyResults(t *testing.T) {
 			if r.Subtitle != tc.subtitle {
 				t.Errorf("subtitle = %q, want %q", r.Subtitle, tc.subtitle)
 			}
-			if r.SourceURL != tc.source {
-				t.Errorf("sourceUrl = %q, want %q", r.SourceURL, tc.source)
+			if r.Origin != tc.source {
+				t.Errorf("origin = %q, want %q", r.Origin, tc.source)
 			}
 			if r.CoverURL != tc.cover {
 				t.Errorf("coverUrl = %q, want %q", r.CoverURL, tc.cover)

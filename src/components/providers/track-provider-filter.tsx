@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Music, XCircle } from 'lucide-react';
+import { CheckCircle2, Music, XCircle } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -29,10 +29,6 @@ export function TrackProviderFilter<T>({ selectedProvider, onProviderChange, ite
   const getProviderIcon = (provider: TrackProvider) => {
     if (!provider.enabled) {
       return <XCircle className="h-3 w-3" />;
-    }
-
-    if (!provider.config) {
-      return <AlertCircle className="h-3 w-3" />;
     }
 
     return <CheckCircle2 className="h-3 w-3" />;
