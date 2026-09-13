@@ -2,42 +2,56 @@
 package hooks
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/KevinBonnoron/melody-manager/api/internal/config"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
+	"github.com/KevinBonnoron/melody-manager/api/internal/watcher"
 )
 
 // Register wires the lifecycle hooks onto the app.
-func Register(app core.App) {
+func Register(app core.App, settings *config.Store) {
 	// First registered user becomes admin, the rest are regular users.
-	// Registration can be disabled (except for the very first user).
+	// Registration can be disabled from the admin UI (except for the very first
+	// user, who would otherwise have no way in).
+	//
+	// Counting and inserting in one transaction, because PocketBase opens its own
+	// below this hook: two registrations arriving together would otherwise both
+	// count nought, both bypass a closed registration, and both come out
+	// administrators. The write connection is single, so the transaction is what
+	// makes them queue.
 	app.OnRecordCreate("users").BindFunc(func(e *core.RecordEvent) error {
-		count, err := e.App.CountRecords("users")
-		if err != nil {
-			return err
-		}
-		isFirstUser := count == 0
-		if !isFirstUser && os.Getenv("REGISTRATION_DISABLED") == "true" {
-			return apis.NewForbiddenError("Registration is disabled", nil)
-		}
-		role := "user"
-		if isFirstUser {
-			role = "admin"
-		}
-		e.Record.Set("role", role)
-		return e.Next()
+		return inTransaction(e, func(txApp core.App) error {
+			count, err := txApp.CountRecords("users")
+			if err != nil {
+				return err
+			}
+			isFirstUser := count == 0
+			if !isFirstUser && !settings.Get().RegistrationAllowed {
+				return apis.NewForbiddenError("Registration is disabled", nil)
+			}
+			role := "user"
+			if isFirstUser {
+				role = "admin"
+			}
+			e.Record.Set("role", role)
+			return e.Next()
+		})
 	})
 
-	// PocketBase rules are record-level, so the users updateRule
-	// ("id = @request.auth.id") lets a user PATCH any field of their own
-	// record, role included — and role is the only gate on the admin routes.
-	// Pin it to its stored value for everyone but superusers.
+	// PocketBase rules are record-level, so the users updateRule lets a user
+	// PATCH any field of their own record, role included, and role is the only
+	// gate on the admin routes. An admin may change someone else's role; nobody
+	// may change their own, which also stops a lone admin locking themselves out.
 	app.OnRecordUpdateRequest("users").BindFunc(func(e *core.RecordRequestEvent) error {
 		if e.HasSuperuserAuth() {
 			return e.Next()
@@ -46,13 +60,56 @@ func Register(app core.App) {
 		if err != nil {
 			return err
 		}
-		e.Record.Set("role", stored.GetString("role"))
+
+		auth := e.Auth
+		editingSomeoneElse := auth != nil && auth.Id != e.Record.Id
+		if !(editingSomeoneElse && auth.GetString("role") == "admin") {
+			e.Record.Set("role", stored.GetString("role"))
+		}
+
+		// Nobody may change their own role, so demoting the last administrator
+		// takes two of them doing it to each other at the same time. Counted in
+		// the same transaction as the write, which is what makes that a queue of
+		// one rather than a race.
+		if stored.GetString("role") == "admin" && e.Record.GetString("role") != "admin" {
+			return inRequestTransaction(e, func(txApp core.App) error {
+				if err := requireAnotherAdmin(txApp, e.Record.Id); err != nil {
+					return err
+				}
+				return e.Next()
+			})
+		}
+
+		return e.Next()
+	})
+
+	// Deleting the last admin would leave the instance with no way to administer
+	// it, and nothing else enforces that.
+	app.OnRecordDeleteRequest("users").BindFunc(func(e *core.RecordRequestEvent) error {
+		if e.Record.GetString("role") != "admin" {
+			return e.Next()
+		}
+
+		return inRequestTransaction(e, func(txApp core.App) error {
+			if err := requireAnotherAdmin(txApp, e.Record.Id); err != nil {
+				return err
+			}
+			return e.Next()
+		})
+	})
+
+	// An admin can list every account, but PocketBase hides other people's email
+	// unless they made it visible. An admin screen without emails is useless.
+	app.OnRecordEnrich("users").BindFunc(func(e *core.RecordEnrichEvent) error {
+		if e.RequestInfo != nil && e.RequestInfo.Auth != nil && e.RequestInfo.Auth.GetString("role") == "admin" {
+			e.Record.IgnoreEmailVisibility(true)
+		}
 		return e.Next()
 	})
 
 	// Refresh a user's smart playlists after a play or like (auto-creates the
 	// default ones once thresholds are met). Runs async so it never blocks.
-	app.OnRecordAfterCreateSuccess("track_plays", "track_likes").BindFunc(func(e *core.RecordEvent) error {
+	app.OnRecordAfterCreateSuccess("track_plays", "track_ratings").BindFunc(func(e *core.RecordEvent) error {
 		if uid := e.Record.GetString("user"); uid != "" {
 			go services.RefreshSmartPlaylists(e.App, uid)
 		}
@@ -86,57 +143,163 @@ func Register(app core.App) {
 
 	// The manifest says which settings a provider cannot work without, but
 	// PocketBase rules cannot express that, so nothing stopped a config being
-	// saved without them — and the failure only surfaced much later, when a
+	// saved without them, and the failure only surfaced much later, when a
 	// download asked for a path that was never set.
-	app.OnRecordCreateRequest("provider_settings").BindFunc(func(e *core.RecordRequestEvent) error {
-		if err := validateProviderConfig(e.Record); err != nil {
+	app.OnRecordCreateRequest("provider_config").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := validateProviderConfig(e.App, e.Record); err != nil {
 			return err
 		}
 		return e.Next()
 	})
+	app.OnRecordUpdateRequest("provider_config").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := validateProviderConfig(e.App, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
+	})
+
+	// The same requirement from the other side. validateProviderConfig only runs
+	// when a configuration is written, and it lets an incomplete one through for
+	// a provider that is off; nothing then stopped that provider being turned on.
+	// Checked on the transition alone, so an already-enabled source with an
+	// incomplete configuration can still have its other settings edited, and
+	// turned off.
 	app.OnRecordUpdateRequest("provider_settings").BindFunc(func(e *core.RecordRequestEvent) error {
-		if err := validateProviderConfig(e.Record); err != nil {
+		if !e.Record.GetBool("enabled") {
+			return e.Next()
+		}
+		if stored, err := e.App.FindRecordById("provider_settings", e.Record.Id); err == nil && stored.GetBool("enabled") {
+			return e.Next()
+		}
+		if err := validateEnabledProvider(e.App, e.Record.GetString("type")); err != nil {
 			return err
 		}
 		return e.Next()
 	})
 
-	// provider_settings.config carries server-level settings including secrets
-	// (the Spotify client secret), but the collection has to stay readable so
-	// the UI can show which sources exist and whether they are configured.
-	// Serve the values to admins only; everyone else gets an empty object,
-	// which is what an unconfigured provider already looks like.
-	app.OnRecordEnrich("provider_settings").BindFunc(func(e *core.RecordEnrichEvent) error {
-		if !isAdminRequest(e.RequestInfo) {
-			e.Record.Set("config", map[string]any{})
-		}
+	// Pointing the server at a directory is the moment to read it, rather than
+	// whenever the watcher next looks.
+	app.OnRecordAfterCreateSuccess("provider_config").BindFunc(func(e *core.RecordEvent) error {
+		watcher.Nudge()
 		return e.Next()
+	})
+	app.OnRecordAfterUpdateSuccess("provider_config").BindFunc(func(e *core.RecordEvent) error {
+		watcher.Nudge()
+		return e.Next()
+	})
+
+	// Dropping the configuration of a source whose library *is* that
+	// configuration drops the library too: the records left behind would point
+	// at files the server no longer claims.
+	// In one transaction with the deletion, so a library that fails to drop takes
+	// the deletion down with it rather than leaving tracks pointing at a source
+	// that no longer exists, with nothing left to trigger a retry.
+	//
+	// The transaction has to be opened here: OnRecordDelete handlers run outside
+	// the one PocketBase opens further down, in OnRecordDeleteExecute, so work
+	// done after e.Next() is already committed. This is the shape PocketBase
+	// itself uses at that level.
+	app.OnRecordDelete("provider_config").BindFunc(func(e *core.RecordEvent) error {
+		typ := e.Record.GetString("type")
+		if !services.OwnsItsLibrary(typ) {
+			return e.Next()
+		}
+
+		return inTransaction(e, func(txApp core.App) error {
+			if err := e.Next(); err != nil {
+				return err
+			}
+
+			n, err := services.DropSourceLibrary(txApp, typ)
+			if err != nil {
+				return err
+			}
+			txApp.Logger().Info("source library dropped", "source", typ, "tracks", n)
+			return nil
+		})
 	})
 }
 
-func isAdminRequest(info *core.RequestInfo) bool {
-	if info == nil || info.Auth == nil {
-		return false
-	}
-	if info.Auth.Collection() != nil && info.Auth.Collection().Name == core.CollectionNameSuperusers {
-		return true
-	}
-	return info.Auth.GetString("role") == "admin"
+// PocketBase opens its transaction below these hooks, in the *Execute events, so
+// a check made here and the write it guards are not atomic on their own. These
+// two put both inside one, which the single write connection then serialises
+// against every other request.
+func inTransaction(e *core.RecordEvent, body func(core.App) error) error {
+	original := e.App
+	err := original.RunInTransaction(func(txApp core.App) error {
+		e.App = txApp
+		return body(txApp)
+	})
+	e.App = original
+	return err
 }
 
-// validateProviderConfig rejects a provider_settings record missing a value the
+func inRequestTransaction(e *core.RecordRequestEvent, body func(core.App) error) error {
+	original := e.App
+	err := original.RunInTransaction(func(txApp core.App) error {
+		e.App = txApp
+		return body(txApp)
+	})
+	e.App = original
+	return err
+}
+
+// requireAnotherAdmin refuses to leave the instance with no way to administer it.
+func requireAnotherAdmin(app core.App, exceptID string) error {
+	admins, err := app.CountRecords("users", dbx.NewExp("role = 'admin' AND id <> {:id}", dbx.Params{"id": exceptID}))
+	if err != nil {
+		return err
+	}
+	if admins == 0 {
+		return apis.NewBadRequestError("The last administrator cannot be removed", nil)
+	}
+	return nil
+}
+
+// validateProviderConfig rejects a provider_config record missing a value the
 // manifest marks required. Only enforced when the provider is enabled: an
 // operator must be able to turn a source off without filling its settings in.
-func validateProviderConfig(rec *core.Record) error {
-	if !rec.GetBool("enabled") {
+// `enabled` lives on provider_settings, so it is read back by type.
+func validateProviderConfig(app core.App, rec *core.Record) error {
+	typ := rec.GetString("type")
+	settings, err := app.FindFirstRecordByFilter("provider_settings", "type = {:t}", dbx.Params{"t": typ})
+	// A provider with no settings row is not enabled, so there is nothing to
+	// enforce. Any other failure has to travel: treating it as "not enabled"
+	// would let an invalid configuration through on a database error.
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
-	mf, ok := providers.ManifestFor(rec.GetString("type"))
+	if err != nil {
+		return err
+	}
+	if !settings.GetBool("enabled") {
+		return nil
+	}
+
+	var config map[string]any
+	_ = rec.UnmarshalJSONField("config", &config)
+	return checkRequiredConfig(typ, config)
+}
+
+// validateEnabledProvider asks the same of the configuration already stored,
+// for a provider about to be turned on.
+func validateEnabledProvider(app core.App, typ string) error {
+	var config map[string]any
+	rec, err := app.FindFirstRecordByFilter("provider_config", "type = {:t}", dbx.Params{"t": typ})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if rec != nil {
+		_ = rec.UnmarshalJSONField("config", &config)
+	}
+	return checkRequiredConfig(typ, config)
+}
+
+func checkRequiredConfig(typ string, config map[string]any) error {
+	mf, ok := providers.ManifestFor(typ)
 	if !ok {
 		return nil
 	}
-	var config map[string]any
-	_ = rec.UnmarshalJSONField("config", &config)
 	for _, field := range mf.ConfigSchema {
 		if !field.Required {
 			continue

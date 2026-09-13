@@ -3,11 +3,12 @@ import { useAuth } from 'pocketbase-react-hooks';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { config } from '@/lib/config';
+import { useRegistrationAllowed } from '@/hooks/use-registration-allowed';
 import { useAppForm } from '@/lib/forms';
 import { Button } from '../ui/button';
 
 export function LoginForm() {
+  const registrationAllowed = useRegistrationAllowed();
   const { t } = useTranslation();
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -25,9 +26,16 @@ export function LoginForm() {
         }
 
         toast.success(t('LoginForm.success'));
-        navigate({ to: '/' });
-      } catch {
-        toast.error(t('LoginForm.error'));
+        // A full reload, not a route change: the realtime stream and the
+        // collections were started before anyone was signed in, so they carry
+        // no token and never retry. Everything that reads the session once, at
+        // startup, has to start again now that there is one.
+        window.location.replace('/');
+      } catch (error) {
+        // A request that never reached the server is not a refused one. Saying
+        // "wrong email or password" there sends the listener hunting for a
+        // mistake they did not make.
+        toast.error(t(isUnreachable(error) ? 'LoginForm.unreachable' : 'LoginForm.error'));
       }
     },
     validators: {
@@ -66,7 +74,7 @@ export function LoginForm() {
         <form.SubmitButton label={t('SignInForm.submit.label')} />
       </form.AppForm>
 
-      {!config.registrationDisabled && (
+      {registrationAllowed && (
         <p className="text-center text-sm text-muted-foreground">
           {t('SignInForm.dontHaveAccount')}{' '}
           <Link to="/register" className="text-primary hover:underline">
@@ -76,4 +84,12 @@ export function LoginForm() {
       )}
     </form>
   );
+}
+
+// Whether a sign-in failed before the server could answer: no response at all,
+// or one the browser refused to hand over. PocketBase reports a refusal with a
+// status; a network or CORS failure has none.
+function isUnreachable(error: unknown): boolean {
+  const status = (error as { status?: number } | null)?.status;
+  return !status || status === 0;
 }
