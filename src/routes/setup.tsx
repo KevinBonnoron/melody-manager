@@ -1,11 +1,11 @@
-import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { SetupPage } from '@/components/setup/setup-page';
+import { isStandaloneClient } from '@/lib/client-target';
 
 export const Route = createFileRoute('/setup')({
   beforeLoad: async () => {
-    if (!Capacitor.isNativePlatform()) {
+    if (!isStandaloneClient) {
       throw redirect({ to: '/' });
     }
 

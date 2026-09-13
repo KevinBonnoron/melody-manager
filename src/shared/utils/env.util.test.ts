@@ -3,7 +3,7 @@ import { describe, expect, it } from 'bun:test';
 
 describe('createEnv', () => {
   // An unset variable arrives as an empty string often enough that treating it
-  // as a real value silently wins over the default — which made every client
+  // as a real value silently wins over the default, which made every client
   // URL relative and every request 404 on any route but "/".
   it('falls back to the default for an empty value', () => {
     const env = createEnv(() => '');
@@ -22,7 +22,7 @@ describe('createEnv', () => {
 
   it('treats an empty value as unset for booleans and numbers too', () => {
     const env = createEnv(() => '');
-    expect(env('VITE_REGISTRATION_DISABLED').boolean(true)).toBe(true);
+    expect(env('SOME_FLAG').boolean(true)).toBe(true);
     expect(env('SOME_PORT').number(8090)).toBe(8090);
   });
 });

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Melody Manager
+GenericName=Music Player
+Comment=Desktop client for a Melody Manager server
+Exec=__EXEC__
+Icon=melody-manager
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=music;audio;player;library;
+StartupNotify=true
+StartupWMClass=melody-manager
