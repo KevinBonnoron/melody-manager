@@ -10,6 +10,12 @@ export default defineConfig({
   // The client is served same-origin in production, so development proxies the
   // Go binary rather than pointing the client at another host.
   server: {
+    // The desktop shell is served from wails://, the Android one from
+    // capacitor://. This server answers their preflights itself, before the
+    // proxy, and refusing them makes those clients impossible to develop
+    // against. Reflecting the caller is a development-server decision: the
+    // built application is served by the Go binary, which has its own rule.
+    cors: { origin: true },
     proxy: {
       '/api': { target: 'http://localhost:8090', changeOrigin: true },
       '/_': { target: 'http://localhost:8090', changeOrigin: true },

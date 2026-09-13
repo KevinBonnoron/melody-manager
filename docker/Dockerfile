@@ -44,10 +44,9 @@ COPY --from=ytdlp /yt-dlp /usr/local/bin/yt-dlp
 # yt-dlp needs a JavaScript runtime to solve YouTube's signature challenges.
 COPY --from=bunruntime /usr/local/bin/bun /usr/local/bin/bun
 
-ENV SERVER_URL=http://localhost:8090
-ENV CACHE_DIR=/app/cache
+ENV CONFIG_FILE=/config/config.json
 EXPOSE 8090
-VOLUME ["/app/pb_data", "/app/cache"]
+VOLUME ["/app/pb_data", "/app/cache", "/config"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -fsS http://localhost:8090/api/health || exit 1

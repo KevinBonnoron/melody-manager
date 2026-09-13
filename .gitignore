@@ -76,3 +76,21 @@ android/app/src/main/res/mipmap-*
 android/app/src/main/res/drawable-*
 ios/App/App/Assets.xcassets/AppIcon.appiconset/
 ios/App/App/Assets.xcassets/Splash.imageset/
+
+# Operator configuration, generated on first run
+api/config/
+
+# Compiled binaries: `task build:api` and `task desktop` both write here.
+bin/
+
+# Desktop client: the embedded bundle is a build artefact. Its parent folder is
+# kept so `go:embed` resolves on a fresh clone, before anything has been built.
+desktop/frontend/dist/
+
+# `go build ./...` inside desktop/ drops the binary beside its source.
+desktop/desktop
+
+# Playwright: the throwaway server's database and the run's own output.
+e2e/.data/
+e2e/.artifacts/
+e2e/.report/
