@@ -27,7 +27,7 @@ interface Props {
 
 export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHere, onSelectClient }: Props) {
   const { t } = useTranslation();
-  const { others, speakers } = useDevices();
+  const { others, usableSpeakers: speakers } = useDevices();
   // A speaker is somewhere else just as much as another browser is, and the
   // button says where the sound comes out, not which kind of device it is.
   const elsewhere = remote ?? (activeDevice?.type === 'sonos' ? activeDevice : null);

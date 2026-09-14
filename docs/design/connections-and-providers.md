@@ -48,21 +48,27 @@ Access: owner-only read/write (already the case). Tokens live here, never readab
 
 ## Per-provider mapping
 
-| Provider | server config (admin) | user connection | auth |
+Server config lives in `provider_config.config`, admin-only, one row per type. It
+left `provider_settings.config` because that collection has to stay readable by
+every authenticated user, so anything in it leaked, the Spotify client secret
+included.
+
+| Provider | server config (admin), in `provider_config.config` | user connection | auth |
 |---|---|---|---|
 | local | `path` (required) | ❌ none | none — server library, only admin-only case |
 | youtube | `downloadPath` | opt-in + `cookies?` | none / cookies |
 | soundcloud | — (just `enabled`) | opt-in (empty) | none |
 | bandcamp | — (just `enabled`) | opt-in (empty) | none |
 | spotify | `clientId/secret` (app) | opt-in OAuth → token in `config` | server-credentials **+** user-oauth |
-| sonos | — | — (autodiscovered) | none — `category=device` |
+| sonos | `speakers`: `[{ address, enabled }]` | — | none — `category=device` |
 
 ## Runtime resolution
 
 Effective state for (user U, type T):
 - usable iff `provider_settings[T].enabled` **AND** (`!userConnectable[T]` **OR** U has an `enabled` connection for T)
-- effective config = `provider_settings[T].config` (server) combined with `connection.config` (user) under **separate namespaces** — no key clobbering
+- effective config = `provider_config[T].config` (server) combined with `connection.config` (user) under **separate namespaces** — no key clobbering
 - playback: if `catalogOnly` (spotify), resolve audio through a streamable provider (youtube)
+- speakers: discovery runs whatever `provider_settings[sonos].enabled` says, so a speaker appearing on the network can be put in front of an admin. Playing to one needs `enabled` **and** an entry for its address in `provider_config[sonos].config.speakers` with `enabled: true`. A discovered address nobody has an entry for is reported to admins as waiting on a decision and is not played to.
 
 This removes the duplication: server facts and user facts are disjoint in fields and ownership. `local` has only server settings; anonymous sources have only a per-user opt-in plus the global enable flag.
 

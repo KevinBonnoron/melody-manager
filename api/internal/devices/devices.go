@@ -28,6 +28,10 @@ type Device struct {
 	IPAddress string         `json:"ipAddress"`
 	Volume    int            `json:"volume"`
 	IsActive  bool           `json:"isActive"`
+	// Whether anybody may play to it. A speaker is discovered whatever the
+	// operator has decided, so that a new one can be offered to an admin; this is
+	// what says whether the decision was yes.
+	Usable bool `json:"usable"`
 
 	Session string `json:"session,omitempty"`
 	Playing bool   `json:"playing"`
@@ -127,6 +131,14 @@ const (
 func (s *Service) SetPlaybackStore(store PlaybackStore) {
 	s.mu.Lock()
 	s.playback = store
+	s.mu.Unlock()
+}
+
+// SetSpeakerStore hands the service where speaker addresses live. Like the
+// playback store, it is set once the database exists rather than at construction.
+func (s *Service) SetSpeakerStore(store SpeakerStore) {
+	s.mu.Lock()
+	s.speakers = store
 	s.mu.Unlock()
 }
 
@@ -251,11 +263,14 @@ type PlaybackStore interface {
 	SavePosition(owner, trackID string, position float64) error
 }
 
-// SpeakerStore remembers the speakers found, so discovery does not have to
-// succeed again for a known one to come back after a restart.
+// SpeakerStore holds what the operator decided about each speaker: which ones
+// to try directly when multicast gets nowhere, and which ones may be played to.
 type SpeakerStore interface {
 	KnownSpeakers() []string
-	RememberSpeakers(addresses []string) error
+	// Whether the server may play to this address. Discovery runs regardless, so
+	// that a speaker appearing on the network can be offered to an admin; this is
+	// what says whether anyone agreed to it.
+	SpeakerUsable(address string) bool
 }
 
 // Service maintains the device registry and notifies subscribers on changes.
@@ -287,18 +302,81 @@ type subscriber struct {
 
 // New creates a device service. serverURL is the public base URL used to build
 // stream URLs that Sonos players fetch.
-func New(publicURL func() string, speakers SpeakerStore) *Service {
-	return &Service{publicURL: publicURL, speakers: speakers, devices: map[string]Device{}, subs: map[int]subscriber{}, sessions: map[string]string{}}
+func New(publicURL func() string) *Service {
+	return &Service{publicURL: publicURL, devices: map[string]Device{}, subs: map[int]subscriber{}, sessions: map[string]string{}}
+}
+
+// nudges asks the running service to re-read what the operator decided. A
+// speaker put in service has to appear now, not up to a discovery pass later:
+// the admin who just saved is looking at the screen.
+var nudges = make(chan struct{}, 1)
+
+// Nudge reports that the speaker configuration changed.
+func Nudge() {
+	select {
+	case nudges <- struct{}{}:
+	default:
+	}
 }
 
 // StartDiscovery polls SSDP every 10s and keeps the registry in sync.
 func (s *Service) StartDiscovery() {
 	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		s.discoverOnce()
 		for {
-			s.discoverOnce()
-			time.Sleep(10 * time.Second)
+			select {
+			case <-ticker.C:
+				s.discoverOnce()
+			case <-nudges:
+				// Only the decisions are re-read. Discovery is two seconds of
+				// waiting on a multicast answer, and nothing about saving a
+				// configuration says the network changed.
+				s.refreshUsable()
+			}
 		}
 	}()
+}
+
+// refreshUsable re-reads whether each speaker may be played to, without going
+// back to the network for it.
+func (s *Service) refreshUsable() {
+	s.mu.RLock()
+	addresses := make(map[string]string, len(s.devices))
+	for id, device := range s.devices {
+		if device.Type == "sonos" {
+			addresses[id] = device.IPAddress
+		}
+	}
+	s.mu.RUnlock()
+
+	// Asked before taking the write lock: each answer is a database read, and
+	// holding the lock across them blocks every reader, /api/devices and the SSE
+	// stream included.
+	usable := make(map[string]bool, len(addresses))
+	for id, address := range addresses {
+		usable[id] = s.speakerUsable(address)
+	}
+
+	s.mu.Lock()
+	changed := false
+	for id, next := range usable {
+		device, ok := s.devices[id]
+		if !ok || device.Usable == next {
+			continue
+		}
+		device.Usable = next
+		s.devices[id] = device
+		changed = true
+	}
+	if !changed {
+		s.mu.Unlock()
+		return
+	}
+	snapshot := s.listLocked()
+	s.mu.Unlock()
+	s.notify(snapshot)
 }
 
 // Types a client may register itself as. Sonos is absent on purpose: those are
@@ -334,6 +412,9 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string) (Devi
 	device.Type = deviceType
 	device.Name = label
 	device.Status = "available"
+	// A client announcing itself is a device its own user asked for: there is
+	// nothing left to agree to, unlike a speaker found on the network.
+	device.Usable = true
 	s.nextEpoch++
 	device.epoch = s.nextEpoch
 	s.devices[id] = device
@@ -437,7 +518,6 @@ func (s *Service) discoverOnce() {
 	if len(players) == 0 {
 		return
 	}
-	s.rememberSpeakers(players)
 	// Volumes are fetched before taking the lock: this is a blocking SOAP call
 	// per speaker, and holding the write lock across it let one unresponsive
 	// device block every reader, /api/devices, the SSE stream and each
@@ -449,10 +529,18 @@ func (s *Service) discoverOnce() {
 	}
 	cancel()
 
+	// Usable is settled on every pass rather than at first sight: an admin
+	// switching a speaker off, or the kind out of service, has to reach the
+	// registry without waiting for the speaker to be discovered again.
+	usable := make(map[string]bool, len(players))
+	for _, p := range players {
+		usable[p.IP] = s.speakerUsable(p.IP)
+	}
+
 	s.mu.Lock()
 	for _, p := range players {
 		id := ipToID(p.IP)
-		s.devices[id] = refreshSpeaker(s.devices[id], p, volumes[p.IP])
+		s.devices[id] = refreshSpeaker(s.devices[id], p, volumes[p.IP], usable[p.IP])
 	}
 	snapshot := s.listLocked()
 	s.mu.Unlock()
@@ -468,7 +556,7 @@ func (s *Service) discoverOnce() {
 // playing is reported separately and every ten seconds, so rebuilding the entry
 // here would wipe it, leaving a speaker that plays while the registry says it
 // holds nothing.
-func refreshSpeaker(device Device, p sonos.Player, volume int) Device {
+func refreshSpeaker(device Device, p sonos.Player, volume int, usable bool) Device {
 	if device.ID == "" {
 		device = Device{ID: ipToID(p.IP), Status: "available"}
 	}
@@ -476,6 +564,7 @@ func refreshSpeaker(device Device, p sonos.Player, volume int) Device {
 	device.Type = "sonos"
 	device.IPAddress = p.IP
 	device.Volume = volume
+	device.Usable = usable
 	device.Metadata = map[string]any{"uuid": p.UUID, "roomName": p.Name}
 	return device
 }
@@ -527,25 +616,27 @@ func trackFromStreamURL(uri string) string {
 
 const tracksPathPrefix = "/api/tracks/"
 
-func (s *Service) knownSpeakers() []string {
-	if s.speakers == nil {
-		return nil
+func (s *Service) speakerUsable(address string) bool {
+	s.mu.RLock()
+	store := s.speakers
+	s.mu.RUnlock()
+	// Until the database is there to ask, a speaker is usable: the server has
+	// always played to what it found, and refusing for the first few seconds of a
+	// restart would be a new way to fail.
+	if store == nil {
+		return true
 	}
-	return s.speakers.KnownSpeakers()
+	return store.SpeakerUsable(address)
 }
 
-func (s *Service) rememberSpeakers(players []sonos.Player) {
-	if s.speakers == nil {
-		return
+func (s *Service) knownSpeakers() []string {
+	s.mu.RLock()
+	store := s.speakers
+	s.mu.RUnlock()
+	if store == nil {
+		return nil
 	}
-
-	addresses := make([]string, 0, len(players))
-	for _, p := range players {
-		addresses = append(addresses, p.IP)
-	}
-	if err := s.speakers.RememberSpeakers(addresses); err != nil {
-		slog.Warn("speaker addresses not saved", "error", err)
-	}
+	return store.KnownSpeakers()
 }
 
 // List returns the shared devices plus the caller's own browser clients.

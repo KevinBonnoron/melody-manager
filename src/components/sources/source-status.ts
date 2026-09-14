@@ -45,3 +45,10 @@ export function isSourceInUse(status: SourceStatus): boolean {
 export function getTrackProviders(providers: Provider[]): Provider[] {
   return providers.filter((p) => p.category === 'track');
 }
+
+// Somewhere sound comes out, rather than somewhere music comes from. They share
+// a table and a configuration dialog, and nothing else: kept in one list they
+// would only invite the question of why a speaker has no tracks.
+export function getDeviceProviders(providers: Provider[]): Provider[] {
+  return providers.filter((p) => p.category === 'device');
+}

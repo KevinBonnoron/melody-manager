@@ -46,7 +46,7 @@ func New() *Deps {
 	return &Deps{
 		Registry: providers.NewRegistry(),
 		Tasks:    tasks.New(),
-		Devices:  devices.New(func() string { return store.Get().PublicURL }, store),
+		Devices:  devices.New(func() string { return store.Get().PublicURL }),
 		Cache:    audio,
 		Config:   store,
 	}

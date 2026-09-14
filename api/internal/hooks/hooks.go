@@ -3,6 +3,7 @@ package hooks
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/config"
+	"github.com/KevinBonnoron/melody-manager/api/internal/devices"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 	"github.com/KevinBonnoron/melody-manager/api/internal/watcher"
@@ -211,10 +213,33 @@ func Register(app core.App, settings *config.Store) {
 	// whenever the watcher next looks.
 	app.OnRecordAfterCreateSuccess("provider_config").BindFunc(func(e *core.RecordEvent) error {
 		watcher.Nudge()
+		devices.Nudge()
 		return e.Next()
 	})
 	app.OnRecordAfterUpdateSuccess("provider_config").BindFunc(func(e *core.RecordEvent) error {
 		watcher.Nudge()
+		devices.Nudge()
+		return e.Next()
+	})
+
+	// Which speakers may be played to is read from both rows, so both have to
+	// say when they change. Without it a speaker put in service appears only at
+	// the next discovery pass, ten seconds after the admin saved and went
+	// looking for it.
+	app.OnRecordAfterCreateSuccess("provider_settings").BindFunc(func(e *core.RecordEvent) error {
+		devices.Nudge()
+		return e.Next()
+	})
+	app.OnRecordAfterUpdateSuccess("provider_settings").BindFunc(func(e *core.RecordEvent) error {
+		devices.Nudge()
+		return e.Next()
+	})
+	app.OnRecordAfterDeleteSuccess("provider_settings").BindFunc(func(e *core.RecordEvent) error {
+		devices.Nudge()
+		return e.Next()
+	})
+	app.OnRecordAfterDeleteSuccess("provider_config").BindFunc(func(e *core.RecordEvent) error {
+		devices.Nudge()
 		return e.Next()
 	})
 
@@ -292,6 +317,13 @@ func requireAnotherAdmin(app core.App, exceptID string) error {
 // `enabled` lives on provider_settings, so it is read back by type.
 func validateProviderConfig(app core.App, rec *core.Record) error {
 	typ := rec.GetString("type")
+	// Checked whatever the provider's state, unlike the required fields below:
+	// an address nothing can be reached at is wrong the moment it is written,
+	// not once the provider is switched on.
+	if err := checkSpeakerAddresses(rec); err != nil {
+		return err
+	}
+
 	settings, err := app.FindFirstRecordByFilter("provider_settings", "type = {:t}", dbx.Params{"t": typ})
 	// A provider with no settings row is not enabled, so there is nothing to
 	// enforce. Any other failure has to travel: treating it as "not enabled"
@@ -309,6 +341,56 @@ func validateProviderConfig(app core.App, rec *core.Record) error {
 	var config map[string]any
 	_ = rec.UnmarshalJSONField("config", &config)
 	return checkRequiredConfig(typ, config)
+}
+
+func checkSpeakerAddresses(rec *core.Record) error {
+	var config map[string]any
+	_ = rec.UnmarshalJSONField("config", &config)
+	raw, ok := config[services.SpeakerField]
+	if !ok {
+		return nil
+	}
+
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return apis.NewBadRequestError("speakers must be a list of addresses", nil)
+	}
+
+	var speakers []services.Speaker
+	if err := json.Unmarshal(encoded, &speakers); err != nil {
+		return apis.NewBadRequestError("speakers must be a list of addresses", nil)
+	}
+
+	// Trimmed as well as checked, and written back: the check ignores surrounding
+	// space, so " 10.0.0.1 " was stored with it, and the address a speaker is
+	// discovered at never matched the one saved. It would have sat in the list
+	// answering and never usable.
+	trimmed := false
+	seen := make(map[string]bool, len(speakers))
+	for i := range speakers {
+		address := strings.TrimSpace(speakers[i].Address)
+		if !services.ValidSpeakerAddress(address) {
+			return apis.NewBadRequestError(fmt.Sprintf("%q is not an IPv4 address", speakers[i].Address), nil)
+		}
+		// One entry per speaker, or the list says two things about the same one:
+		// SpeakerUsable answers with the first and the screen shows the last, so a
+		// speaker could read as switched off while the server plays to it.
+		if seen[address] {
+			return apis.NewBadRequestError(fmt.Sprintf("%q is listed twice", address), nil)
+		}
+		seen[address] = true
+		if address != speakers[i].Address {
+			speakers[i].Address = address
+			trimmed = true
+		}
+	}
+
+	if trimmed {
+		config[services.SpeakerField] = speakers
+		rec.Set("config", config)
+	}
+
+	return nil
 }
 
 // validateEnabledProvider asks the same of the configuration already stored,

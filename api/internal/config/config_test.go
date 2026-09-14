@@ -73,36 +73,6 @@ func TestSaveRoundTrips(t *testing.T) {
 	}
 }
 
-// A speaker that answers discovery once has to survive the many passes where it
-// stays silent, so the list only ever grows and never rewrites what it holds.
-func TestRememberSpeakersAccumulates(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.json")
-	store, _, err := Load(path)
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-
-	if err := store.RememberSpeakers([]string{"192.168.1.20"}); err != nil {
-		t.Fatalf("RememberSpeakers: %v", err)
-	}
-	if err := store.RememberSpeakers([]string{"192.168.1.21", "192.168.1.20"}); err != nil {
-		t.Fatalf("RememberSpeakers: %v", err)
-	}
-
-	want := []string{"192.168.1.20", "192.168.1.21"}
-	if got := store.KnownSpeakers(); !reflect.DeepEqual(got, want) {
-		t.Errorf("KnownSpeakers() = %v, want %v", got, want)
-	}
-
-	reopened, _, err := Load(path)
-	if err != nil {
-		t.Fatalf("reload: %v", err)
-	}
-	if got := reopened.KnownSpeakers(); !reflect.DeepEqual(got, want) {
-		t.Errorf("after reload = %v, want %v", got, want)
-	}
-}
-
 // A file can hold values nothing can use: an empty listen address is what a
 // hand-edited or half-written file leaves behind, and taking it literally moves
 // the server somewhere nobody asked for.
