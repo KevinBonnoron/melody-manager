@@ -234,7 +234,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         await speakerOp(() => deviceClient.play(activeDevice.id, track.id, Math.round(startAt)), {
           done: () => setIsLoading(false),
           failed: (error) => {
-            console.error('Sonos playback failed:', error);
+            console.error('Playing to the device failed:', error);
             toast.error(i18n.t('MusicPlayer.playbackError', { title: track.title }));
             setPlayerState((prev) => ({ ...prev, isPlaying: false }));
             setIsLoading(false);
@@ -471,7 +471,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       setPlayerState((prev) => ({ ...prev, isPlaying: false }));
       await speakerOp(() => deviceClient.pause(activeDevice.id), {
         failed: (error) => {
-          console.error('Sonos pause failed:', error);
+          console.error('Pausing the device failed:', error);
           toast.error(i18n.t('MusicPlayer.deviceError'));
           setPlayerState((prev) => ({ ...prev, isPlaying: true }));
         },
@@ -491,7 +491,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     if (activeDevice && isNetworkDevice(activeDevice)) {
       const playing = () => setPlayerState((prev) => ({ ...prev, isPlaying: true }));
       const gaveUp = (error: unknown) => {
-        console.error('Sonos play failed:', error);
+        console.error('Resuming the device failed:', error);
         toast.error(i18n.t('MusicPlayer.deviceError'));
       };
 
@@ -603,7 +603,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         setPlayerState((prev) => ({ ...prev, currentTime: time }));
         await speakerOp(() => deviceClient.seek(activeDevice.id, time), {
           failed: (error) => {
-            console.error('Sonos seek failed:', error);
+            console.error('Seeking on the device failed:', error);
             seekedAtRef.current = settledAt;
             speakerReachedRef.current = reached;
             setPlayerState((prev) => ({ ...prev, currentTime: reached }));
@@ -632,7 +632,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         try {
           await deviceClient.setVolume(activeDevice.id, Math.round(volume * 100));
         } catch (error) {
-          console.error('Sonos setVolume failed:', error);
+          console.error('Setting the device volume failed:', error);
           toast.error(i18n.t('MusicPlayer.deviceError'));
         }
 
@@ -771,7 +771,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         await speakerOp(() => deviceClient.stop(previous.id), {
           done: resume,
           failed: (error) => {
-            console.error('Sonos stop failed:', error);
+            console.error('Stopping the device failed:', error);
             resume();
           },
         });
@@ -787,14 +787,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         // rooms is not what picking a device means.
         if (previous && isNetworkDevice(previous) && previous.id !== device.id) {
           await speakerOp(() => deviceClient.stop(previous.id), {
-            failed: (error) => console.error('Sonos stop failed:', error),
+            failed: (error) => console.error('Stopping the device failed:', error),
           });
         }
 
         await speakerOp(() => deviceClient.play(device.id, track.id, Math.round(playbackPosition)), {
           done: () => setPlayerState((prev) => ({ ...prev, isPlaying: true })),
           failed: (error) => {
-            console.error('Sonos handover failed:', error);
+            console.error('Handing playback to the device failed:', error);
             toast.error(i18n.t('MusicPlayer.deviceError'));
             setPlayerState((prev) => ({ ...prev, isPlaying: false }));
           },

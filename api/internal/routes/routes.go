@@ -305,7 +305,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.BadRequestError("invalid body", err)
 		}
 		position := rounded(body.Position)
-		if clientDevice(dev) {
+		if clientDevice(deps, dev) {
 			if !deps.Devices.SendCommand(dev.ID, fmt.Sprintf("seek:%d", position)) {
 				return e.NotFoundError("device not found", nil)
 			}
@@ -333,7 +333,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.BadRequestError("invalid body", err)
 		}
 		volume := rounded(body.Volume)
-		if clientDevice(dev) {
+		if clientDevice(deps, dev) {
 			if !deps.Devices.SendCommand(dev.ID, fmt.Sprintf("volume:%d", volume)) {
 				return e.NotFoundError("device not found", nil)
 			}
@@ -896,7 +896,7 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	}
 	position := rounded(body.Position)
 
-	if clientDevice(dev) {
+	if clientDevice(deps, dev) {
 		action := "play"
 		if trackID != "" {
 			action = fmt.Sprintf("play:%s:%d", trackID, position)
@@ -1000,14 +1000,19 @@ func rounded(v float64) int {
 // stream it already listens on.
 // Sonos speakers are driven over SOAP; a client of the user's own is reached
 // through the stream it is already listening on.
-func clientDevice(d devices.Device) bool { return d.Type != "sonos" }
+// A device this server speaks a protocol to is on the network; everything else
+// is a client of the user's own, told what to do over the stream it opened.
+// This used to ask whether the type was "sonos", which made every kind added
+// after it a browser tab, and playing to one went looking for a stream nobody
+// had opened.
+func clientDevice(deps *app.Deps, d devices.Device) bool { return !deps.Devices.Speaks(d.Type) }
 
 // usableDevice looks up a device a request may act on. A speaker nobody agreed
 // to play to is discovered all the same, so that an admin can be shown it; that
 // is not the same as somewhere sound may be sent in the meantime.
 func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
 	dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
-	if !ok || (!clientDevice(dev) && !dev.Usable) {
+	if !ok || (!clientDevice(deps, dev) && !dev.Usable) {
 		return devices.Device{}, false
 	}
 	return dev, true
@@ -1019,7 +1024,7 @@ func deviceAction(deps *app.Deps, action string, fn func(players.Player, context
 		if !ok {
 			return e.NotFoundError("device not found", nil)
 		}
-		if clientDevice(dev) {
+		if clientDevice(deps, dev) {
 			if !deps.Devices.SendCommand(dev.ID, action) {
 				return e.NotFoundError("device not found", nil)
 			}

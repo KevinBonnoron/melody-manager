@@ -554,6 +554,11 @@
       "title": "Sonos",
       "description": "Découvrir et jouer de la musique sur les haut-parleurs Sonos",
       "discoveryHelp": "Les périphériques Sonos seront automatiquement découverts sur votre réseau local. Assurez-vous que vos haut-parleurs Sonos sont connectés au même réseau que ce serveur."
+    },
+    "chromecast": {
+      "title": "Chromecast",
+      "description": "Découvrir et jouer de la musique sur les appareils Chromecast",
+      "discoveryHelp": "Les Chromecast sont découverts automatiquement sur votre réseau local. Assurez-vous qu'ils sont sur le même réseau que ce serveur : la découverte se fait en multicast, qui ne traverse pas un réseau ponté. Une Chromecast Ultra peut aussi être branchée en ethernet sur son bloc d'alimentation."
     }
   },
   "ProviderCardStatus": {
@@ -887,8 +892,6 @@
     "ignoreDiscovered": "Ignorer",
     "configureDiscovered": "Configurer",
     "undecided_one": "Une enceinte découverte attend une décision",
-    "undecided_other": "{{count}} enceintes découvertes attendent une décision",
-    "chromecast": "Chromecast",
-    "chromecastDescription": "Diffuser vers des appareils Chromecast du réseau local. Désactivé, le serveur cesse de les chercher."
+    "undecided_other": "{{count}} enceintes découvertes attendent une décision"
   }
 }
