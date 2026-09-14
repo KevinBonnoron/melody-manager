@@ -391,6 +391,17 @@ func LocalFormat(app core.App, track *core.Record) string {
 	return strings.ToLower(strings.TrimPrefix(filepath.Ext(input), "."))
 }
 
+// LocalAudio reads what a track's own file actually holds. A container a device
+// says it accepts tells only half the story: the rate and depth inside it are
+// the half a player gives up on.
+func LocalAudio(ctx context.Context, app core.App, track *core.Record) (ffmpeg.Audio, error) {
+	input := localFile(app, track, localRoots(app))
+	if input == "" {
+		return ffmpeg.Audio{}, errors.New("track has no local file")
+	}
+	return ffmpeg.ProbeAudio(ctx, input)
+}
+
 // sameFormat reports whether a local file already is in the requested format.
 func sameFormat(input, format string) bool {
 	if input == "" || isRemote(input) {
