@@ -920,10 +920,15 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		return e.InternalServerError("stream token", err)
 	}
 	// Every speaker plays mp3, and some play more. Ask this one rather than
-	// re-encoding a lossless file on the way to it.
+	// re-encoding a lossless file on the way to it, and ask about the file as
+	// well as the container: a speaker says yes to audio/flac and then stops
+	// three seconds into a 24-bit 192 kHz one, having buffered what it could and
+	// found nothing to do with it. A probe that fails transcodes, which plays.
 	format, mime := "mp3", "audio/mpeg"
 	if native := services.MimeFor(services.LocalFormat(e.App, track)); native != "" && sonos.Accepts(ctx, dev.IPAddress, native) {
-		format, mime = "", native
+		if audio, err := services.LocalAudio(ctx, e.App, track); err == nil && sonos.Decodes(audio.SampleRate, audio.BitDepth) {
+			format, mime = "", native
+		}
 	}
 
 	streamURL := deps.Devices.StreamURL(trackID, tok, format)

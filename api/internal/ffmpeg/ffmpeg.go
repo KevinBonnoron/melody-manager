@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"os/exec"
@@ -180,4 +181,41 @@ func trimSpace(s string) string {
 		s = s[:len(s)-1]
 	}
 	return s
+}
+
+// Audio describes what a file actually holds, as opposed to what its extension
+// claims. A container a device accepts says nothing about the rate and depth
+// inside it, and that is the half that makes a player give up.
+type Audio struct {
+	SampleRate int
+	BitDepth   int
+}
+
+// ProbeAudio reads the first audio stream's rate and depth. Depth comes back
+// zero for a lossy codec, which has none to report.
+func ProbeAudio(ctx context.Context, input string) (Audio, error) {
+	out, err := exec.CommandContext(ctx, "ffprobe",
+		"-v", "error", "-select_streams", "a:0",
+		"-show_entries", "stream=sample_rate,bits_per_raw_sample",
+		"-of", "default=noprint_wrappers=1:nokey=1", input).Output()
+	if err != nil {
+		return Audio{}, err
+	}
+
+	fields := strings.Fields(string(out))
+	if len(fields) == 0 {
+		return Audio{}, errors.New("ffprobe: no audio stream")
+	}
+
+	audio := Audio{}
+	audio.SampleRate, err = strconv.Atoi(fields[0])
+	if err != nil {
+		return Audio{}, err
+	}
+	if len(fields) > 1 {
+		// "N/A" for a codec with no fixed depth, which is not an error.
+		audio.BitDepth, _ = strconv.Atoi(fields[1])
+	}
+
+	return audio, nil
 }

@@ -475,3 +475,19 @@ func atoiSafe(s string) int {
 	}
 	return n
 }
+
+// What a Sonos decodes from a file it fetches itself: 48 kHz, 24 bit. Its
+// ProtocolInfo answers in containers, so it says yes to audio/flac and then
+// stops a few seconds into a 24/192 one, having buffered what it could and
+// found nothing it could do with it. The container is the question it answers;
+// this is the one it does not.
+const (
+	maxSampleRate = 48000
+	maxBitDepth   = 24
+)
+
+// Decodes reports whether a speaker can play a file with this rate and depth.
+// A depth of zero is a lossy codec, which has none to exceed.
+func Decodes(sampleRate, bitDepth int) bool {
+	return sampleRate > 0 && sampleRate <= maxSampleRate && bitDepth <= maxBitDepth
+}
