@@ -266,7 +266,8 @@
     "devices": "Devices",
     "devicesFound_one": "{{count}} found",
     "devicesFound_other": "{{count}} found",
-    "allDevices": "All devices"
+    "allDevices": "All devices",
+    "browse": "Browse"
   },
   "SharesPage": {
     "title": "Shares",
