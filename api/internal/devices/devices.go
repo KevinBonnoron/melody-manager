@@ -149,6 +149,10 @@ func (s *Service) registry() players.Registry {
 	return s.players
 }
 
+// Speaks reports whether this server reaches a kind of device over the network,
+// for the routes, which have to tell that from a client of the user's own.
+func (s *Service) Speaks(kind string) bool { return s.speaks(kind) }
+
 // speaks reports whether a device kind is one this server controls over the
 // network, as opposed to a client of the user's own, which is told what to do
 // over the stream it opened.

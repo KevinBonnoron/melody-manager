@@ -554,6 +554,11 @@
       "title": "Sonos",
       "description": "Discover and play music on Sonos speakers",
       "discoveryHelp": "Sonos devices will be automatically discovered on your local network. Make sure your Sonos speakers are connected to the same network as this server."
+    },
+    "chromecast": {
+      "title": "Chromecast",
+      "description": "Discover and play music on Chromecast devices",
+      "discoveryHelp": "Chromecasts are discovered automatically on your local network. Make sure they are on the same network as this server: discovery is multicast, which does not cross a bridged network. A Chromecast Ultra can also take ethernet through its power supply."
     }
   },
   "ProviderCardStatus": {
@@ -887,8 +892,6 @@
     "ignoreDiscovered": "Ignore",
     "configureDiscovered": "Configure",
     "undecided_one": "A discovered speaker is waiting on a decision",
-    "undecided_other": "{{count}} discovered speakers are waiting on a decision",
-    "chromecast": "Chromecast",
-    "chromecastDescription": "Play to Chromecast devices on the local network. Switched off, the server stops looking for them."
+    "undecided_other": "{{count}} discovered speakers are waiting on a decision"
   }
 }
