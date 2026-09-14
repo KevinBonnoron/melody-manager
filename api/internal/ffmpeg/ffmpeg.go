@@ -67,7 +67,10 @@ func Extension(format string) string {
 func SaveTranscode(ctx context.Context, input, format, outPath string) error {
 	f, ok := formats[format]
 	if !ok {
-		f = formats["mp3"]
+		// Falling back means falling back entirely: the name has to travel with
+		// the arguments, or the cover goes into an mp3 without the tag version
+		// players agree on.
+		format, f = "mp3", formats["mp3"]
 	}
 
 	args := append([]string{"-y", "-i", input}, pictureArgs(format, f)...)

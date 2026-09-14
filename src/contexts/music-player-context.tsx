@@ -591,6 +591,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const seekedAtRef = useRef(0);
   const volumeCommandRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const volumeRequestRef = useRef(0);
+  const volumeQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const [pendingVolume, setPendingVolume] = useState<number | null>(null);
   const seek = useCallback(
     async (time: number) => {
@@ -643,19 +645,32 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       // hand rather than the round trip.
       if (activeDevice && isNetworkDevice(activeDevice)) {
         const target = activeDevice.id;
+        const request = ++volumeRequestRef.current;
         setPendingVolume(volume);
         if (volumeCommandRef.current) {
           clearTimeout(volumeCommandRef.current);
         }
 
-        volumeCommandRef.current = setTimeout(async () => {
-          try {
-            await deviceClient.setVolume(target, Math.round(volume * 100));
-          } catch (error) {
-            console.error('Setting the device volume failed:', error);
-            toast.error(i18n.t('MusicPlayer.deviceError'));
-            setPendingVolume(null);
-          }
+        volumeCommandRef.current = setTimeout(() => {
+          // One at a time, and only among themselves. Two settled levels in
+          // flight at once race at the device and the loser decides, so a drag
+          // back down could be overtaken by the drag up before it. They do not
+          // join the transport queue: a level waiting behind a play that takes
+          // two seconds is the lag this was written to remove.
+          volumeQueueRef.current = volumeQueueRef.current
+            .then(() => deviceClient.setVolume(target, Math.round(volume * 100)))
+            .catch((error) => {
+              console.error('Setting the device volume failed:', error);
+              // Only what this request said gets taken back: by the time it
+              // fails, the listener may have asked for another level, and
+              // clearing theirs would snap the slider away from their hand.
+              if (request !== volumeRequestRef.current) {
+                return;
+              }
+
+              toast.error(i18n.t('MusicPlayer.deviceError'));
+              setPendingVolume(null);
+            });
         }, VOLUME_SETTLE_MS);
 
         return;

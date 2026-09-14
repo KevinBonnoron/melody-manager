@@ -1,9 +1,22 @@
 package ffmpeg
 
 import (
+	"os/exec"
 	"slices"
 	"testing"
 )
+
+// silentFLAC writes a file with no cover, which is the case the optional map
+// exists for.
+func silentFLAC(t *testing.T, dir string) string {
+	t.Helper()
+	path := dir + "/silence.flac"
+	cmd := exec.CommandContext(t.Context(), "ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:a", "flac", path)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Skipf("ffmpeg unavailable: %v: %s", err, out)
+	}
+	return path
+}
 
 // A cover embedded in a file is a video stream as far as ffmpeg is concerned,
 // so "-vn" threw it away on every transcode. A speaker fetching the stream over
@@ -44,5 +57,16 @@ func TestMP3AsksForTheTagVersionPlayersAgreeOn(t *testing.T) {
 	}
 	if slices.Contains(pictureArgs("flac", formats["flac"]), "-id3v2_version") {
 		t.Error("flac was given an id3 option, which it has no use for")
+	}
+}
+
+// An unknown format falls back to mp3, and the name has to fall back with the
+// arguments: asked about the original name, pictureArgs left out the tag version
+// players agree on and the cover went into an mp3 nothing would read it from.
+func TestAnUnknownFormatFallsBackWholly(t *testing.T) {
+	dir := t.TempDir()
+	out := dir + "/out.mp3"
+	if err := SaveTranscode(t.Context(), silentFLAC(t, dir), "ogg", out); err != nil {
+		t.Fatalf("SaveTranscode: %v", err)
 	}
 }
