@@ -887,6 +887,8 @@
     "ignoreDiscovered": "Ignore",
     "configureDiscovered": "Configure",
     "undecided_one": "A discovered speaker is waiting on a decision",
-    "undecided_other": "{{count}} discovered speakers are waiting on a decision"
+    "undecided_other": "{{count}} discovered speakers are waiting on a decision",
+    "chromecast": "Chromecast",
+    "chromecastDescription": "Play to Chromecast devices on the local network. Switched off, the server stops looking for them."
   }
 }

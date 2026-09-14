@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { HardDrive, Music2, Speaker } from 'lucide-react';
+import { Cast, HardDrive, Music2, Speaker } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { ConfigSchemaItem, PluginManifest } from '@/shared';
 import { BandcampIcon, SoundCloudIcon, SpotifyIcon, YoutubeIcon } from './brand-icons';
@@ -29,6 +29,7 @@ export interface ProviderInfo {
 const ICON_MAP: Record<string, ProviderIcon> = {
   'hard-drive': HardDrive,
   speaker: Speaker,
+  cast: Cast,
   youtube: YoutubeIcon,
   spotify: SpotifyIcon,
   soundcloud: SoundCloudIcon,

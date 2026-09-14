@@ -144,6 +144,14 @@ var manifests = []Manifest{
 		AuthKind:        AuthNone,
 		UserConnectable: false,
 	},
+	{
+		ID: "chromecast", Name: "Chromecast", Icon: "cast", Scope: "shared", Version: "1.0.0",
+		Description:     "Stream music to Chromecast devices on the local network",
+		Features:        []string{"device"},
+		Category:        CategoryDevice,
+		AuthKind:        AuthNone,
+		UserConnectable: false,
+	},
 }
 
 // Manifests returns all known provider manifests (track + device).
