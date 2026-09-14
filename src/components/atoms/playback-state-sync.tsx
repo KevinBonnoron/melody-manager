@@ -6,7 +6,7 @@ import { useDevices } from '@/hooks/use-devices';
 import { usePlaybackState } from '@/hooks/use-playback-state';
 import { getMyDeviceId, reconnect, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
 import { pb } from '@/lib/pocketbase';
-import type { Track } from '@/shared';
+import { isNetworkDevice, type Track } from '@/shared';
 
 const SAVE_INTERVAL_MS = 15_000;
 const VOLUME_DEBOUNCE_MS = 400;
@@ -25,7 +25,7 @@ export function PlaybackStateSync() {
   // Driving a speaker is not playing: the sound comes out of it, not of here,
   // and a client that claimed the track anyway would show up on the others as
   // the one holding playback.
-  const onSpeaker = activeDevice?.type === 'sonos';
+  const onSpeaker = activeDevice !== null && isNetworkDevice(activeDevice);
   // A client still fetching its audio is not playing yet, whatever it intends:
   // the position is not moving, so another client told otherwise counts through
   // the wait and ends up ahead of the sound.

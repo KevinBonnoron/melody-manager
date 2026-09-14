@@ -1,19 +1,23 @@
-import { Laptop, Monitor, Smartphone, Speaker } from 'lucide-react';
+import { Cast, Laptop, Monitor, Smartphone, Speaker } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDevices } from '@/hooks/use-devices';
-import type { ClientDevice, Device, DeviceType } from '@/shared';
+import { type ClientDevice, type Device, type DeviceType, isNetworkDevice } from '@/shared';
 
-const deviceIcons: Record<DeviceType, typeof Monitor> = {
+// Partial on purpose: the kinds of device on the network are whatever is
+// installed, so a kind this list has never heard of still has to draw. It gets
+// the speaker, which is what it is.
+const deviceIcons: Partial<Record<DeviceType, typeof Monitor>> = {
   browser: Monitor,
   desktop: Laptop,
   mobile: Smartphone,
   sonos: Speaker,
+  chromecast: Cast,
 };
 
 function DeviceIcon({ type, className }: { type: DeviceType; className?: string }) {
-  const Icon = deviceIcons[type];
+  const Icon = deviceIcons[type] ?? Speaker;
   return <Icon className={className ?? 'h-4 w-4'} />;
 }
 
@@ -30,7 +34,7 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
   const { others, usableSpeakers: speakers } = useDevices();
   // A speaker is somewhere else just as much as another browser is, and the
   // button says where the sound comes out, not which kind of device it is.
-  const elsewhere = remote ?? (activeDevice?.type === 'sonos' ? activeDevice : null);
+  const elsewhere = remote ?? (activeDevice && isNetworkDevice(activeDevice) ? activeDevice : null);
 
   return (
     <DropdownMenu>
@@ -48,7 +52,7 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
         {/* Named, never verbed. Every other row is a device the click moves the
             music to, and this one is no different; calling it "play here" only
             when something plays elsewhere renamed the row under the listener. */}
-        <DropdownMenuItem onClick={() => (onPlayHere ? onPlayHere() : onDeviceChange(null))} className={!remote && activeDevice?.type !== 'sonos' ? 'bg-accent' : ''}>
+        <DropdownMenuItem onClick={() => (onPlayHere ? onPlayHere() : onDeviceChange(null))} className={!remote && !(activeDevice && isNetworkDevice(activeDevice)) ? 'bg-accent' : ''}>
           <Monitor className="h-4 w-4 mr-2 shrink-0" />
           <span className="min-w-0 flex-1 truncate">{t('DeviceSelector.thisBrowser')}</span>
         </DropdownMenuItem>
