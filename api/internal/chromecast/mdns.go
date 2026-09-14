@@ -155,7 +155,11 @@ func at(instances map[string]*instance, key string) *instance {
 }
 
 func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func() error, instances map[string]*instance, hosts map[string]string) bool {
-	name := h.Name.String()
+	// DNS names are case insensitive and a device is free to answer in whatever
+	// case it likes. Compared as they arrive, a PTR naming _GoogleCast and an SRV
+	// naming _googlecast are two different services, and the device assembles
+	// into nothing.
+	name := strings.ToLower(h.Name.String())
 	switch h.Type {
 	case dnsmessage.TypePTR:
 		body, err := parser.PTRResource()
@@ -163,7 +167,7 @@ func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func(
 			return false
 		}
 		if name == service {
-			at(instances, body.PTR.String())
+			at(instances, strings.ToLower(body.PTR.String()))
 		}
 
 	case dnsmessage.TypeSRV:
@@ -172,7 +176,7 @@ func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func(
 			return false
 		}
 		if strings.HasSuffix(name, "."+service) {
-			at(instances, name).host = body.Target.String()
+			at(instances, name).host = strings.ToLower(body.Target.String())
 		}
 
 	case dnsmessage.TypeTXT:
@@ -187,7 +191,8 @@ func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func(
 				if !found {
 					continue
 				}
-				switch key {
+				// The keys of a DNS-SD record are case insensitive too.
+				switch strings.ToLower(key) {
 				case "fn":
 					entry.name = value
 				case "id":

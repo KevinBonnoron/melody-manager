@@ -25,17 +25,19 @@ func NewPlayer() players.Player { return &Devices{conns: map[string]*conn{}} }
 
 func (*Devices) Kind() string { return Kind }
 
+func alive(c *conn) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return !c.closed
+}
+
 // session hands back the open connection for an address, opening one if there
 // is none or if the last one died. A device that went away and came back gets a
 // new session rather than commands into a closed socket.
 func (d *Devices) session(ctx context.Context, address string) (*conn, error) {
 	d.mu.Lock()
-	existing, ok := d.conns[address]
-	if ok {
-		existing.mu.Lock()
-		alive := !existing.closed
-		existing.mu.Unlock()
-		if alive {
+	if existing, ok := d.conns[address]; ok {
+		if alive(existing) {
 			d.mu.Unlock()
 			return existing, nil
 		}
@@ -51,7 +53,10 @@ func (d *Devices) session(ctx context.Context, address string) (*conn, error) {
 	d.mu.Lock()
 	// Another call may have opened one while this was dialling. One session per
 	// device: two senders on one device is a way to have each undo the other.
-	if winner, ok := d.conns[address]; ok {
+	// Unless the one that won has died since, which is the whole reason this call
+	// dialled: handing it back and closing the healthy one would answer the race
+	// with the dead connection.
+	if winner, ok := d.conns[address]; ok && alive(winner) {
 		d.mu.Unlock()
 		opened.Close()
 		return winner, nil

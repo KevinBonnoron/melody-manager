@@ -37,6 +37,7 @@ type conn struct {
 	tls     *tls.Conn
 
 	mu           sync.Mutex
+	awaitingPong bool
 	nextRequest  int
 	pending      map[int]chan json.RawMessage
 	transport    string
@@ -59,15 +60,26 @@ type mediaStatus struct {
 }
 
 func dial(ctx context.Context, address string) (*conn, error) {
-	dialer := &net.Dialer{Timeout: dialTimeout}
+	// Bounded, and cancellable: a request the listener gave up on should not go
+	// on holding a handshake open, and DialWithDialer answers only to its own
+	// timeout.
+	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
+
 	// A Chromecast presents a certificate signed by Google's device authority,
 	// for a name that is not its address. There is nothing here to verify it
 	// against, and the link carries a URL to a track, not a secret: the check
 	// that matters is whether an admin agreed to this address at all, and that
 	// one happens before we get here.
-	socket, err := tls.DialWithDialer(dialer, "tcp", net.JoinHostPort(address, controlPort), &tls.Config{InsecureSkipVerify: true})
+	dialer := &tls.Dialer{Config: &tls.Config{InsecureSkipVerify: true}}
+	dialed, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(address, controlPort))
 	if err != nil {
 		return nil, err
+	}
+	socket, ok := dialed.(*tls.Conn)
+	if !ok {
+		_ = dialed.Close()
+		return nil, errors.New("chromecast: the dialler returned something other than a TLS connection")
 	}
 
 	c := &conn{
@@ -139,7 +151,7 @@ func (c *conn) ask(ctx context.Context, namespace, destination string, payload m
 
 	select {
 	case answer := <-reply:
-		return answer, nil
+		return answer, castError(answer)
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-c.done:
@@ -147,6 +159,29 @@ func (c *conn) ask(ctx context.Context, namespace, destination string, payload m
 	case <-time.After(replyTimeout):
 		return nil, fmt.Errorf("chromecast: %s did not answer", payload["type"])
 	}
+}
+
+// castError reads a refusal out of a reply. A device answers a request it will
+// not carry out with the same requestId as one it will, so without this a
+// pause, a seek or a load that the receiver rejected came back as success and
+// nothing upstream ever learned otherwise.
+func castError(payload json.RawMessage) error {
+	var answer struct {
+		Type   string `json:"type"`
+		Reason string `json:"reason"`
+	}
+	if json.Unmarshal(payload, &answer) != nil {
+		return nil
+	}
+
+	switch answer.Type {
+	case "INVALID_REQUEST", "INVALID_PLAYER_STATE", "LOAD_FAILED", "LOAD_CANCELLED", "ERROR":
+		if answer.Reason != "" {
+			return fmt.Errorf("chromecast: %s (%s)", answer.Type, answer.Reason)
+		}
+		return fmt.Errorf("chromecast: %s", answer.Type)
+	}
+	return nil
 }
 
 func (c *conn) read() {
@@ -168,8 +203,15 @@ func (c *conn) dispatch(m message) {
 		var beat struct {
 			Type string `json:"type"`
 		}
-		if json.Unmarshal([]byte(m.payload), &beat) == nil && beat.Type == "PING" {
-			_ = c.send(nsHeartbeat, m.source, map[string]any{"type": "PONG"})
+		if json.Unmarshal([]byte(m.payload), &beat) == nil {
+			switch beat.Type {
+			case "PING":
+				_ = c.send(nsHeartbeat, m.source, map[string]any{"type": "PONG"})
+			case "PONG":
+				c.mu.Lock()
+				c.awaitingPong = false
+				c.mu.Unlock()
+			}
 		}
 		return
 	}
@@ -258,6 +300,28 @@ func (c *conn) rememberReceiver(payload string) {
 	c.mediaSession = 0
 }
 
+// beatOnce sends one heartbeat, and answers whether the session is still worth
+// holding. A socket can stay writable long after the device behind it stopped
+// listening, so a write that succeeds says nothing; what says something is the
+// answer to the last one. Without this the session sat in the pool and every
+// command after it waited out the reply timeout.
+func (c *conn) beatOnce() bool {
+	c.mu.Lock()
+	unanswered := c.awaitingPong
+	c.awaitingPong = true
+	c.mu.Unlock()
+	if unanswered {
+		c.Close()
+		return false
+	}
+
+	if err := c.send(nsHeartbeat, receiverID, map[string]any{"type": "PING"}); err != nil {
+		c.Close()
+		return false
+	}
+	return true
+}
+
 func (c *conn) beat() {
 	ticker := time.NewTicker(heartbeatEvery)
 	defer ticker.Stop()
@@ -266,8 +330,7 @@ func (c *conn) beat() {
 		case <-c.done:
 			return
 		case <-ticker.C:
-			if err := c.send(nsHeartbeat, receiverID, map[string]any{"type": "PING"}); err != nil {
-				c.Close()
+			if !c.beatOnce() {
 				return
 			}
 		}

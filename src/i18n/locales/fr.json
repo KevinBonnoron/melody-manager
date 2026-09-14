@@ -557,7 +557,7 @@
     "chromecast": {
       "title": "Chromecast",
       "description": "Découvrir et jouer de la musique sur les appareils Chromecast",
-      "discoveryHelp": "Les Chromecast sont découverts automatiquement sur votre réseau local. Assurez-vous qu'ils sont sur le même réseau que ce serveur : la découverte se fait en multicast, qui ne traverse pas un réseau ponté. Une Chromecast Ultra peut aussi être branchée en ethernet sur son bloc d'alimentation."
+      "discoveryHelp": "Les Chromecast sont découverts automatiquement sur votre réseau local. La découverte se fait en multicast, qui ne franchit pas un routeur : un serveur dans un conteneur Docker sur un réseau « bridge », qui est routé malgré son nom, ne verra rien. Une Chromecast Ultra peut aussi être branchée en ethernet sur son bloc d'alimentation."
     }
   },
   "ProviderCardStatus": {
@@ -864,14 +864,14 @@
     "addPlaceholder": "192.168.1.20",
     "useSpeaker": "Utiliser {{address}}",
     "forget": "Oublier {{address}}",
-    "hint": "La découverte se fait en multicast, qui ne traverse pas un réseau ponté. Une enceinte que le serveur ne voit pas s'ajoute ici à la main.",
+    "hint": "La découverte se fait en multicast, qui ne franchit pas un routeur, un conteneur Docker sur un réseau « bridge » compris. Une enceinte que le serveur ne voit pas s'ajoute ici à la main.",
     "none": "Aucun type d'appareil n'est installé.",
     "saveError": "Impossible d'enregistrer",
     "on": "Activé",
     "off": "Désactivé",
     "known": "Connues",
     "addresses": "Adresses",
-    "addressesDescription": "La découverte se fait en multicast, qui ne traverse pas un réseau ponté. Ajoutez ici les enceintes que le serveur ne voit pas de lui-même.",
+    "addressesDescription": "La découverte se fait en multicast, qui ne franchit pas un routeur, un conteneur Docker sur un réseau « bridge » compris. Ajoutez ici les enceintes que le serveur ne voit pas de lui-même.",
     "noAddresses": "Aucune adresse ajoutée à la main.",
     "use": "Utiliser {{title}}",
     "foundBy": "Les appareils trouvés par {{title}}",

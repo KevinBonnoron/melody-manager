@@ -557,7 +557,7 @@
     "chromecast": {
       "title": "Chromecast",
       "description": "Discover and play music on Chromecast devices",
-      "discoveryHelp": "Chromecasts are discovered automatically on your local network. Make sure they are on the same network as this server: discovery is multicast, which does not cross a bridged network. A Chromecast Ultra can also take ethernet through its power supply."
+      "discoveryHelp": "Chromecasts are discovered automatically on your local network. Discovery is multicast, which does not cross a router: a server in a Docker container on a “bridge” network, which is routed despite the name, will see nothing. A Chromecast Ultra can also take ethernet through its power supply."
     }
   },
   "ProviderCardStatus": {
@@ -864,14 +864,14 @@
     "addPlaceholder": "192.168.1.20",
     "useSpeaker": "Use {{address}}",
     "forget": "Forget {{address}}",
-    "hint": "Discovery is multicast, which does not cross a bridged network. A speaker the server cannot see is added here by hand.",
+    "hint": "Discovery is multicast, which does not cross a router, a Docker container on a “bridge” network included. A speaker the server cannot see is added here by hand.",
     "none": "No device type is installed.",
     "saveError": "Could not save",
     "on": "On",
     "off": "Off",
     "known": "Known",
     "addresses": "Addresses",
-    "addressesDescription": "Discovery is multicast, which does not cross a bridged network. Add the speakers the server cannot see by itself.",
+    "addressesDescription": "Discovery is multicast, which does not cross a router, a Docker container on a “bridge” network included. Add the speakers the server cannot see by itself.",
     "noAddresses": "No address added by hand.",
     "use": "Use {{title}}",
     "foundBy": "The devices {{title}} found",

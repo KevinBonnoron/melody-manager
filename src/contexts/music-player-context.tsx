@@ -968,7 +968,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     // Playing, not merely known: a speaker that was paused from its own app
     // still answers with its last track, and adopting it there left this tab
     // sending every later play to a room nobody was listening in.
-    const speaker = devices.find((d) => isNetworkDevice(d) && d.playing);
+    // Usable as well as playing: a device nobody has approved is discovered all
+    // the same, and adopting one would make it this tab's target while the
+    // server refuses every command sent to it.
+    const speaker = devices.find((d) => isNetworkDevice(d) && d.playing && d.usable);
     if (!speaker) {
       return;
     }
