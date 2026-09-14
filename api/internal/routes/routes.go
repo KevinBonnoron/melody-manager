@@ -848,10 +848,17 @@ func albumName(app core.App, id string) string {
 // is: a refusal is not an internal error, and "nothing to resume" is not a
 // failure the caller can do anything about by retrying the same way.
 func speakerError(e *core.RequestEvent, err error) error {
+	// A device that has no such idea is not a device that failed. A Chromecast
+	// handed one track has no queue, so asking it for the next one is a question
+	// it cannot be asked, not an error to blame it for.
+	if errors.Is(err, players.ErrUnsupported) {
+		return e.Error(http.StatusNotImplemented, "the device does not support this", err)
+	}
+
 	var fault *sonos.Fault
 	if !errors.As(err, &fault) {
-		// No fault body: the speaker could not be reached at all.
-		return e.Error(http.StatusBadGateway, "the speaker could not be reached", err)
+		// No fault body: the device could not be reached at all.
+		return e.Error(http.StatusBadGateway, "the device could not be reached", err)
 	}
 
 	if fault.Code == sonos.TransitionNotAvailable {

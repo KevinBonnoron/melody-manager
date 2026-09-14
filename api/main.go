@@ -17,6 +17,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/osutils"
 
 	mmapp "github.com/KevinBonnoron/melody-manager/api/internal/app"
+	"github.com/KevinBonnoron/melody-manager/api/internal/chromecast"
 	"github.com/KevinBonnoron/melody-manager/api/internal/hooks"
 	_ "github.com/KevinBonnoron/melody-manager/api/internal/migrations"
 	"github.com/KevinBonnoron/melody-manager/api/internal/players"
@@ -99,7 +100,8 @@ func main() {
 		// The protocols this server speaks. A kind absent from here is a kind
 		// nothing discovers and nothing plays to, whatever its provider row says.
 		deps.Devices.SetPlayers(players.Registry{
-			sonos.Kind: sonos.NewPlayer(),
+			sonos.Kind:      sonos.NewPlayer(),
+			chromecast.Kind: chromecast.NewPlayer(),
 		})
 		deps.Devices.StartDiscovery()
 		return se.Next()

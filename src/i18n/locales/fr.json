@@ -887,6 +887,8 @@
     "ignoreDiscovered": "Ignorer",
     "configureDiscovered": "Configurer",
     "undecided_one": "Une enceinte découverte attend une décision",
-    "undecided_other": "{{count}} enceintes découvertes attendent une décision"
+    "undecided_other": "{{count}} enceintes découvertes attendent une décision",
+    "chromecast": "Chromecast",
+    "chromecastDescription": "Diffuser vers des appareils Chromecast du réseau local. Désactivé, le serveur cesse de les chercher."
   }
 }
