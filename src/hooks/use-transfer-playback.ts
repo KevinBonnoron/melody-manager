@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { deviceClient } from '@/clients/device.client';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import i18n from '@/i18n';
 import type { Device } from '@/shared';
 import { useNowPlaying } from './use-now-playing';
 import { useRemotePlayback } from './use-remote-playback';
@@ -21,13 +23,26 @@ export function useTransferPlayback(): (device: Device) => void {
       }
 
       const position = isRemote && remote ? remote.currentTime : currentTime;
-      deviceClient.play(device.id, track.id, Math.round(position)).catch((error) => console.error('Failed to hand playback over:', error));
+      // Silence the old one only once the new one has taken the track. A target
+      // that refuses, because it went away or was never approved, used to leave
+      // the listener with nothing playing anywhere and no way back to where they
+      // were.
+      deviceClient
+        .play(device.id, track.id, Math.round(position))
+        .then(() => {
+          if (isRemote && remote) {
+            remote.stop();
+            return;
+          }
 
-      if (isRemote && remote) {
-        remote.stop();
-      } else if (isPlaying) {
-        togglePlayPause();
-      }
+          if (isPlaying) {
+            togglePlayPause();
+          }
+        })
+        .catch((error) => {
+          console.error('Handing playback over failed:', error);
+          toast.error(i18n.t('MusicPlayer.deviceError'));
+        });
     },
     [track, isRemote, remote, currentTime, isPlaying, togglePlayPause],
   );
