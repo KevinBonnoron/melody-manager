@@ -19,8 +19,10 @@ import (
 	mmapp "github.com/KevinBonnoron/melody-manager/api/internal/app"
 	"github.com/KevinBonnoron/melody-manager/api/internal/hooks"
 	_ "github.com/KevinBonnoron/melody-manager/api/internal/migrations"
+	"github.com/KevinBonnoron/melody-manager/api/internal/players"
 	"github.com/KevinBonnoron/melody-manager/api/internal/routes"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
+	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
 	"github.com/KevinBonnoron/melody-manager/api/internal/watcher"
 )
 
@@ -94,6 +96,11 @@ func main() {
 		// written by the server rather than by an idle browser.
 		deps.Devices.SetPlaybackStore(services.NewPlaybackPositions(se.App))
 		deps.Devices.SetSpeakerStore(services.NewSpeakerAddresses(se.App))
+		// The protocols this server speaks. A kind absent from here is a kind
+		// nothing discovers and nothing plays to, whatever its provider row says.
+		deps.Devices.SetPlayers(players.Registry{
+			sonos.Kind: sonos.NewPlayer(),
+		})
 		deps.Devices.StartDiscovery()
 		return se.Next()
 	})
