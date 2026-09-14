@@ -359,8 +359,14 @@ func transcodeFile(ctx context.Context, audio *cache.Cache, sourceURL, input, fo
 	return path, func() {}, err
 }
 
+// transcodeRecipe changes whenever what ffmpeg is asked for changes. A file
+// cached under the old recipe is not the file the new one would produce, and
+// without this it would be served for as long as it survived eviction: the
+// covers this version carries would be missing from every track already played.
+const transcodeRecipe = 2
+
 func transcodeKey(sourceURL, format string) string {
-	return fmt.Sprintf("%s#transcode:%s", sourceURL, format)
+	return fmt.Sprintf("%s#transcode%d:%s", sourceURL, transcodeRecipe, format)
 }
 
 // mimeTypes name what each container is served and announced as. Only

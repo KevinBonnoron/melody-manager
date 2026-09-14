@@ -18,13 +18,36 @@ import (
 type Format struct {
 	MimeType string
 	Args     []string
+	// Whether the container has somewhere to put a cover. A player that fetches
+	// a stream over HTTP often takes the artwork out of the file rather than out
+	// of whatever metadata came with the request, so dropping it leaves a
+	// speaker showing its own placeholder next to a track that has a cover.
+	CarriesPicture bool
 }
 
 var formats = map[string]Format{
-	"mp3":  {MimeType: "audio/mpeg", Args: []string{"-f", "mp3", "-ab", "320k", "-ar", "44100", "-ac", "2"}},
+	"mp3":  {MimeType: "audio/mpeg", Args: []string{"-f", "mp3", "-ab", "320k", "-ar", "44100", "-ac", "2"}, CarriesPicture: true},
 	"wav":  {MimeType: "audio/wav", Args: []string{"-f", "wav", "-ar", "44100", "-ac", "2"}},
-	"flac": {MimeType: "audio/flac", Args: []string{"-f", "flac", "-compression_level", "5"}},
+	"flac": {MimeType: "audio/flac", Args: []string{"-f", "flac", "-compression_level", "5"}, CarriesPicture: true},
 	"aac":  {MimeType: "audio/aac", Args: []string{"-f", "adts", "-c:a", "aac", "-b:a", "256k"}},
+}
+
+// pictureArgs carries the cover through, or drops it where the container has
+// nowhere to put one. The map is optional, so a file with no cover transcodes
+// the same either way; without the copy, ffmpeg would re-encode the artwork as
+// a video stream and refuse the container.
+func pictureArgs(format string, f Format) []string {
+	if !f.CarriesPicture {
+		return []string{"-vn"}
+	}
+
+	args := []string{"-map", "0:a", "-map", "0:v?", "-c:v", "copy"}
+	if format == "mp3" {
+		// The frame a cover lives in. Version 3 is what players agree on; the
+		// default writes one many of them ignore.
+		args = append(args, "-id3v2_version", "3")
+	}
+	return args
 }
 
 // extensions name the container each format is written into, for callers that
@@ -47,7 +70,7 @@ func SaveTranscode(ctx context.Context, input, format, outPath string) error {
 		f = formats["mp3"]
 	}
 
-	args := []string{"-y", "-i", input, "-vn"}
+	args := append([]string{"-y", "-i", input}, pictureArgs(format, f)...)
 	args = append(args, f.Args...)
 	args = append(args, outPath)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
