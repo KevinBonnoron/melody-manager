@@ -45,9 +45,12 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
         <DropdownMenuLabel>{t('DeviceSelector.playbackDevices')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
+        {/* Named, never verbed. Every other row is a device the click moves the
+            music to, and this one is no different; calling it "play here" only
+            when something plays elsewhere renamed the row under the listener. */}
         <DropdownMenuItem onClick={() => (onPlayHere ? onPlayHere() : onDeviceChange(null))} className={!remote && activeDevice?.type !== 'sonos' ? 'bg-accent' : ''}>
-          <Monitor className="h-4 w-4 mr-2" />
-          {onPlayHere ? t('RemotePlayback.playHere') : t('DeviceSelector.thisBrowser')}
+          <Monitor className="h-4 w-4 mr-2 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">{t('DeviceSelector.thisBrowser')}</span>
         </DropdownMenuItem>
 
         {others.length > 0 && (

@@ -21,7 +21,7 @@ interface Props {
 
 export function NowPlaying({ open, onClose }: Props) {
   const { t } = useTranslation();
-  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, switchDevice, playTrack } = useMusicPlayer();
+  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, switchDevice, playHere } = useMusicPlayer();
   const { track, isPlaying, isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
   const remote = useRemotePlayback();
@@ -136,14 +136,7 @@ export function NowPlaying({ open, onClose }: Props) {
               onDeviceChange={switchDevice}
               remote={isRemote ? remote?.device : undefined}
               onSelectClient={transferPlayback}
-              onPlayHere={
-                isRemote && remote?.track
-                  ? () => {
-                      remote.stop();
-                      playTrack(remote.track as NonNullable<typeof remote.track>, remote.currentTime);
-                    }
-                  : undefined
-              }
+              onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as NonNullable<typeof remote.track>, remote.currentTime, remote.device) : undefined}
             />
             <button type="button" onClick={() => setQueueOpen(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-muted-foreground hover:bg-muted/50 hover:text-foreground">
               <ListMusic className="h-4 w-4" />

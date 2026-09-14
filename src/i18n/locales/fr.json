@@ -772,8 +772,7 @@
   },
   "RemotePlayback": {
     "playingOn": "Lecture sur {{device}}",
-    "unknownTrack": "Lecture en cours",
-    "playHere": "Lire ici"
+    "unknownTrack": "Lecture en cours"
   },
   "NowPlaying": {
     "title": "Lecture en cours",

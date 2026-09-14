@@ -772,8 +772,7 @@
   },
   "RemotePlayback": {
     "playingOn": "Playing on {{device}}",
-    "unknownTrack": "Now playing",
-    "playHere": "Play here"
+    "unknownTrack": "Now playing"
   },
   "NowPlaying": {
     "title": "Now playing",
