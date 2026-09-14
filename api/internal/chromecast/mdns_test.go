@@ -122,3 +122,56 @@ func TestMulticastGroupIsTheMDNSOne(t *testing.T) {
 		t.Errorf("mdnsGroup = %v, want 224.0.0.251:5353", mdnsGroup)
 	}
 }
+
+// DNS names are case insensitive and a device answers in whatever case it
+// likes. Compared as they arrive, a PTR naming _GoogleCast and an SRV naming
+// _googlecast are two different services, and the device assembles into nothing.
+func TestCaseDoesNotSplitADeviceInTwo(t *testing.T) {
+	name := func(s string) dnsmessage.Name {
+		n, err := dnsmessage.NewName(s)
+		if err != nil {
+			t.Fatalf("NewName(%q): %v", s, err)
+		}
+		return n
+	}
+
+	named := "Chromecast-ABC." + service
+	msg := dnsmessage.Message{
+		Header: dnsmessage.Header{Response: true, Authoritative: true},
+		Answers: []dnsmessage.Resource{{
+			Header: dnsmessage.ResourceHeader{Name: name("_GoogleCast._TCP.local."), Type: dnsmessage.TypePTR, Class: dnsmessage.ClassINET},
+			Body:   &dnsmessage.PTRResource{PTR: name(named)},
+		}},
+		Additionals: []dnsmessage.Resource{
+			{
+				Header: dnsmessage.ResourceHeader{Name: name("Chromecast-ABC._googlecast._tcp.local."), Type: dnsmessage.TypeSRV, Class: dnsmessage.ClassINET},
+				Body:   &dnsmessage.SRVResource{Port: 8009, Target: name("ABC.Local.")},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{Name: name("chromecast-abc._googlecast._tcp.local."), Type: dnsmessage.TypeTXT, Class: dnsmessage.ClassINET},
+				Body:   &dnsmessage.TXTResource{TXT: []string{"ID=abc", "FN=Salon"}},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{Name: name("abc.local."), Type: dnsmessage.TypeA, Class: dnsmessage.ClassINET},
+				Body:   &dnsmessage.AResource{A: [4]byte{192, 168, 10, 42}},
+			},
+		},
+	}
+
+	packed, err := msg.Pack()
+	if err != nil {
+		t.Fatalf("Pack: %v", err)
+	}
+
+	instances := map[string]*instance{}
+	hosts := map[string]string{}
+	read(packed, instances, hosts)
+
+	found := assemble(instances, hosts)
+	if len(found) != 1 {
+		t.Fatalf("found %d devices, want 1: %+v", len(found), found)
+	}
+	if found[0].Address != "192.168.10.42" || found[0].Name != "Salon" || found[0].ID != "abc" {
+		t.Errorf("unexpected device: %+v", found[0])
+	}
+}

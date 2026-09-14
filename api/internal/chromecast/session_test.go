@@ -254,3 +254,74 @@ func waitFor(t *testing.T, done func() bool) {
 	}
 	t.Fatal("timed out waiting")
 }
+
+// A device answers a request it will not carry out with the same requestId as
+// one it will. Without reading the type, a pause or a seek the receiver refused
+// came back as success and nothing upstream ever learned otherwise.
+func TestARefusalIsAnError(t *testing.T) {
+	for _, payload := range []string{
+		`{"type":"INVALID_REQUEST","requestId":1,"reason":"INVALID_MEDIA_SESSION_ID"}`,
+		`{"type":"LOAD_FAILED","requestId":2}`,
+		`{"type":"INVALID_PLAYER_STATE","requestId":3}`,
+	} {
+		if err := castError([]byte(payload)); err == nil {
+			t.Errorf("%s was taken for success", payload)
+		}
+	}
+
+	for _, payload := range []string{
+		`{"type":"MEDIA_STATUS","requestId":4,"status":[]}`,
+		`{"type":"RECEIVER_STATUS","requestId":5}`,
+		`not json at all`,
+	} {
+		if err := castError([]byte(payload)); err != nil {
+			t.Errorf("%s was taken for a refusal: %v", payload, err)
+		}
+	}
+}
+
+// A socket can stay writable long after the device behind it stopped listening,
+// so a write that succeeds says nothing. The answer to the last ping does.
+func TestASilentPeerIsDropped(t *testing.T) {
+	startReceiver(t)
+	d := &Devices{conns: map[string]*conn{}}
+	t.Cleanup(func() { closeAll(d) })
+
+	c, err := d.session(context.Background(), fake)
+	if err != nil {
+		t.Fatalf("session: %v", err)
+	}
+
+	// One beat goes unanswered, as it would against a half-open socket.
+	c.mu.Lock()
+	c.awaitingPong = true
+	c.mu.Unlock()
+
+	c.beatOnce()
+	if alive(c) {
+		t.Error("a session whose last heartbeat went unanswered is still held")
+	}
+}
+
+// A session handed back by the pool has to be one commands can be sent on.
+func TestADeadWinnerIsNotHandedBack(t *testing.T) {
+	startReceiver(t)
+	d := &Devices{conns: map[string]*conn{}}
+	t.Cleanup(func() { closeAll(d) })
+
+	ctx := context.Background()
+	dead, err := dial(ctx, fake)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	dead.Close()
+	d.conns[fake] = dead
+
+	got, err := d.session(ctx, fake)
+	if err != nil {
+		t.Fatalf("session: %v", err)
+	}
+	if got == dead || !alive(got) {
+		t.Error("the pool handed back a closed session")
+	}
+}
