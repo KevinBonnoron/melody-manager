@@ -133,7 +133,18 @@ export function NowPlaying({ open, onClose }: Props) {
           <div className="flex items-center justify-center gap-2 border-t border-border/60 pt-3">
             <DeviceSelector
               activeDevice={activeDevice}
-              onDeviceChange={switchDevice}
+              onDeviceChange={(device) => {
+                // Playing somewhere else is somebody else's playback to move,
+                // not this tab's to re-point: switchDevice would leave the
+                // music where it was and only change what this tab would play
+                // next.
+                if (device && isRemote && remote?.track) {
+                  transferPlayback(device);
+                  return;
+                }
+
+                switchDevice(device);
+              }}
               remote={isRemote ? remote?.device : undefined}
               onSelectClient={transferPlayback}
               onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as NonNullable<typeof remote.track>, remote.currentTime, remote.device) : undefined}

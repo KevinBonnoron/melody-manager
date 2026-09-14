@@ -131,7 +131,24 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
             {/* RIGHT, device, format, queue, volume. Everything but the device
                 gives way as the window narrows, widest use first. */}
             <div className="flex min-w-0 flex-1 items-center gap-1.5 justify-end">
-              <DeviceSelector activeDevice={activeDevice} onDeviceChange={switchDevice} remote={isRemote ? remote?.device : undefined} onSelectClient={transferPlayback} onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined} />
+              <DeviceSelector
+                activeDevice={activeDevice}
+                onDeviceChange={(device) => {
+                  // Playing somewhere else is somebody else's playback to move,
+                  // not this tab's to re-point: switchDevice would leave the
+                  // music where it was and only change what this tab would play
+                  // next.
+                  if (device && isRemote && remote?.track) {
+                    transferPlayback(device);
+                    return;
+                  }
+
+                  switchDevice(device);
+                }}
+                remote={isRemote ? remote?.device : undefined}
+                onSelectClient={transferPlayback}
+                onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined}
+              />
               <div className="hidden xl:block">
                 <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
               </div>
