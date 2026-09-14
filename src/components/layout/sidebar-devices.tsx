@@ -11,7 +11,7 @@ import { useUndecidedSpeakers } from '@/hooks/use-speakers';
 import { cn } from '@/lib/utils';
 import type { Provider } from '@/shared';
 import { SpeakerAddressesDialog } from '../devices/speaker-addresses-dialog';
-import { getProviderInfoFromManifests } from '../providers/provider-info';
+import { getProviderInfoFromManifests, type ProviderIcon } from '../providers/provider-info';
 
 // Where sound comes out, in a section of its own. Devices and platforms share a
 // table and a settings screen, and nothing else: listed together they would only
@@ -58,7 +58,7 @@ export function SidebarDevices() {
         </SidebarMenuItem>
 
         {on.map((provider) => (
-          <DeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} found={speakers.filter((s) => s.type === provider.type).length} active={pathname === `/devices/${provider.type}`} />
+          <DeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} icon={providerInfo[provider.type]?.icon ?? Speaker} found={speakers.filter((s) => s.type === provider.type).length} active={pathname === `/devices/${provider.type}`} />
         ))}
 
         {/* Divider and dimmed below it, the shape Platforms uses for a source
@@ -68,19 +68,19 @@ export function SidebarDevices() {
             regular user cannot read provider_config, let alone write it, so the
             row would open a form that refuses every change they make. */}
         {isAdmin && off.length > 0 && <div className="mx-2 my-1 h-px bg-border" />}
-        {isAdmin && off.map((provider) => <OffDeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} />)}
+        {isAdmin && off.map((provider) => <OffDeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} icon={providerInfo[provider.type]?.icon ?? Speaker} />)}
       </SidebarMenu>
     </SidebarGroup>
   );
 }
 
-function DeviceItem({ provider, title, found, active, muted = false }: { provider: Provider; title: string; found: number; active: boolean; muted?: boolean }) {
+function DeviceItem({ provider, title, icon: Icon, found, active, muted = false }: { provider: Provider; title: string; icon: ProviderIcon; found: number; active: boolean; muted?: boolean }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={title} isActive={active} className={cn(muted && 'text-muted-foreground')}>
         <Link to="/devices/$type" params={{ type: provider.type }}>
           <div className={cn('flex items-center justify-center w-[18px] h-[18px] shrink-0 rounded-[6px] border border-current', muted && 'opacity-40')}>
-            <Speaker className="h-2.5 w-2.5" />
+            <Icon className="h-2.5 w-2.5" />
           </div>
           <span className={cn('flex-1', muted && 'opacity-60')}>{title}</span>
           {!muted && <span className="text-[10px] tabular-nums text-muted-foreground font-mono">{found}</span>}
@@ -93,7 +93,7 @@ function DeviceItem({ provider, title, found, active, muted = false }: { provide
 // A kind that is switched off has nothing to list, so its row opens what puts it
 // back in service rather than a page that would only say it is off. The same
 // move a source that is not connected makes.
-function OffDeviceItem({ provider, title }: { provider: Provider; title: string }) {
+function OffDeviceItem({ provider, title, icon: Icon }: { provider: Provider; title: string; icon: ProviderIcon }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -101,7 +101,7 @@ function OffDeviceItem({ provider, title }: { provider: Provider; title: string 
     <SidebarMenuItem>
       <SidebarMenuButton tooltip={t('DevicesPage.settings', { title })} className="text-muted-foreground" onClick={() => setOpen(true)}>
         <div className="flex items-center justify-center w-[18px] h-[18px] shrink-0 rounded-[6px] border border-current opacity-40">
-          <Speaker className="h-2.5 w-2.5" />
+          <Icon className="h-2.5 w-2.5" />
         </div>
         <span className="flex-1 opacity-60">{title}</span>
         <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-foreground opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100" />

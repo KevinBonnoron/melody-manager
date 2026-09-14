@@ -7,7 +7,7 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { useTransferPlayback } from '@/hooks/use-transfer-playback';
-import type { Track } from '@/shared';
+import { isNetworkDevice, type Track } from '@/shared';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MuteButton } from './music-player/mute-button';
@@ -101,7 +101,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   // whenever something else is doing the playing. A speaker or another browser
   // reports where it is instead, and that is what the bar has to follow.
   const onAnotherClient = isRemote && remote ? { trackId: remote.track?.id, currentTime: remote.currentTime, duration: remote.duration, playing: remote.isPlaying, onSeek: remote.seek } : null;
-  const onSpeaker = activeDevice?.type === 'sonos' && track ? { trackId: track.id, currentTime, duration: track.duration, playing: isPlaying, loading: isLoading, onSeek: seek } : null;
+  const onSpeaker = activeDevice && isNetworkDevice(activeDevice) && track ? { trackId: track.id, currentTime, duration: track.duration, playing: isPlaying, loading: isLoading, onSeek: seek } : null;
   const reported = onAnotherClient ?? onSpeaker;
 
   // On mobile, the mini-player is integrated into the BottomNav dock, hide this component

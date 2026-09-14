@@ -12,7 +12,7 @@ import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getDevices, subscribeDevices } from '@/lib/device-presence';
 import { getStreamToken } from '@/lib/stream-token';
-import type { Device, PlayerState, SonosDevice, Track, TrackPlay } from '@/shared';
+import { type Device, isNetworkDevice, type NetworkDevice, type PlayerState, type Track, type TrackPlay } from '@/shared';
 import { deviceClient } from '../clients/device.client';
 import { nativeAudioService } from '../services';
 
@@ -107,7 +107,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const devices = useSyncExternalStore(subscribeDevices, getDevices);
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
-  const speaker = activeDevice?.type === 'sonos' ? (devices.find((d): d is SonosDevice => d.id === activeDevice.id && d.type === 'sonos') ?? null) : null;
+  const speaker = activeDevice && isNetworkDevice(activeDevice) ? (devices.find((d): d is NetworkDevice => d.id === activeDevice.id && isNetworkDevice(d)) ?? null) : null;
   const speakerPosition = useReportedPosition(speaker);
   const [audioFormat, setAudioFormat] = useState<AudioFormat>('source');
   const [isLoading, setIsLoading] = useState(false);
@@ -226,7 +226,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         currentTime: startAt,
       }));
 
-      if (activeDevice && activeDevice.type === 'sonos') {
+      if (activeDevice && isNetworkDevice(activeDevice)) {
         setIsLoading(true);
         // The position travels with the play request: asking separately meant a
         // seek the speaker refused reported the whole playback as failed, where
@@ -463,7 +463,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   }, []);
 
   const pause = useCallback(async () => {
-    if (activeDevice?.type === 'sonos') {
+    if (activeDevice && isNetworkDevice(activeDevice)) {
       // Recorded before the command goes out, not after it comes back. The
       // command waits its turn behind the others, and a listener who pauses and
       // switches device in that gap would otherwise be resumed here on the
@@ -488,7 +488,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   }, [activeDevice, speakerOp]);
 
   const play = useCallback(async () => {
-    if (activeDevice?.type === 'sonos') {
+    if (activeDevice && isNetworkDevice(activeDevice)) {
       const playing = () => setPlayerState((prev) => ({ ...prev, isPlaying: true }));
       const gaveUp = (error: unknown) => {
         console.error('Sonos play failed:', error);
@@ -587,7 +587,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const seekedAtRef = useRef(0);
   const seek = useCallback(
     async (time: number) => {
-      if (activeDevice?.type === 'sonos') {
+      if (activeDevice && isNetworkDevice(activeDevice)) {
         // A poll in flight when the seek lands answers the position before it,
         // which drags the bar back to where the listener just left. Said before
         // the command rather than after it, for the same reason as pause: the
@@ -628,7 +628,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     async (volume: number) => {
       // A speaker's level belongs to the speaker: told, not recorded here, and
       // read back from what it reports.
-      if (activeDevice?.type === 'sonos') {
+      if (activeDevice && isNetworkDevice(activeDevice)) {
         try {
           await deviceClient.setVolume(activeDevice.id, Math.round(volume * 100));
         } catch (error) {
@@ -761,9 +761,9 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       // Where playback actually is. positionRef mirrors the local player's clock,
       // which stands still for as long as a speaker is the one playing, so when a
       // speaker was playing its own reported position is the only one that moved.
-      const playbackPosition = previous?.type === 'sonos' ? speakerReachedRef.current : positionRef.current;
+      const playbackPosition = previous && isNetworkDevice(previous) ? speakerReachedRef.current : positionRef.current;
 
-      if (!device && previous?.type === 'sonos' && wasPlaying && track) {
+      if (!device && previous && isNetworkDevice(previous) && wasPlaying && track) {
         const resumeAt = playbackPosition;
         // A speaker that refuses to stop is still left behind: losing the track
         // as well as the room would be the worse of the two.
@@ -781,11 +781,11 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       // Choosing a speaker moves the playback there rather than ending it: the
       // track carries on from where it was, which is what picking a device means.
-      if (device?.type === 'sonos' && wasPlaying && track) {
+      if (device && isNetworkDevice(device) && wasPlaying && track) {
         // The server tells the chosen speaker to play; nothing tells the one
         // being left to stop, and two speakers playing the same track in two
         // rooms is not what picking a device means.
-        if (previous?.type === 'sonos' && previous.id !== device.id) {
+        if (previous && isNetworkDevice(previous) && previous.id !== device.id) {
           await speakerOp(() => deviceClient.stop(previous.id), {
             failed: (error) => console.error('Sonos stop failed:', error),
           });
@@ -918,7 +918,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     // Playing, not merely known: a speaker that was paused from its own app
     // still answers with its last track, and adopting it there left this tab
     // sending every later play to a room nobody was listening in.
-    const speaker = devices.find((d) => d.type === 'sonos' && d.playing);
+    const speaker = devices.find((d) => isNetworkDevice(d) && d.playing);
     if (!speaker) {
       return;
     }

@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useSpeakers } from '@/hooks/use-speakers';
-import type { SonosDevice } from '@/shared';
+import type { NetworkDevice } from '@/shared';
 
 // The nudge to look at a speaker that turned up on the network. Discovery runs
 // whatever the operator has decided, so the alternative was either playing to
 // whatever answers, or never mentioning it: this is the third option, and it is
 // the only one an admin gets a say in.
-export function DiscoveredSpeakersBanner({ type, title, found, onConfigure }: { type: string; title: string; found: SonosDevice[]; onConfigure: () => void }) {
+export function DiscoveredSpeakersBanner({ type, title, found, onConfigure }: { type: string; title: string; found: NetworkDevice[]; onConfigure: () => void }) {
   const { t } = useTranslation();
   const { apply } = useSpeakers(type);
 
