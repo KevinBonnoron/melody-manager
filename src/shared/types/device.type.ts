@@ -7,6 +7,10 @@ interface BaseDevice {
   type: DeviceType;
   status: DeviceStatus;
   metadata: Record<string, unknown>;
+  // Whether anybody may play to it. A speaker is discovered whatever the
+  // operator has decided, so a new one can be put in front of an admin; this is
+  // what says the decision was yes. A client of one's own is always usable.
+  usable: boolean;
 }
 
 // A client of the user's own, as opposed to a speaker discovered on the network.

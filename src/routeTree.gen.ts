@@ -22,8 +22,10 @@ import { Route as SharesIndexRouteImport } from './routes/shares/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as HistoryIndexRouteImport } from './routes/history/index'
+import { Route as DevicesIndexRouteImport } from './routes/devices/index'
 import { Route as SourcesTypeRouteImport } from './routes/sources/$type'
 import { Route as PlaylistsPlaylistIdRouteImport } from './routes/playlists/$playlistId'
+import { Route as DevicesTypeRouteImport } from './routes/devices/$type'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists/$artistId'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums/$albumId'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -94,6 +96,11 @@ const HistoryIndexRoute = HistoryIndexRouteImport.update({
   path: '/history/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevicesIndexRoute = DevicesIndexRouteImport.update({
+  id: '/devices/',
+  path: '/devices/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SourcesTypeRoute = SourcesTypeRouteImport.update({
   id: '/sources/$type',
   path: '/sources/$type',
@@ -102,6 +109,11 @@ const SourcesTypeRoute = SourcesTypeRouteImport.update({
 const PlaylistsPlaylistIdRoute = PlaylistsPlaylistIdRouteImport.update({
   id: '/playlists/$playlistId',
   path: '/playlists/$playlistId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevicesTypeRoute = DevicesTypeRouteImport.update({
+  id: '/devices/$type',
+  path: '/devices/$type',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
@@ -137,8 +149,10 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/devices/$type': typeof DevicesTypeRoute
   '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/sources/$type': typeof SourcesTypeRoute
+  '/devices/': typeof DevicesIndexRoute
   '/history/': typeof HistoryIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/search/': typeof SearchIndexRoute
@@ -158,8 +172,10 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/devices/$type': typeof DevicesTypeRoute
   '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/sources/$type': typeof SourcesTypeRoute
+  '/devices': typeof DevicesIndexRoute
   '/history': typeof HistoryIndexRoute
   '/library': typeof LibraryIndexRoute
   '/search': typeof SearchIndexRoute
@@ -180,8 +196,10 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/devices/$type': typeof DevicesTypeRoute
   '/playlists/$playlistId': typeof PlaylistsPlaylistIdRoute
   '/sources/$type': typeof SourcesTypeRoute
+  '/devices/': typeof DevicesIndexRoute
   '/history/': typeof HistoryIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/search/': typeof SearchIndexRoute
@@ -203,8 +221,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/devices/$type'
     | '/playlists/$playlistId'
     | '/sources/$type'
+    | '/devices/'
     | '/history/'
     | '/library/'
     | '/search/'
@@ -224,8 +244,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/devices/$type'
     | '/playlists/$playlistId'
     | '/sources/$type'
+    | '/devices'
     | '/history'
     | '/library'
     | '/search'
@@ -245,8 +267,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/albums/$albumId'
     | '/artists/$artistId'
+    | '/devices/$type'
     | '/playlists/$playlistId'
     | '/sources/$type'
+    | '/devices/'
     | '/history/'
     | '/library/'
     | '/search/'
@@ -267,8 +291,10 @@ export interface RootRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
+  DevicesTypeRoute: typeof DevicesTypeRoute
   PlaylistsPlaylistIdRoute: typeof PlaylistsPlaylistIdRoute
   SourcesTypeRoute: typeof SourcesTypeRoute
+  DevicesIndexRoute: typeof DevicesIndexRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
@@ -370,6 +396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/devices/': {
+      id: '/devices/'
+      path: '/devices'
+      fullPath: '/devices/'
+      preLoaderRoute: typeof DevicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sources/$type': {
       id: '/sources/$type'
       path: '/sources/$type'
@@ -382,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/playlists/$playlistId'
       fullPath: '/playlists/$playlistId'
       preLoaderRoute: typeof PlaylistsPlaylistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices/$type': {
+      id: '/devices/$type'
+      path: '/devices/$type'
+      fullPath: '/devices/$type'
+      preLoaderRoute: typeof DevicesTypeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artists/$artistId': {
@@ -427,8 +467,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
+  DevicesTypeRoute: DevicesTypeRoute,
   PlaylistsPlaylistIdRoute: PlaylistsPlaylistIdRoute,
   SourcesTypeRoute: SourcesTypeRoute,
+  DevicesIndexRoute: DevicesIndexRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   LibraryIndexRoute: LibraryIndexRoute,
   SearchIndexRoute: SearchIndexRoute,

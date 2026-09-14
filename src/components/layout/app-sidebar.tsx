@@ -9,6 +9,7 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { cn, getModifierKey } from '@/lib/utils';
 import { ChangeServerMenuItem } from './change-server-menu-item';
+import { SidebarDevices } from './sidebar-devices';
 import { SidebarPlatforms } from './sidebar-platforms';
 import { SignOutDropdownMenuItem } from './sign-out-dropdown-menu-item';
 
@@ -107,6 +108,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarPlatforms />
+        <SidebarDevices />
 
         {user?.role === 'admin' && (
           <SidebarGroup>

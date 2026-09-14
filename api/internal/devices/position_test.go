@@ -83,7 +83,7 @@ func TestRefreshSpeakerKeepsPlayback(t *testing.T) {
 		Playing: true, TrackID: "abc123", Position: 42,
 	}
 
-	got := refreshSpeaker(known, sonos.Player{IP: "192.168.0.9", Name: "Salle TV", UUID: "uuid:RINCON_1"}, 25)
+	got := refreshSpeaker(known, sonos.Player{IP: "192.168.0.9", Name: "Salle TV", UUID: "uuid:RINCON_1"}, 25, true)
 
 	if !got.Playing || got.TrackID != "abc123" || got.Position != 42 {
 		t.Errorf("playback lost: playing=%v track=%q position=%v", got.Playing, got.TrackID, got.Position)
@@ -97,7 +97,7 @@ func TestRefreshSpeakerKeepsPlayback(t *testing.T) {
 }
 
 func TestRefreshSpeakerAddsUnknown(t *testing.T) {
-	got := refreshSpeaker(Device{}, sonos.Player{IP: "192.168.0.9", Name: "Salon"}, 10)
+	got := refreshSpeaker(Device{}, sonos.Player{IP: "192.168.0.9", Name: "Salon"}, 10, true)
 
 	if got.ID != "192-168-0-9" || got.Type != "sonos" || got.Status != "available" {
 		t.Errorf("unexpected new speaker: %+v", got)

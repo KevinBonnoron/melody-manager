@@ -27,11 +27,6 @@ type Config struct {
 	// Absent means closed: the zero value is the safe one, so a hand-written or
 	// truncated file never opens registration by accident.
 	RegistrationAllowed bool `json:"registrationAllowed"`
-	// Speakers found once are remembered here and confirmed over HTTP from then
-	// on: a Sonos stops answering discovery without warning, and would otherwise
-	// disappear from a list it is perfectly able to play from. Addresses can be
-	// added by hand when discovery never gets an answer at all.
-	SonosAddresses []string `json:"sonosAddresses"`
 }
 
 // Store reads and writes the configuration file, and hands out copies so no
@@ -82,44 +77,6 @@ func Load(path string) (*Store, bool, error) {
 // the file the server will read next time rather than nowhere.
 func Fallback(path string) *Store {
 	return &Store{path: path, current: defaults()}
-}
-
-// KnownSpeakers lists the addresses discovery has found before.
-func (s *Store) KnownSpeakers() []string {
-	return s.Get().SonosAddresses
-}
-
-// RememberSpeakers adds addresses to the list, keeping what is already there:
-// a speaker that is merely switched off should not be forgotten because one
-// discovery pass happened without it.
-func (s *Store) RememberSpeakers(addresses []string) error {
-	s.mu.Lock()
-	known := map[string]bool{}
-	for _, addr := range s.current.SonosAddresses {
-		known[addr] = true
-	}
-
-	added := false
-	next := s.current
-	for _, addr := range addresses {
-		if !known[addr] {
-			known[addr] = true
-			next.SonosAddresses = append(next.SonosAddresses, addr)
-			added = true
-		}
-	}
-	if !added {
-		s.mu.Unlock()
-		return nil
-	}
-
-	if err := s.write(next); err != nil {
-		s.mu.Unlock()
-		return err
-	}
-	s.current = next
-	s.mu.Unlock()
-	return nil
 }
 
 // Reload re-reads the file. Migrations run after the store is first loaded and

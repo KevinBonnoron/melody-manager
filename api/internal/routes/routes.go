@@ -288,7 +288,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g.POST("/devices/{id}/next", deviceAction(deps, "next", sonos.Next))
 	g.POST("/devices/{id}/previous", deviceAction(deps, "previous", sonos.Previous))
 	g.POST("/devices/{id}/seek", func(e *core.RequestEvent) error {
-		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		dev, ok := usableDevice(deps, e)
 		if !ok {
 			return e.NotFoundError("device not found", nil)
 		}
@@ -315,7 +315,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
 	})
 	g.POST("/devices/{id}/volume", func(e *core.RequestEvent) error {
-		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		dev, ok := usableDevice(deps, e)
 		if !ok {
 			return e.NotFoundError("device not found", nil)
 		}
@@ -862,7 +862,7 @@ func userID(e *core.RequestEvent) string {
 }
 
 func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
-	dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+	dev, ok := usableDevice(deps, e)
 	if !ok {
 		return e.NotFoundError("device not found", nil)
 	}
@@ -975,9 +975,20 @@ func rounded(v float64) int {
 // through the stream it is already listening on.
 func clientDevice(d devices.Device) bool { return d.Type != "sonos" }
 
+// usableDevice looks up a device a request may act on. A speaker nobody agreed
+// to play to is discovered all the same, so that an admin can be shown it; that
+// is not the same as somewhere sound may be sent in the meantime.
+func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
+	dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+	if !ok || (!clientDevice(dev) && !dev.Usable) {
+		return devices.Device{}, false
+	}
+	return dev, true
+}
+
 func deviceAction(deps *app.Deps, action string, fn func(context.Context, string) error) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
-		dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
+		dev, ok := usableDevice(deps, e)
 		if !ok {
 			return e.NotFoundError("device not found", nil)
 		}

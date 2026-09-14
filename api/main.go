@@ -93,6 +93,7 @@ func main() {
 		// The database only exists from here on, and a speaker's resume point is
 		// written by the server rather than by an idle browser.
 		deps.Devices.SetPlaybackStore(services.NewPlaybackPositions(se.App))
+		deps.Devices.SetSpeakerStore(services.NewSpeakerAddresses(se.App))
 		deps.Devices.StartDiscovery()
 		return se.Next()
 	})
