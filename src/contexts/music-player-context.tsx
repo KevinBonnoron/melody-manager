@@ -48,6 +48,7 @@ interface MusicPlayerContextValue {
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
   switchDevice: (device: Device | null) => void;
+  playHere: (track: Track, at: number, from: Device) => void;
   setAudioFormat: (format: AudioFormat) => void;
 
   audioElement: HTMLAudioElement | null;
@@ -114,7 +115,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrack: null,
     isPlaying: false,
-    volume: 1.0,
+    localVolume: 1.0,
     currentTime: 0,
     queue: [],
     repeatMode: 'none',
@@ -135,6 +136,19 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   // device, asking for a track, or losing the device does it: from then on, the
   // answers to the commands already in flight concern a session nobody is in.
   const retireSpeakerWork = useCallback(() => ++playRequestRef.current, []);
+
+  // Picking the track up here, on the tick after the device change rather than
+  // during it: playTrack sends to whichever device it was built against, so it
+  // has to be built after the switch has landed. That tick is also long enough
+  // for the listener to ask for something else, and a resume that fires anyway
+  // would start the track they left behind.
+  const resumeHere = useCallback((generation: number, track: Track, at: number) => {
+    setTimeout(() => {
+      if (generation === playRequestRef.current) {
+        playTrackRef.current(track, at);
+      }
+    }, 0);
+  }, []);
 
   // Everything this tab asks of a speaker goes through here, because these
   // commands all need two things and no caller should have to remember either.
@@ -301,15 +315,15 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   // Sync volume to audio element
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = playerState.volume;
+      audioRef.current.volume = playerState.localVolume;
     }
-  }, [playerState.volume]);
+  }, [playerState.localVolume]);
 
   // Initialize audio element, intentionally runs once, initial volume read at mount only
   // biome-ignore lint/correctness/useExhaustiveDependencies: audio element must only be created once
   useEffect(() => {
     audioRef.current = new Audio();
-    audioRef.current.volume = playerState.volume;
+    audioRef.current.volume = playerState.localVolume;
 
     const audio = audioRef.current;
     setAudioElement(audio);
@@ -612,11 +626,11 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const setVolume = useCallback(
     async (volume: number) => {
+      // A speaker's level belongs to the speaker: told, not recorded here, and
+      // read back from what it reports.
       if (activeDevice?.type === 'sonos') {
         try {
-          const volumePercent = Math.round(volume * 100);
-          await deviceClient.setVolume(activeDevice.id, volumePercent);
-          setPlayerState((prev) => ({ ...prev, volume }));
+          await deviceClient.setVolume(activeDevice.id, Math.round(volume * 100));
         } catch (error) {
           console.error('Sonos setVolume failed:', error);
           toast.error(i18n.t('MusicPlayer.deviceError'));
@@ -630,9 +644,35 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       }
 
       audioRef.current.volume = volume;
-      setPlayerState((prev) => ({ ...prev, volume }));
+      setPlayerState((prev) => ({ ...prev, localVolume: volume }));
     },
     [activeDevice],
+  );
+
+  // Taking playback back from wherever it is, a speaker or another tab. The two
+  // halves have to happen in this order: this browser becomes the target first,
+  // and only then does the track start. playTrack sends to whichever device it
+  // was built against, so starting first sends the track straight back to the
+  // device it was being taken from, which is what a listener sees as the button
+  // doing nothing the first time and working the second.
+  const playHere = useCallback(
+    async (track: Track, at: number, from: Device) => {
+      deviceDecidedRef.current = true;
+      const generation = retireSpeakerWork();
+      setActiveDevice(null);
+
+      // A device that refuses to stop is still left behind: losing the track as
+      // well as the room would be the worse of the two.
+      const resume = () => resumeHere(generation, track, at);
+      await speakerOp(() => deviceClient.stop(from.id), {
+        done: resume,
+        failed: (error) => {
+          console.error('Stopping the device that was playing failed:', error);
+          resume();
+        },
+      });
+    },
+    [resumeHere, retireSpeakerWork, speakerOp],
   );
 
   const toggleRepeat = () => {
@@ -705,7 +745,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       // request it belonged to now returns at the guard without reaching the
       // line that would have taken it down, and every command still queued for
       // the speaker answers into the void from here on.
-      retireSpeakerWork();
+      const generation = retireSpeakerWork();
       setIsLoading(false);
       setActiveDevice(device);
 
@@ -725,16 +765,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       if (!device && previous?.type === 'sonos' && wasPlaying && track) {
         const resumeAt = playbackPosition;
-        // playTrack sends the track to whichever device it was built against;
-        // let the switch land first, or it goes straight back to the speaker.
         // A speaker that refuses to stop is still left behind: losing the track
         // as well as the room would be the worse of the two.
-        const resumeHere = () => setTimeout(() => playTrackRef.current(track, resumeAt), 0);
+        const resume = () => resumeHere(generation, track, resumeAt);
         await speakerOp(() => deviceClient.stop(previous.id), {
-          done: resumeHere,
+          done: resume,
           failed: (error) => {
             console.error('Sonos stop failed:', error);
-            resumeHere();
+            resume();
           },
         });
 
@@ -764,12 +802,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       } else if (wasPlaying) {
         setPlayerState((prev) => ({ ...prev, isPlaying: false }));
       }
-
-      if (device?.type === 'sonos') {
-        setPlayerState((prev) => ({ ...prev, volume: device.volume / 100 }));
-      }
     },
-    [playerState.isPlaying, activeDevice, retireSpeakerWork, speakerOp],
+    [playerState.isPlaying, activeDevice, resumeHere, retireSpeakerWork, speakerOp],
   );
 
   // Media Session API for background playback
@@ -940,7 +974,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       return;
     }
 
-    setPlayerState((prev) => (prev.isPlaying === speaker.playing && prev.volume === speaker.volume / 100 ? prev : { ...prev, isPlaying: speaker.playing, volume: speaker.volume / 100 }));
+    setPlayerState((prev) => (prev.isPlaying === speaker.playing ? prev : { ...prev, isPlaying: speaker.playing }));
   }, [speaker]);
 
   // A speaker that stops where the track ran out has finished it; stopping
@@ -972,11 +1006,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   // back from the speaker.
   const speakerCurrentTime = speaker && Date.now() - seekedAtRef.current >= SEEK_SETTLE_MS ? speakerPosition : playerState.currentTime;
 
+  // Whose level the controls are showing and setting. The speaker's while one is
+  // the active device, this browser's otherwise, and neither ever written over
+  // the other.
+  const volume = speaker ? speaker.volume / 100 : playerState.localVolume;
+
   const value: MusicPlayerContextValue = {
     currentTrack: playerState.currentTrack,
     isPlaying: playerState.isPlaying,
     isLoading,
-    volume: playerState.volume,
+    volume,
     currentTime: speakerCurrentTime,
     queue: playerState.queue,
     repeatMode: playerState.repeatMode,
@@ -998,6 +1037,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     removeFromQueue,
     clearQueue,
     switchDevice,
+    playHere,
     setAudioFormat,
     audioElement,
   };

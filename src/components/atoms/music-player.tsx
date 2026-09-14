@@ -21,7 +21,7 @@ const REMOTE_VOLUME_DEBOUNCE_MS = 150;
 
 export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, isPlaying, isLoading, seek, volume, setVolume, activeDevice, switchDevice, audioFormat, setAudioFormat, queue, playTrack } = useMusicPlayer();
+  const { currentTrack, currentTime, isPlaying, isLoading, seek, volume, setVolume, activeDevice, switchDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
@@ -131,20 +131,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
             {/* RIGHT, device, format, queue, volume. Everything but the device
                 gives way as the window narrows, widest use first. */}
             <div className="flex min-w-0 flex-1 items-center gap-1.5 justify-end">
-              <DeviceSelector
-                activeDevice={activeDevice}
-                onDeviceChange={switchDevice}
-                remote={isRemote ? remote?.device : undefined}
-                onSelectClient={transferPlayback}
-                onPlayHere={
-                  isRemote && remote?.track
-                    ? () => {
-                        remote.stop();
-                        playTrack(remote.track as Track, remote.currentTime);
-                      }
-                    : undefined
-                }
-              />
+              <DeviceSelector activeDevice={activeDevice} onDeviceChange={switchDevice} remote={isRemote ? remote?.device : undefined} onSelectClient={transferPlayback} onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined} />
               <div className="hidden xl:block">
                 <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
               </div>
