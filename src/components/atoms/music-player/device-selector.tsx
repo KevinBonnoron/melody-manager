@@ -1,9 +1,12 @@
 import { Cast, Laptop, Monitor, Smartphone, Speaker } from 'lucide-react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getProviderInfoFromManifests } from '@/components/providers/provider-info';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDevices } from '@/hooks/use-devices';
-import { type ClientDevice, type Device, type DeviceType, isNetworkDevice } from '@/shared';
+import { usePlugins } from '@/hooks/use-plugins';
+import { type ClientDevice, type Device, type DeviceType, isNetworkDevice, type NetworkDevice } from '@/shared';
 
 // Partial on purpose: the kinds of device on the network are whatever is
 // installed, so a kind this list has never heard of still has to draw. It gets
@@ -32,6 +35,16 @@ interface Props {
 export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHere, onSelectClient }: Props) {
   const { t } = useTranslation();
   const { others, usableSpeakers: speakers } = useDevices();
+  const { manifests } = usePlugins();
+  const providerInfo = useMemo(() => getProviderInfoFromManifests(t, manifests), [t, manifests]);
+  const byKind = useMemo(() => {
+    const groups = new Map<string, NetworkDevice[]>();
+    for (const device of speakers) {
+      groups.set(device.type, [...(groups.get(device.type) ?? []), device]);
+    }
+
+    return [...groups.entries()];
+  }, [speakers]);
   // A speaker is somewhere else just as much as another browser is, and the
   // button says where the sound comes out, not which kind of device it is.
   const elsewhere = remote ?? (activeDevice && isNetworkDevice(activeDevice) ? activeDevice : null);
@@ -71,18 +84,20 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
           </>
         )}
 
-        {speakers.length > 0 && (
-          <>
+        {/* Grouped by kind, and named after it: a single heading reading "Sonos
+            speakers" put every Chromecast under it. */}
+        {byKind.map(([kind, devices]) => (
+          <div key={kind}>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">{t('DeviceSelector.sonosSpeakers')}</DropdownMenuLabel>
-            {speakers.map((device) => (
+            <DropdownMenuLabel className="text-xs text-muted-foreground">{providerInfo[kind]?.title ?? kind}</DropdownMenuLabel>
+            {devices.map((device) => (
               <DropdownMenuItem key={device.id} onClick={() => onDeviceChange(device)} className={activeDevice?.id === device.id ? 'bg-accent' : ''}>
-                <Speaker className="h-4 w-4 mr-2" />
-                {device.name}
+                <DeviceIcon type={device.type} className="h-4 w-4 mr-2 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{device.name}</span>
               </DropdownMenuItem>
             ))}
-          </>
-        )}
+          </div>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

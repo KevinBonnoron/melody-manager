@@ -57,6 +57,11 @@ interface MusicPlayerContextValue {
 // How long the speaker's reported position is distrusted after a seek.
 const SEEK_SETTLE_MS = 2000;
 
+// How long a drag is allowed to settle before the device is told, and how long
+// the level asked for is believed over the one reported.
+const VOLUME_SETTLE_MS = 150;
+const VOLUME_REPORT_GRACE_MS = 3000;
+
 // How close to the end counts as having reached it, given the speaker is asked
 // where it is once a second over those last seconds.
 const SPEAKER_END_TOLERANCE = 3;
@@ -585,6 +590,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   }, [playerState.queue, playerState.currentTrack, playerState.repeatMode, playerState.shuffle, playTrack]);
 
   const seekedAtRef = useRef(0);
+  const volumeCommandRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingVolume, setPendingVolume] = useState<number | null>(null);
   const seek = useCallback(
     async (time: number) => {
       if (activeDevice && isNetworkDevice(activeDevice)) {
@@ -625,16 +632,31 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   );
 
   const setVolume = useCallback(
-    async (volume: number) => {
-      // A speaker's level belongs to the speaker: told, not recorded here, and
+    (volume: number) => {
+      // A device's level belongs to the device: told, not recorded here, and
       // read back from what it reports.
+      //
+      // Told once, though. A slider emits a change per pixel and each one is a
+      // round trip over the network, so a drag across the bar used to queue
+      // dozens of them and the level crawled after the hand. Only where the drag
+      // settles is sent, and until the device answers the slider follows the
+      // hand rather than the round trip.
       if (activeDevice && isNetworkDevice(activeDevice)) {
-        try {
-          await deviceClient.setVolume(activeDevice.id, Math.round(volume * 100));
-        } catch (error) {
-          console.error('Setting the device volume failed:', error);
-          toast.error(i18n.t('MusicPlayer.deviceError'));
+        const target = activeDevice.id;
+        setPendingVolume(volume);
+        if (volumeCommandRef.current) {
+          clearTimeout(volumeCommandRef.current);
         }
+
+        volumeCommandRef.current = setTimeout(async () => {
+          try {
+            await deviceClient.setVolume(target, Math.round(volume * 100));
+          } catch (error) {
+            console.error('Setting the device volume failed:', error);
+            toast.error(i18n.t('MusicPlayer.deviceError'));
+            setPendingVolume(null);
+          }
+        }, VOLUME_SETTLE_MS);
 
         return;
       }
@@ -648,6 +670,34 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     },
     [activeDevice],
   );
+
+  // The level asked for stands until the device reports it back, which is a poll
+  // away, or until it has had long enough that something went wrong and what the
+  // device says is the better answer.
+  const reportedVolume = speaker?.volume;
+  useEffect(() => {
+    if (pendingVolume === null || reportedVolume === undefined) {
+      return;
+    }
+
+    if (Math.abs(reportedVolume / 100 - pendingVolume) < 0.01) {
+      setPendingVolume(null);
+      return;
+    }
+
+    const timer = setTimeout(() => setPendingVolume(null), VOLUME_REPORT_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [reportedVolume, pendingVolume]);
+
+  // A pending level belongs to the device it was meant for.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the device is what invalidates it, not the object
+  useEffect(() => {
+    setPendingVolume(null);
+    if (volumeCommandRef.current) {
+      clearTimeout(volumeCommandRef.current);
+      volumeCommandRef.current = null;
+    }
+  }, [activeDevice?.id]);
 
   // Taking playback back from wherever it is, a speaker or another tab. The two
   // halves have to happen in this order: this browser becomes the target first,
@@ -1009,7 +1059,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   // Whose level the controls are showing and setting. The speaker's while one is
   // the active device, this browser's otherwise, and neither ever written over
   // the other.
-  const volume = speaker ? speaker.volume / 100 : playerState.localVolume;
+  const volume = pendingVolume ?? (speaker ? speaker.volume / 100 : playerState.localVolume);
 
   const value: MusicPlayerContextValue = {
     currentTrack: playerState.currentTrack,
