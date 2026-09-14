@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
+	"github.com/KevinBonnoron/melody-manager/api/internal/players"
 )
 
 // Drift is what a playing device accumulates on its own; a seek is what lands
@@ -83,7 +83,7 @@ func TestRefreshSpeakerKeepsPlayback(t *testing.T) {
 		Playing: true, TrackID: "abc123", Position: 42,
 	}
 
-	got := refreshSpeaker(known, sonos.Player{IP: "192.168.0.9", Name: "Salle TV", UUID: "uuid:RINCON_1"}, 25, true)
+	got := refreshSpeaker(known, players.Found{Address: "192.168.0.9", Name: "Salle TV", ID: "uuid:RINCON_1"}, "sonos", 25, true)
 
 	if !got.Playing || got.TrackID != "abc123" || got.Position != 42 {
 		t.Errorf("playback lost: playing=%v track=%q position=%v", got.Playing, got.TrackID, got.Position)
@@ -97,7 +97,7 @@ func TestRefreshSpeakerKeepsPlayback(t *testing.T) {
 }
 
 func TestRefreshSpeakerAddsUnknown(t *testing.T) {
-	got := refreshSpeaker(Device{}, sonos.Player{IP: "192.168.0.9", Name: "Salon"}, 10, true)
+	got := refreshSpeaker(Device{}, players.Found{Address: "192.168.0.9", Name: "Salon"}, "sonos", 10, true)
 
 	if got.ID != "192-168-0-9" || got.Type != "sonos" || got.Status != "available" {
 		t.Errorf("unexpected new speaker: %+v", got)

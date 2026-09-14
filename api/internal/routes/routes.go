@@ -24,6 +24,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 	"github.com/KevinBonnoron/melody-manager/api/internal/netaddr"
 	"github.com/KevinBonnoron/melody-manager/api/internal/pbx"
+	"github.com/KevinBonnoron/melody-manager/api/internal/players"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
@@ -283,10 +284,12 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 	g.POST("/devices/{id}/play/{trackId}", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
 	g.POST("/devices/{id}/play", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
-	g.POST("/devices/{id}/pause", deviceAction(deps, "pause", sonos.Pause))
-	g.POST("/devices/{id}/stop", deviceAction(deps, "stop", sonos.Stop))
-	g.POST("/devices/{id}/next", deviceAction(deps, "next", sonos.Next))
-	g.POST("/devices/{id}/previous", deviceAction(deps, "previous", sonos.Previous))
+	// Method expressions, so the route names the thing to do and the device says
+	// who does it. A client of the user's own is told over its own stream instead.
+	g.POST("/devices/{id}/pause", deviceAction(deps, "pause", players.Player.Pause))
+	g.POST("/devices/{id}/stop", deviceAction(deps, "stop", players.Player.Stop))
+	g.POST("/devices/{id}/next", deviceAction(deps, "next", players.Player.Next))
+	g.POST("/devices/{id}/previous", deviceAction(deps, "previous", players.Player.Previous))
 	g.POST("/devices/{id}/seek", func(e *core.RequestEvent) error {
 		dev, ok := usableDevice(deps, e)
 		if !ok {
@@ -308,7 +311,11 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			}
 			return e.JSON(http.StatusOK, map[string]any{"success": true})
 		}
-		if err := sonos.Seek(e.Request.Context(), dev.IPAddress, position); err != nil {
+		player, speaks := deps.Devices.PlayerFor(dev)
+		if !speaks {
+			return e.NotFoundError("device not found", nil)
+		}
+		if err := player.Seek(e.Request.Context(), dev.IPAddress, position); err != nil {
 			return speakerError(e, err)
 		}
 		deps.Devices.WatchSpeaker(dev.ID)
@@ -332,7 +339,11 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			}
 			return e.JSON(http.StatusOK, map[string]any{"success": true})
 		}
-		if err := sonos.SetVolume(e.Request.Context(), dev.IPAddress, volume); err != nil {
+		player, speaks := deps.Devices.PlayerFor(dev)
+		if !speaks {
+			return e.NotFoundError("device not found", nil)
+		}
+		if err := player.SetVolume(e.Request.Context(), dev.IPAddress, volume); err != nil {
 			return speakerError(e, err)
 		}
 		deps.Devices.WatchSpeaker(dev.ID)
@@ -888,8 +899,12 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		}
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
 	}
+	player, speaks := deps.Devices.PlayerFor(dev)
+	if !speaks {
+		return e.NotFoundError("device not found", nil)
+	}
 	if trackID == "" {
-		if err := sonos.Play(ctx, dev.IPAddress); err != nil {
+		if err := player.Play(ctx, dev.IPAddress); err != nil {
 			return speakerError(e, err)
 		}
 		deps.Devices.WatchSpeaker(dev.ID)
@@ -909,10 +924,10 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		album = al.GetString("name")
 		artURL = deps.Devices.CoverURL(al.Id, al.GetString("cover"))
 	}
-	// The speaker fetches the stream itself, so a loopback public URL points it
-	// at itself. Say so rather than hand it an address it cannot use.
+	// The device fetches the stream itself, so a loopback public URL points it at
+	// itself. Say so rather than hand it an address it cannot use.
 	if !deps.Devices.Reachable() {
-		return e.BadRequestError("the server public URL is not reachable from the speaker; set it in the admin settings", nil)
+		return e.BadRequestError("the server public URL is not reachable from the device; set it in the admin settings", nil)
 	}
 
 	tok, err := mintStreamToken(e.App, e.Auth.Id, trackID)
@@ -925,14 +940,14 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	// three seconds into a 24-bit 192 kHz one, having buffered what it could and
 	// found nothing to do with it. A probe that fails transcodes, which plays.
 	format, mime := "mp3", "audio/mpeg"
-	if native := services.MimeFor(services.LocalFormat(e.App, track)); native != "" && sonos.Accepts(ctx, dev.IPAddress, native) {
-		if audio, err := services.LocalAudio(ctx, e.App, track); err == nil && sonos.Decodes(audio.SampleRate, audio.BitDepth) {
+	if native := services.MimeFor(services.LocalFormat(e.App, track)); native != "" && player.Accepts(ctx, dev.IPAddress, native) {
+		if audio, err := services.LocalAudio(ctx, e.App, track); err == nil && player.Decodes(audio.SampleRate, audio.BitDepth) {
 			format, mime = "", native
 		}
 	}
 
 	streamURL := deps.Devices.StreamURL(trackID, tok, format)
-	if err := sonos.PlayURL(ctx, dev.IPAddress, sonos.Track{
+	if err := player.PlayURL(ctx, dev.IPAddress, players.Track{
 		URL:      streamURL,
 		MimeType: mime,
 		Title:    track.GetString("title"),
@@ -947,8 +962,8 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	// Handing playback over resumes where it was. Best effort: a speaker that
 	// refuses to seek still plays, and losing the offset beats losing the track.
 	if position > 0 {
-		if err := sonos.Seek(ctx, dev.IPAddress, position); err != nil {
-			slog.Warn("sonos seek after handover failed", "device", dev.ID, "position", position, "error", err)
+		if err := player.Seek(ctx, dev.IPAddress, position); err != nil {
+			slog.Warn("seek after handover failed", "device", dev.ID, "kind", dev.Type, "position", position, "error", err)
 		}
 	}
 
@@ -991,7 +1006,7 @@ func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
 	return dev, true
 }
 
-func deviceAction(deps *app.Deps, action string, fn func(context.Context, string) error) func(*core.RequestEvent) error {
+func deviceAction(deps *app.Deps, action string, fn func(players.Player, context.Context, string) error) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		dev, ok := usableDevice(deps, e)
 		if !ok {
@@ -1003,7 +1018,11 @@ func deviceAction(deps *app.Deps, action string, fn func(context.Context, string
 			}
 			return e.JSON(http.StatusOK, map[string]any{"success": true})
 		}
-		if err := fn(e.Request.Context(), dev.IPAddress); err != nil {
+		player, speaks := deps.Devices.PlayerFor(dev)
+		if !speaks {
+			return e.NotFoundError("device not found", nil)
+		}
+		if err := fn(player, e.Request.Context(), dev.IPAddress); err != nil {
 			return speakerError(e, err)
 		}
 		deps.Devices.WatchSpeaker(dev.ID)

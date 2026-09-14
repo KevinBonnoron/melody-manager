@@ -44,9 +44,10 @@ func ValidSpeakerAddress(address string) bool {
 	return ip != nil && ip.To4() != nil
 }
 
-// SpeakerAddresses reads and writes the speakers a server knows about, whether
-// discovery found them or somebody typed them in. Both end up in the same place,
-// so there is one list rather than two.
+// SpeakerAddresses reads what the operator decided about the speakers of one
+// kind of device or another. Whether discovery found a speaker or somebody typed
+// its address, both end up in the same place, so there is one list per kind
+// rather than two.
 type SpeakerAddresses struct {
 	app core.App
 }
@@ -58,9 +59,9 @@ func NewSpeakerAddresses(app core.App) *SpeakerAddresses {
 // KnownSpeakers lists the addresses worth trying directly when discovery, which
 // is multicast and does not cross a bridged network, comes back empty. Only the
 // enabled ones: a disabled speaker is one the operator has said to leave alone.
-func (s *SpeakerAddresses) KnownSpeakers() []string {
+func (s *SpeakerAddresses) KnownSpeakers(kind string) []string {
 	var out []string
-	for _, speaker := range s.list() {
+	for _, speaker := range s.list(kind) {
 		if speaker.Enabled {
 			out = append(out, speaker.Address)
 		}
@@ -73,12 +74,12 @@ func (s *SpeakerAddresses) KnownSpeakers() []string {
 // discovery runs whatever the operator wants, so that a speaker appearing on the
 // network can be offered to them, and finding one is not the same as agreeing to
 // play to it.
-func (s *SpeakerAddresses) SpeakerUsable(address string) bool {
-	if !s.enabled() {
+func (s *SpeakerAddresses) SpeakerUsable(kind, address string) bool {
+	if !s.enabled(kind) {
 		return false
 	}
 
-	for _, speaker := range s.list() {
+	for _, speaker := range s.list(kind) {
 		if speaker.Address == address {
 			return speaker.Enabled
 		}
@@ -87,16 +88,16 @@ func (s *SpeakerAddresses) SpeakerUsable(address string) bool {
 	return false
 }
 
-func (s *SpeakerAddresses) enabled() bool {
-	rec, err := s.app.FindFirstRecordByFilter("provider_settings", "type = {:t}", dbx.Params{"t": "sonos"})
+func (s *SpeakerAddresses) enabled(kind string) bool {
+	rec, err := s.app.FindFirstRecordByFilter("provider_settings", "type = {:t}", dbx.Params{"t": kind})
 	if err != nil {
 		return false
 	}
 	return rec.GetBool("enabled")
 }
 
-func (s *SpeakerAddresses) list() []Speaker {
-	rec, err := s.app.FindFirstRecordByFilter("provider_config", "type = {:t}", dbx.Params{"t": "sonos"})
+func (s *SpeakerAddresses) list(kind string) []Speaker {
+	rec, err := s.app.FindFirstRecordByFilter("provider_config", "type = {:t}", dbx.Params{"t": kind})
 	if err != nil {
 		return nil
 	}
