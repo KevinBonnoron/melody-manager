@@ -1,5 +1,5 @@
 import { Music2 } from 'lucide-react';
-import type { MouseEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
@@ -11,6 +11,9 @@ import { NextButton } from './next-button';
 import { PlayButton } from './play-button';
 import { PreviousButton } from './previous-button';
 import { queueBounds } from './queue-bounds';
+
+// What an arrow key moves the position by.
+const SEEK_STEP_SECONDS = 5;
 
 /**
  * What the picture-in-picture window shows. Deliberately not the bar: that one
@@ -39,14 +42,32 @@ export function PipPlayer() {
   const artists = artistNames(track?.artists, artistsById);
   const progress = control.duration > 0 ? Math.min(100, Math.max(0, (control.time / control.duration) * 100)) : 0;
 
+  const seekTo = (time: number) => {
+    if (control.duration > 0) {
+      control.seek(Math.min(control.duration, Math.max(0, time)));
+    }
+  };
+
   const seekFromClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (control.duration <= 0) {
+    // A click from the keyboard reports no coordinates, and taking them at face
+    // value sent the track back to zero on Enter. The keys seek below.
+    if (event.detail === 0 || control.duration <= 0) {
       return;
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
-    const ratio = (event.clientX - rect.left) / rect.width;
-    control.seek(Math.min(control.duration, Math.max(0, ratio * control.duration)));
+    seekTo(((event.clientX - rect.left) / rect.width) * control.duration);
+  };
+
+  const seekFromKey = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const steps: Record<string, number | undefined> = { ArrowLeft: -SEEK_STEP_SECONDS, ArrowRight: SEEK_STEP_SECONDS };
+    const step = steps[event.key];
+    if (step === undefined) {
+      return;
+    }
+
+    event.preventDefault();
+    seekTo(control.time + step);
   };
 
   return (
@@ -75,9 +96,9 @@ export function PipPlayer() {
 
         <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
           <span>{formatDuration(control.time)}</span>
-          {/* A button, so the position can be changed from the keyboard too and
-              so a click lands on something meant to be clicked. */}
-          <button type="button" onClick={seekFromClick} aria-label={t('MusicPlayer.seek')} title={t('MusicPlayer.seek')} className="h-1.5 flex-1 cursor-pointer overflow-hidden rounded-full bg-muted">
+          {/* A button, so a click lands on something meant to be clicked and
+              so the arrow keys reach it once it is focused. */}
+          <button type="button" onClick={seekFromClick} onKeyDown={seekFromKey} aria-label={t('MusicPlayer.seek')} title={t('MusicPlayer.seek')} className="h-1.5 flex-1 cursor-pointer overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
           </button>
           <span>{formatDuration(control.duration)}</span>
