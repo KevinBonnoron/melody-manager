@@ -1,16 +1,22 @@
-import { ListMusic, Maximize2 } from 'lucide-react';
+import { AppWindow, GripHorizontal, ListMusic, Maximize2, Move, PanelBottom, PictureInPicture2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useDocumentPip } from '@/hooks/use-document-pip';
 import { useNowPlaying } from '@/hooks/use-now-playing';
+import { useFloatingPosition, usePlayerDock } from '@/hooks/use-player-dock';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { useTransferPlayback } from '@/hooks/use-transfer-playback';
+import { cn } from '@/lib/utils';
 import { isNetworkDevice, type Track } from '@/shared';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MuteButton } from './music-player/mute-button';
+import { PipPlayer } from './music-player/pip-player';
 import { PlaybackControls } from './music-player/playback-controlts';
 import { ProgressBar } from './music-player/progress-bar';
 import { QueueSheet } from './music-player/queue-sheet';
@@ -25,6 +31,15 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
+  // Docked across the bottom, or a panel the listener put somewhere. The shell
+  // is measured to be kept inside the window, so the position needs its node.
+  const { isFloating, toggleMode } = usePlayerDock();
+  const shellRef = useRef<HTMLDivElement>(null);
+  const { position, handleProps } = useFloatingPosition(shellRef, isFloating);
+  // And out of the browser altogether, in a window of its own that stays above
+  // the other applications. Chromium only, so the control is there or not.
+  const pip = useDocumentPip();
+  const closePip = pip.close;
   // A remote change is only reflected once the device has reported it back, so
   // the slider follows the hand until then rather than the round trip.
   const [pendingVolume, setPendingVolume] = useState<number | null>(null);
@@ -93,7 +108,19 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   // A device reporting a track this client has not loaded yet still has to be
   // stoppable, so the bar follows what is playing, not what is known about it.
   const holder = isRemote ? remote?.device : null;
-  if (!track && !holder) {
+  const nothingToShow = !track && !holder;
+
+  // The bar is what carries the control that closes the window, so a bar with
+  // nothing to show would leave an empty window on top of everything with no
+  // way back. Unmounting covers the rest; this is the case where the component
+  // stays and renders nothing.
+  useEffect(() => {
+    if (nothingToShow) {
+      closePip();
+    }
+  }, [nothingToShow, closePip]);
+
+  if (nothingToShow) {
     return null;
   }
 
@@ -104,9 +131,35 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const onSpeaker = activeDevice && isNetworkDevice(activeDevice) && track ? { trackId: track.id, currentTime, duration: track.duration, playing: isPlaying, loading: isLoading, onSeek: seek } : null;
   const reported = onAnotherClient ?? onSpeaker;
 
+  // Until the first paint has measured the panel there is no point to place it
+  // at, and a fixed element with no insets would sit at its flow position; the
+  // position lands before that shows, from a layout effect.
+  const floatingStyle = isFloating && position ? { left: position.x, top: position.y } : undefined;
+
   // On mobile, the mini-player is integrated into the BottomNav dock, hide this component
   return (
-    <div className="hidden md:block fixed bottom-3 left-16 peer-data-[state=expanded]:left-[17rem] right-4 overflow-hidden rounded-xl border border-primary-border bg-card/[0.92] backdrop-blur-[24px] backdrop-saturate-[1.2] shadow-[0_20px_60px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.02)] transition-[left] duration-200 ease-linear z-40">
+    // A container, so what the bar shows is decided from its own width. The
+    // viewport says nothing about a 28rem panel in a 2000px window, and the
+    // volume slider used to be drawn into a box that could not hold it.
+    <div
+      ref={shellRef}
+      className={cn(
+        'hidden md:block @container fixed z-40 overflow-hidden rounded-xl border border-primary-border bg-card/[0.92] backdrop-blur-[24px] backdrop-saturate-[1.2] shadow-[0_20px_60px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.02)]',
+        isFloating ? 'w-[28rem] max-w-[calc(100vw-2rem)]' : 'bottom-3 left-16 right-4 transition-[left] duration-200 ease-linear peer-data-[state=expanded]:left-[17rem]',
+      )}
+      style={floatingStyle}
+    >
+      {isFloating && (
+        <button
+          type="button"
+          {...handleProps}
+          title={t('MusicPlayer.movePlayer')}
+          aria-label={t('MusicPlayer.movePlayer')}
+          className="flex h-5 w-full cursor-grab touch-none items-center justify-center border-b border-border/50 text-muted-foreground/60 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset active:cursor-grabbing"
+        >
+          <GripHorizontal className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="w-full px-3.5 py-2.5">
         <div className="flex flex-col gap-2">
           {/* Full-width progress bar on top */}
@@ -115,7 +168,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
           {/* Left and right share what the transport does not take, so the
               transport stays centred and never has to give ground: letting it
               shrink past its buttons is what put them on top of the title. */}
-          <div className="flex items-center gap-2 min-w-0 lg:gap-4">
+          <div className="flex items-center gap-2 min-w-0 @2xl:gap-4">
             {/* LEFT, track info. It takes its whole half, which is what keeps
                 the transport centred, and a title only gives way once it truly
                 runs out of room. */}
@@ -149,22 +202,52 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                 onSelectClient={transferPlayback}
                 onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined}
               />
-              <div className="hidden xl:block">
+              <div className="hidden @5xl:block">
                 <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
               </div>
 
               {track && (
-                <Button variant="ghost" size="icon" className="hidden h-8 w-8 lg:inline-flex" onClick={onExpand} title={t('NowPlaying.title')} aria-label={t('NowPlaying.title')}>
+                <Button variant="ghost" size="icon" className="hidden h-8 w-8 @xl:inline-flex" onClick={onExpand} title={t('NowPlaying.title')} aria-label={t('NowPlaying.title')}>
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               )}
+
+              {/* One question, one control. Floating in the page and living in
+                  a window of its own are two answers to "not across the
+                  bottom", and as two buttons they sat side by side with icons
+                  that read alike, in a row that already had six. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className={cn('h-8 w-8 shrink-0', (isFloating || pip.pipWindow) && 'bg-primary-soft text-primary hover:text-primary')} title={t('MusicPlayer.placePlayer')} aria-label={t('MusicPlayer.placePlayer')}>
+                    <AppWindow className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-[200] w-56">
+                  <DropdownMenuLabel>{t('MusicPlayer.placePlayer')}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => isFloating && toggleMode()} className={!isFloating && !pip.pipWindow ? 'bg-accent' : ''}>
+                    <PanelBottom className="mr-2 h-4 w-4 shrink-0" />
+                    {t('MusicPlayer.dockPlayer')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => !isFloating && toggleMode()} className={isFloating ? 'bg-accent' : ''}>
+                    <Move className="mr-2 h-4 w-4 shrink-0" />
+                    {t('MusicPlayer.floatPlayer')}
+                  </DropdownMenuItem>
+                  {pip.supported && (
+                    <DropdownMenuItem onClick={() => (pip.pipWindow ? pip.close() : pip.open())} className={pip.pipWindow ? 'bg-accent' : ''}>
+                      <PictureInPicture2 className="mr-2 h-4 w-4 shrink-0" />
+                      {pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button variant="ghost" size="icon" className="relative h-8 w-8 shrink-0" onClick={() => setQueueOpen(true)} title={t('NowPlaying.queue')} aria-label={t('NowPlaying.queue')}>
                 <ListMusic className="h-4 w-4" />
                 {queue.length > 0 && <span className="absolute -top-1 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-muted text-[9px] font-medium tabular-nums flex items-center justify-center text-muted-foreground">{queue.length > 99 ? '99+' : queue.length}</span>}
               </Button>
 
-              <div className="hidden items-center gap-1.5 pl-2 lg:flex">
+              <div className="hidden items-center gap-1.5 pl-2 @2xl:flex">
                 <MuteButton onClick={handleVolumeToggle} isMuted={isMuted} volume={level} />
                 <Slider
                   value={[level * 100]}
@@ -177,7 +260,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                       setPreviousVolume(nextVolume);
                     }
                   }}
-                  className="w-16 xl:w-20"
+                  className="w-16 @5xl:w-20"
                 />
               </div>
             </div>
@@ -185,6 +268,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
         </div>
       </div>
       <QueueSheet open={queueOpen} onOpenChange={setQueueOpen} />
+      {/* Another document, so its own tree: the providers are still this one's,
+          which is what keeps the two views on the same playback. */}
+      {pip.pipWindow && createPortal(<PipPlayer />, pip.pipWindow.document.body)}
     </div>
   );
 }

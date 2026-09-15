@@ -1,4 +1,5 @@
 import { Loader2, Pause, Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function PlayButton({ isPlaying, isLoading = false, onToggle }: Props) {
+  const { t } = useTranslation();
   return (
     <Button
       variant="default"
@@ -15,7 +17,7 @@ export function PlayButton({ isPlaying, isLoading = false, onToggle }: Props) {
       className="h-10 w-10 rounded-full shadow-[0_4px_12px_var(--primary-glow)] hover:scale-105 transition-transform"
       onClick={onToggle}
       disabled={isLoading}
-      aria-label={isLoading ? 'Loading playback' : isPlaying ? 'Pause' : 'Play'}
+      aria-label={isLoading ? t('MusicPlayer.loadingPlayback') : isPlaying ? t('MusicPlayer.pause') : t('MusicPlayer.play')}
       aria-pressed={isPlaying}
       aria-busy={isLoading || undefined}
     >
