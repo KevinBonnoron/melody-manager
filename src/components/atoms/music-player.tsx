@@ -207,7 +207,14 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
               {/* Out of the window, above everything else. The audio element
                   never moves, so the music does not notice either way. */}
               {pip.supported && (
-                <Button variant="ghost" size="icon" className={cn('h-8 w-8 shrink-0', pip.pipWindow && 'bg-primary-soft text-primary hover:text-primary')} onClick={() => (pip.pipWindow ? pip.close() : pip.open())} title={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')} aria-label={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn('h-8 w-8 shrink-0', pip.pipWindow && 'bg-primary-soft text-primary hover:text-primary')}
+                  onClick={() => (pip.pipWindow ? pip.close() : pip.open())}
+                  title={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
+                  aria-label={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
+                >
                   <PictureInPicture2 className="h-4 w-4" />
                 </Button>
               )}
