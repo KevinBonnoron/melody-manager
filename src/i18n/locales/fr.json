@@ -470,6 +470,9 @@
     "movePlayer": "Déplacer le lecteur (glisser, ou touches fléchées)",
     "openPip": "Ouvrir le lecteur dans sa propre fenêtre",
     "closePip": "Ramener le lecteur dans l'onglet",
+    "play": "Lecture",
+    "pause": "Pause",
+    "loadingPlayback": "Chargement de la lecture",
     "seek": "Se déplacer dans la piste"
   },
   "DeviceSelector": {

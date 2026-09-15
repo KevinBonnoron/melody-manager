@@ -1,4 +1,5 @@
 import { SkipForward } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 interface NextButtonProps {
@@ -7,8 +8,9 @@ interface NextButtonProps {
 }
 
 export function NextButton({ disabled, onNext }: NextButtonProps) {
+  const { t } = useTranslation();
   return (
-    <Button variant="ghost" size="icon" onClick={onNext} disabled={disabled} aria-label="Next track">
+    <Button variant="ghost" size="icon" onClick={onNext} disabled={disabled} aria-label={t('NowPlaying.next')}>
       <SkipForward className="h-5 w-5" />
     </Button>
   );
