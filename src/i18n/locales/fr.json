@@ -465,9 +465,12 @@
     "deviceError": "Impossible de communiquer avec l'appareil",
     "next": "Piste suivante",
     "playPause": "Lecture / pause",
-    "floatPlayer": "Détacher le lecteur",
+    "floatPlayer": "Détacher le lecteur dans la page",
     "dockPlayer": "Ancrer le lecteur",
-    "movePlayer": "Déplacer le lecteur (glisser, ou touches fléchées)"
+    "movePlayer": "Déplacer le lecteur (glisser, ou touches fléchées)",
+    "openPip": "Ouvrir le lecteur dans sa propre fenêtre",
+    "closePip": "Ramener le lecteur dans l'onglet",
+    "seek": "Se déplacer dans la piste"
   },
   "DeviceSelector": {
     "selectDevice": "Sélectionner un appareil de lecture",

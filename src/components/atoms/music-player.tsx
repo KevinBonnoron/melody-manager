@@ -1,9 +1,11 @@
-import { GripHorizontal, ListMusic, Maximize2, PanelBottom, PictureInPicture2 } from 'lucide-react';
+import { GripHorizontal, ListMusic, Maximize2, Move, PanelBottom, PictureInPicture2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { useDocumentPip } from '@/hooks/use-document-pip';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useFloatingPosition, usePlayerDock } from '@/hooks/use-player-dock';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
@@ -13,6 +15,7 @@ import { isNetworkDevice, type Track } from '@/shared';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MuteButton } from './music-player/mute-button';
+import { PipPlayer } from './music-player/pip-player';
 import { PlaybackControls } from './music-player/playback-controlts';
 import { ProgressBar } from './music-player/progress-bar';
 import { QueueSheet } from './music-player/queue-sheet';
@@ -32,6 +35,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { isFloating, toggleMode } = usePlayerDock();
   const shellRef = useRef<HTMLDivElement>(null);
   const { position, handleProps } = useFloatingPosition(shellRef, isFloating);
+  // And out of the browser altogether, in a window of its own that stays above
+  // the other applications. Chromium only, so the control is there or not.
+  const pip = useDocumentPip();
   // A remote change is only reflected once the device has reported it back, so
   // the slider follows the hand until then rather than the round trip.
   const [pendingVolume, setPendingVolume] = useState<number | null>(null);
@@ -195,8 +201,16 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
               {/* The shape of the bar is a choice, and this is where it is
                   made: the same control puts it back across the bottom. */}
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggleMode} title={isFloating ? t('MusicPlayer.dockPlayer') : t('MusicPlayer.floatPlayer')} aria-label={isFloating ? t('MusicPlayer.dockPlayer') : t('MusicPlayer.floatPlayer')}>
-                {isFloating ? <PanelBottom className="h-4 w-4" /> : <PictureInPicture2 className="h-4 w-4" />}
+                {isFloating ? <PanelBottom className="h-4 w-4" /> : <Move className="h-4 w-4" />}
               </Button>
+
+              {/* Out of the window, above everything else. The audio element
+                  never moves, so the music does not notice either way. */}
+              {pip.supported && (
+                <Button variant="ghost" size="icon" className={cn('h-8 w-8 shrink-0', pip.pipWindow && 'bg-primary-soft text-primary hover:text-primary')} onClick={() => (pip.pipWindow ? pip.close() : pip.open())} title={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')} aria-label={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}>
+                  <PictureInPicture2 className="h-4 w-4" />
+                </Button>
+              )}
 
               <Button variant="ghost" size="icon" className="relative h-8 w-8 shrink-0" onClick={() => setQueueOpen(true)} title={t('NowPlaying.queue')} aria-label={t('NowPlaying.queue')}>
                 <ListMusic className="h-4 w-4" />
@@ -224,6 +238,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
         </div>
       </div>
       <QueueSheet open={queueOpen} onOpenChange={setQueueOpen} />
+      {/* Another document, so its own tree: the providers are still this one's,
+          which is what keeps the two views on the same playback. */}
+      {pip.pipWindow && createPortal(<PipPlayer />, pip.pipWindow.document.body)}
     </div>
   );
 }

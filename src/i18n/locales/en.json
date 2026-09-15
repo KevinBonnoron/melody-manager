@@ -465,9 +465,12 @@
     "deviceError": "Failed to communicate with device",
     "next": "Next track",
     "playPause": "Play / pause",
-    "floatPlayer": "Float the player",
+    "floatPlayer": "Float the player in the page",
     "dockPlayer": "Dock the player",
-    "movePlayer": "Move the player (drag, or arrow keys)"
+    "movePlayer": "Move the player (drag, or arrow keys)",
+    "openPip": "Open the player in its own window",
+    "closePip": "Bring the player back to the tab",
+    "seek": "Seek"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
