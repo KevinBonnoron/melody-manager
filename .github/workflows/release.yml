@@ -126,7 +126,14 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
+      # Without this the action installs its default "tools platform-tools", and
+      # Google retired the legacy tools package: sdkmanager reports "Failed to
+      # find package 'tools'" and exits 1, which broke every branch at once on a
+      # workflow nobody had touched. Gradle fetches the build tools and the
+      # platform it needs by itself.
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: platform-tools
       - run: bun install --frozen-lockfile
       - name: Build client
         run: bun run build
