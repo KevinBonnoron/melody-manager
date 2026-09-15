@@ -38,6 +38,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   // And out of the browser altogether, in a window of its own that stays above
   // the other applications. Chromium only, so the control is there or not.
   const pip = useDocumentPip();
+  const closePip = pip.close;
   // A remote change is only reflected once the device has reported it back, so
   // the slider follows the hand until then rather than the round trip.
   const [pendingVolume, setPendingVolume] = useState<number | null>(null);
@@ -106,7 +107,19 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   // A device reporting a track this client has not loaded yet still has to be
   // stoppable, so the bar follows what is playing, not what is known about it.
   const holder = isRemote ? remote?.device : null;
-  if (!track && !holder) {
+  const nothingToShow = !track && !holder;
+
+  // The bar is what carries the control that closes the window, so a bar with
+  // nothing to show would leave an empty window on top of everything with no
+  // way back. Unmounting covers the rest; this is the case where the component
+  // stays and renders nothing.
+  useEffect(() => {
+    if (nothingToShow) {
+      closePip();
+    }
+  }, [nothingToShow, closePip]);
+
+  if (nothingToShow) {
     return null;
   }
 
