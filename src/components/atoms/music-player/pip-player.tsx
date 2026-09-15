@@ -1,5 +1,5 @@
 import { Music2 } from 'lucide-react';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
@@ -11,9 +11,6 @@ import { NextButton } from './next-button';
 import { PlayButton } from './play-button';
 import { PreviousButton } from './previous-button';
 import { queueBounds } from './queue-bounds';
-
-// What an arrow key moves the position by.
-const SEEK_STEP_SECONDS = 5;
 
 /**
  * What the picture-in-picture window shows. Deliberately not the bar: that one
@@ -40,34 +37,20 @@ export function PipPlayer() {
   const album = track ? albumsById.get(track.album) : undefined;
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artists = artistNames(track?.artists, artistsById);
-  const progress = control.duration > 0 ? Math.min(100, Math.max(0, (control.time / control.duration) * 100)) : 0;
+  // The control reports every step it passes through, and on a speaker each one
+  // is a request over the network, so the thumb follows the hand and the seek
+  // is sent once, on release.
+  const [scrub, setScrub] = useState<number | null>(null);
+  // A range needs a span even before a duration is known, and a value inside it.
+  const seekMax = Math.max(control.duration, 1);
+  const position = Math.min(Math.max(scrub ?? control.time, 0), seekMax);
+  const progress = control.duration > 0 ? (position / control.duration) * 100 : 0;
 
-  const seekTo = (time: number) => {
-    if (control.duration > 0) {
-      control.seek(Math.min(control.duration, Math.max(0, time)));
+  const commitScrub = () => {
+    if (scrub !== null) {
+      control.seek(position);
+      setScrub(null);
     }
-  };
-
-  const seekFromClick = (event: MouseEvent<HTMLButtonElement>) => {
-    // A click from the keyboard reports no coordinates, and taking them at face
-    // value sent the track back to zero on Enter. The keys seek below.
-    if (event.detail === 0 || control.duration <= 0) {
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    seekTo(((event.clientX - rect.left) / rect.width) * control.duration);
-  };
-
-  const seekFromKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const steps: Record<string, number | undefined> = { ArrowLeft: -SEEK_STEP_SECONDS, ArrowRight: SEEK_STEP_SECONDS };
-    const step = steps[event.key];
-    if (step === undefined) {
-      return;
-    }
-
-    event.preventDefault();
-    seekTo(control.time + step);
   };
 
   return (
@@ -95,12 +78,25 @@ export function PipPlayer() {
         </div>
 
         <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
-          <span>{formatDuration(control.time)}</span>
-          {/* A button, so a click lands on something meant to be clicked and
-              so the arrow keys reach it once it is focused. */}
-          <button type="button" onClick={seekFromClick} onKeyDown={seekFromKey} aria-label={t('MusicPlayer.seek')} title={t('MusicPlayer.seek')} className="h-1.5 flex-1 cursor-pointer overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
-          </button>
+          <span>{formatDuration(position)}</span>
+          {/* A range, not a styled div: the arrow keys, Home and End come with
+              it, and so does the position read out to a screen reader. */}
+          <input
+            type="range"
+            min={0}
+            max={seekMax}
+            step={1}
+            value={position}
+            disabled={control.duration <= 0}
+            onChange={(event) => setScrub(event.target.valueAsNumber)}
+            onPointerUp={commitScrub}
+            onKeyUp={commitScrub}
+            onBlur={commitScrub}
+            aria-label={t('MusicPlayer.seek')}
+            aria-valuetext={`${formatDuration(position)} / ${formatDuration(control.duration)}`}
+            style={{ background: `linear-gradient(to right, var(--primary) ${progress}%, var(--muted) ${progress}%)` }}
+            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+          />
           <span>{formatDuration(control.duration)}</span>
         </div>
       </div>

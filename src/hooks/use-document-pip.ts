@@ -75,6 +75,9 @@ export function useDocumentPip() {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const windowRef = useRef<Window | null>(null);
   const disposeStylesRef = useRef<(() => void) | null>(null);
+  // A window asked for just before this went away still arrives, and by then
+  // the teardown that would have closed it has already run.
+  const mountedRef = useRef(true);
 
   const forget = useCallback(() => {
     disposeStylesRef.current?.();
@@ -105,6 +108,11 @@ export function useDocumentPip() {
       return;
     }
 
+    if (!mountedRef.current) {
+      target.close();
+      return;
+    }
+
     disposeStylesRef.current = adoptPageStyles(target);
     // Closed from its own chrome, or by the tab going away. Either way the page
     // has to stop rendering into a document that is gone.
@@ -121,7 +129,11 @@ export function useDocumentPip() {
   // Nothing renders into the window once the component holding it goes, so it
   // would be left standing empty and above everything else.
   useEffect(() => {
+    // Set here as well as declared: StrictMode mounts twice, and a flag only
+    // ever cleared would leave the second mount unable to open anything.
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       disposeStylesRef.current?.();
       windowRef.current?.close();
     };
