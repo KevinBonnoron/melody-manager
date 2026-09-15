@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Enough for a cover, a title and the transport, and small enough to leave
-// beside something else. The window is resizable from there.
-const PIP_WIDTH = 440;
-const PIP_HEIGHT = 190;
+// What the content needs and no more. Chrome adds its own header above this, so
+// asking for more than the row of cover, title and transport plus the position
+// under it buys nothing but a band of empty background. The window is resizable
+// from there.
+const PIP_WIDTH = 420;
+const PIP_HEIGHT = 104;
 
 interface PipOptions {
   width?: number;

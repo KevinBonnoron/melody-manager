@@ -53,52 +53,56 @@ export function PipPlayer() {
     }
   };
 
+  // One row of cover, title and transport, with the position spanning the whole
+  // width under it. A square cover as tall as the window took a third of its
+  // width and left the rest crushed: in a strip this size the artwork is a
+  // marker, not the subject.
   return (
-    <div className="flex h-screen w-full items-center gap-3 bg-background p-3 text-foreground">
-      <div className="aspect-square h-full shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-        {coverUrl ? (
-          <img src={coverUrl} alt={track?.title ?? ''} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Music2 className="h-8 w-8 text-primary/60" />
-          </div>
-        )}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{track?.title ?? t('NowPlaying.title')}</p>
-          <p className="truncate text-xs text-muted-foreground">{artists}</p>
+    <div className="flex h-screen w-full flex-col justify-center gap-1.5 bg-background px-3 py-2 text-foreground">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-primary/20 to-accent/20">
+          {coverUrl ? (
+            <img src={coverUrl} alt={track?.title ?? ''} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music2 className="h-5 w-5 text-primary/60" />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center justify-center gap-1.5">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold leading-tight">{track?.title ?? t('NowPlaying.title')}</p>
+          <p className="truncate text-xs leading-tight text-muted-foreground">{artists}</p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
           <PreviousButton disabled={!canGoPrevious} onPrevious={control.previous} />
           <PlayButton isPlaying={isPlaying} isLoading={control.loading} onToggle={control.toggle} />
           <NextButton disabled={!canGoNext} onNext={control.next} />
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
-          <span>{formatDuration(position)}</span>
-          {/* A range, not a styled div: the arrow keys, Home and End come with
-              it, and so does the position read out to a screen reader. */}
-          <input
-            type="range"
-            min={0}
-            max={seekMax}
-            step={1}
-            value={position}
-            disabled={control.duration <= 0}
-            onChange={(event) => setScrub(event.target.valueAsNumber)}
-            onPointerUp={commitScrub}
-            onKeyUp={commitScrub}
-            onBlur={commitScrub}
-            aria-label={t('MusicPlayer.seek')}
-            aria-valuetext={`${formatDuration(position)} / ${formatDuration(control.duration)}`}
-            style={{ background: `linear-gradient(to right, var(--primary) ${progress}%, var(--muted) ${progress}%)` }}
-            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-          />
-          <span>{formatDuration(control.duration)}</span>
-        </div>
+      <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
+        <span>{formatDuration(position)}</span>
+        {/* A range, not a styled div: the arrow keys, Home and End come with
+            it, and so does the position read out to a screen reader. */}
+        <input
+          type="range"
+          min={0}
+          max={seekMax}
+          step={1}
+          value={position}
+          disabled={control.duration <= 0}
+          onChange={(event) => setScrub(event.target.valueAsNumber)}
+          onPointerUp={commitScrub}
+          onKeyUp={commitScrub}
+          onBlur={commitScrub}
+          aria-label={t('MusicPlayer.seek')}
+          aria-valuetext={`${formatDuration(position)} / ${formatDuration(control.duration)}`}
+          style={{ background: `linear-gradient(to right, var(--primary) ${progress}%, var(--muted) ${progress}%)` }}
+          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        />
+        <span>{formatDuration(control.duration)}</span>
       </div>
     </div>
   );
