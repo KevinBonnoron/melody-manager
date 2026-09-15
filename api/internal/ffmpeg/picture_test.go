@@ -29,17 +29,28 @@ func coveredFLAC(t *testing.T, dir string) string {
 	return path
 }
 
+// Absent is a reason to skip; anything else is a reason to fail. Skipping on
+// every ffmpeg error meant a fixture command that had gone wrong took the tests
+// with it silently, and they reported as skipped rather than as broken.
 func run(t *testing.T, args ...string) {
 	t.Helper()
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg is not installed")
+	}
+
 	cmd := exec.CommandContext(t.Context(), "ffmpeg", append([]string{"-v", "error", "-y"}, args...)...)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Skipf("ffmpeg unavailable or unwilling: %v: %s", err, out)
+		t.Fatalf("building the fixture failed: %v: %s", err, out)
 	}
 }
 
 // hasAttachedPicture asks ffprobe rather than trusting the size.
 func hasAttachedPicture(t *testing.T, path string) bool {
 	t.Helper()
+	if _, err := exec.LookPath("ffprobe"); err != nil {
+		t.Skip("ffprobe is not installed")
+	}
+
 	out, err := exec.CommandContext(t.Context(), "ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream_disposition=attached_pic", "-of", "default=nw=1:nk=1", path).Output()
 	if err != nil {
 		t.Fatalf("ffprobe: %v", err)
