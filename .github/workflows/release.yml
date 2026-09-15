@@ -1,10 +1,5 @@
 name: Release
 
-# Everything that publishes, and nothing that checks. The checks are the CI
-# workflow, and the branch ruleset is what makes them binding: a pull request
-# cannot merge unless it is up to date with main and its checks have passed, and
-# nothing may push to main directly. Rechecking here would only reconfirm a
-# result already known.
 on:
   push:
     branches:
@@ -25,12 +20,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The ruleset guards the main *branch*, and a tag is not a branch: anything can
-  # be tagged, including a commit that never passed a check, and this workflow
-  # would then sign it and publish it. A manual dispatch can name any ref for the
-  # same reason. Asking whether the revision reached main is what says it was
-  # checked, and costs seconds rather than running the whole suite again on a
-  # revision that has already passed it.
+  # The ruleset guards the main branch, and a tag is not a branch: anything can be
+  # tagged, including a commit that never passed a check, and a manual dispatch
+  # can name any ref. Reaching main is what says a revision was checked.
   from-main:
     runs-on: ubuntu-latest
     steps:
@@ -107,13 +99,11 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  # Only a tag ships an installable build, and only a tag has the signing key.
   android:
     needs: from-main
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    # Write, because this job is also what creates the GitHub release the builds
-    # are attached to.
+    # Write: this job also creates the GitHub release the builds are attached to.
     permissions:
       contents: write
     steps:
@@ -126,11 +116,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      # Without this the action installs its default "tools platform-tools", and
-      # Google retired the legacy tools package: sdkmanager reports "Failed to
-      # find package 'tools'" and exits 1, which broke every branch at once on a
-      # workflow nobody had touched. Gradle fetches the build tools and the
-      # platform it needs by itself.
+      # Not the action's default of "tools platform-tools": Google retired the
+      # legacy tools package and sdkmanager exits 1 on it.
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           packages: platform-tools
