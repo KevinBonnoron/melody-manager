@@ -60,6 +60,21 @@ const SEEK_SETTLE_MS = 2000;
 // How long a drag is allowed to settle before the device is told, and how long
 // the level asked for is believed over the one reported.
 const VOLUME_SETTLE_MS = 150;
+
+// This browser's own level, kept where the rest of its preferences are. A
+// device's volume belongs to the device and is read back from it; this one has
+// nowhere else to live, and starting every reload at full blast is its own kind
+// of bug.
+const VOLUME_KEY = 'melody-manager-volume';
+
+function storedVolume(): number {
+  try {
+    const raw = Number.parseFloat(localStorage.getItem(VOLUME_KEY) ?? '');
+    return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 1;
+  } catch {
+    return 1;
+  }
+}
 const VOLUME_REPORT_GRACE_MS = 3000;
 
 // How close to the end counts as having reached it, given the speaker is asked
@@ -120,7 +135,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrack: null,
     isPlaying: false,
-    localVolume: 1.0,
+    localVolume: storedVolume(),
     currentTime: 0,
     queue: [],
     repeatMode: 'none',
@@ -321,6 +336,12 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = playerState.localVolume;
+    }
+
+    try {
+      localStorage.setItem(VOLUME_KEY, String(playerState.localVolume));
+    } catch {
+      // A browser refusing storage still plays; it just forgets the level.
     }
   }, [playerState.localVolume]);
 
