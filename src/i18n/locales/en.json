@@ -473,7 +473,8 @@
     "play": "Play",
     "pause": "Pause",
     "loadingPlayback": "Loading playback",
-    "seek": "Seek"
+    "seek": "Seek",
+    "placePlayer": "Place the player"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",

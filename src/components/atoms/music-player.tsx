@@ -1,8 +1,9 @@
-import { GripHorizontal, ListMusic, Maximize2, Move, PanelBottom, PictureInPicture2 } from 'lucide-react';
+import { AppWindow, GripHorizontal, ListMusic, Maximize2, Move, PanelBottom, PictureInPicture2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useDocumentPip } from '@/hooks/use-document-pip';
@@ -211,26 +212,35 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                 </Button>
               )}
 
-              {/* The shape of the bar is a choice, and this is where it is
-                  made: the same control puts it back across the bottom. */}
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggleMode} title={isFloating ? t('MusicPlayer.dockPlayer') : t('MusicPlayer.floatPlayer')} aria-label={isFloating ? t('MusicPlayer.dockPlayer') : t('MusicPlayer.floatPlayer')}>
-                {isFloating ? <PanelBottom className="h-4 w-4" /> : <Move className="h-4 w-4" />}
-              </Button>
-
-              {/* Out of the window, above everything else. The audio element
-                  never moves, so the music does not notice either way. */}
-              {pip.supported && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn('h-8 w-8 shrink-0', pip.pipWindow && 'bg-primary-soft text-primary hover:text-primary')}
-                  onClick={() => (pip.pipWindow ? pip.close() : pip.open())}
-                  title={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
-                  aria-label={pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
-                >
-                  <PictureInPicture2 className="h-4 w-4" />
-                </Button>
-              )}
+              {/* One question, one control. Floating in the page and living in
+                  a window of its own are two answers to "not across the
+                  bottom", and as two buttons they sat side by side with icons
+                  that read alike, in a row that already had six. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className={cn('h-8 w-8 shrink-0', (isFloating || pip.pipWindow) && 'bg-primary-soft text-primary hover:text-primary')} title={t('MusicPlayer.placePlayer')} aria-label={t('MusicPlayer.placePlayer')}>
+                    <AppWindow className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-[200] w-56">
+                  <DropdownMenuLabel>{t('MusicPlayer.placePlayer')}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => isFloating && toggleMode()} className={!isFloating && !pip.pipWindow ? 'bg-accent' : ''}>
+                    <PanelBottom className="mr-2 h-4 w-4 shrink-0" />
+                    {t('MusicPlayer.dockPlayer')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => !isFloating && toggleMode()} className={isFloating ? 'bg-accent' : ''}>
+                    <Move className="mr-2 h-4 w-4 shrink-0" />
+                    {t('MusicPlayer.floatPlayer')}
+                  </DropdownMenuItem>
+                  {pip.supported && (
+                    <DropdownMenuItem onClick={() => (pip.pipWindow ? pip.close() : pip.open())} className={pip.pipWindow ? 'bg-accent' : ''}>
+                      <PictureInPicture2 className="mr-2 h-4 w-4 shrink-0" />
+                      {pip.pipWindow ? t('MusicPlayer.closePip') : t('MusicPlayer.openPip')}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button variant="ghost" size="icon" className="relative h-8 w-8 shrink-0" onClick={() => setQueueOpen(true)} title={t('NowPlaying.queue')} aria-label={t('NowPlaying.queue')}>
                 <ListMusic className="h-4 w-4" />
