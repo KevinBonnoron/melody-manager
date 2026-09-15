@@ -464,7 +464,10 @@
     "playbackErrorGeneric": "Erreur de lecture",
     "deviceError": "Impossible de communiquer avec l'appareil",
     "next": "Piste suivante",
-    "playPause": "Lecture / pause"
+    "playPause": "Lecture / pause",
+    "floatPlayer": "Détacher le lecteur",
+    "dockPlayer": "Ancrer le lecteur",
+    "movePlayer": "Déplacer le lecteur (glisser, ou touches fléchées)"
   },
   "DeviceSelector": {
     "selectDevice": "Sélectionner un appareil de lecture",

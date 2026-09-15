@@ -33,13 +33,13 @@ export function PlaybackControls({ remote }: Props) {
   const canGoPrevious = remote ? true : currentIndex > 0 || (repeatMode === 'all' && queue.length > 0);
   return (
     <div className="flex items-center justify-self-center gap-2">
-      <div className="hidden sm:flex items-center gap-2 w-20 justify-end">
+      <div className="hidden @lg:flex items-center gap-2 w-20 justify-end">
         <ShuffleButton shuffle={shuffle} onToggle={toggleShuffle} />
       </div>
       <PreviousButton disabled={!canGoPrevious} onPrevious={playPrevious} />
       <PlayButton isPlaying={isPlaying} isLoading={isLoading} onToggle={togglePlayPause} />
       <NextButton disabled={!canGoNext} onNext={playNext} />
-      <div className="hidden sm:flex items-center gap-2 w-20">
+      <div className="hidden @lg:flex items-center gap-2 w-20">
         <RepeatButton repeatMode={repeatMode} onToggle={toggleRepeat} />
         {currentTrack && <LikeButton isLiked={isLiked(currentTrack.id)} toggleLike={() => toggleLike(currentTrack.id)} />}
       </div>

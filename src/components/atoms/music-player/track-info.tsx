@@ -48,7 +48,7 @@ export function TrackInfo({ track, fallbackTitle }: Props) {
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
-      <div className="h-11 w-11 lg:h-14 lg:w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
+      <div className="h-11 w-11 @2xl:h-14 @2xl:w-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
         {album && getAlbumCoverUrl(album) ? (
           <Link to="/albums/$albumId" params={{ albumId: album.id }}>
             <img src={getAlbumCoverUrl(album)} alt={title} className="h-full w-full object-cover" />

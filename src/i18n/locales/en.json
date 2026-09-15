@@ -464,7 +464,10 @@
     "playbackErrorGeneric": "Playback failed",
     "deviceError": "Failed to communicate with device",
     "next": "Next track",
-    "playPause": "Play / pause"
+    "playPause": "Play / pause",
+    "floatPlayer": "Float the player",
+    "dockPlayer": "Dock the player",
+    "movePlayer": "Move the player (drag, or arrow keys)"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
