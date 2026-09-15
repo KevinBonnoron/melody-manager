@@ -1,8 +1,5 @@
 name: CI
 
-# Everything that checks, and nothing that publishes. What makes these binding is
-# the branch ruleset: a pull request cannot merge unless it is up to date with
-# main and every one of these has passed, so what lands is what was tested here.
 on:
   pull_request:
 
@@ -45,8 +42,6 @@ jobs:
       - name: Test
         run: go test ./...
 
-  # The suite drives the real binary serving the real bundle, so it needs both
-  # toolchains and a browser.
   e2e:
     runs-on: ubuntu-latest
     env:
@@ -74,8 +69,6 @@ jobs:
             e2e/.artifacts
           retention-days: 7
 
-  # Not filtered on docs/**: the build is fifteen seconds, and a dead link can be
-  # introduced by a page that moves as easily as by the page that points at it.
   docs:
     runs-on: ubuntu-latest
     steps:
@@ -99,11 +92,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      # Without this the action installs its default "tools platform-tools", and
-      # Google retired the legacy tools package: sdkmanager reports "Failed to
-      # find package 'tools'" and exits 1, which broke every branch at once on a
-      # workflow nobody had touched. Gradle fetches the build tools and the
-      # platform it needs by itself.
+      # Not the action's default of "tools platform-tools": Google retired the
+      # legacy tools package and sdkmanager exits 1 on it.
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           packages: platform-tools
@@ -130,8 +120,6 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-  # One architecture here, because this is asking whether the image still builds.
-  # The release workflow is where it is built for both and pushed.
   docker:
     needs: [client, api, e2e]
     runs-on: ubuntu-latest
