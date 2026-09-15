@@ -464,7 +464,14 @@
     "playbackErrorGeneric": "Erreur de lecture",
     "deviceError": "Impossible de communiquer avec l'appareil",
     "next": "Piste suivante",
-    "playPause": "Lecture / pause"
+    "playPause": "Lecture / pause",
+    "openPip": "Ouvrir le lecteur dans sa propre fenêtre",
+    "closePip": "Ramener le lecteur dans l'onglet",
+    "play": "Lecture",
+    "pause": "Pause",
+    "loadingPlayback": "Chargement de la lecture",
+    "seek": "Se déplacer dans la piste",
+    "playingInWindow": "Le lecteur est dans sa propre fenêtre"
   },
   "DeviceSelector": {
     "selectDevice": "Sélectionner un appareil de lecture",

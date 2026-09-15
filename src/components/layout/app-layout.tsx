@@ -13,6 +13,7 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { LibraryIndexProvider } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { config } from '@/lib/config';
+import { cn } from '@/lib/utils';
 import { TaskNotifications } from '../atoms/task-notifications';
 import { AppSidebar } from './app-sidebar';
 import { BottomNav } from './bottom-nav';
@@ -38,6 +39,9 @@ const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> 
 export function AppLayout({ children }: AppLayoutProps) {
   // The bar reserves room whether the playback is here or on another device.
   const { track: currentTrack, isRemote } = useNowPlaying();
+  // A floating player is not across the bottom any more, so the strip it used
+  // to need is a screenful of nothing under a short page. Mobile keeps it
+  // either way: its mini-player lives in the dock, which does not float.
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
   // The index has to cover the player bar and the sidebar too, not just the
@@ -56,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               its own on top, which left a screenful of nothing under short
               pages and a scrollbar that scrolled through it. */}
               {/* A div, not a main: SidebarInset is already the page's main landmark. */}
-              <div className={`flex-1 pt-3 md:pt-4 ${currentTrack || isRemote ? 'pb-36 md:pb-36' : 'pb-20 md:pb-8'}`}>{children}</div>
+              <div className={cn('flex-1 pt-3 md:pt-4', currentTrack || isRemote ? 'pb-36 md:pb-36' : 'pb-20 md:pb-8')}>{children}</div>
             </SidebarInset>
             <BottomNav onExpand={() => setNowPlayingOpen(true)} />
             <MusicPlayer onExpand={() => setNowPlayingOpen(true)} />

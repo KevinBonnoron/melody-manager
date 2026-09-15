@@ -464,7 +464,14 @@
     "playbackErrorGeneric": "Playback failed",
     "deviceError": "Failed to communicate with device",
     "next": "Next track",
-    "playPause": "Play / pause"
+    "playPause": "Play / pause",
+    "openPip": "Open the player in its own window",
+    "closePip": "Bring the player back to the tab",
+    "play": "Play",
+    "pause": "Pause",
+    "loadingPlayback": "Loading playback",
+    "seek": "Seek",
+    "playingInWindow": "The player is in its own window"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
