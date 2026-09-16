@@ -21,7 +21,7 @@ defaults on first start, so there is nothing to create by hand.
 |---|---|---|
 | `listenAddr` | empty | Interface and port the server accepts connections on. `0.0.0.0:8090` opens it to the network; empty leaves PocketBase's own default, `127.0.0.1:8090`. An explicit `--http` on the command line wins, which is what the container's entrypoint passes, so this key does nothing there. |
 | `publicUrl` | `http://localhost:8090` | The address of this server as seen from outside the browser. Speakers fetch the audio from it themselves, so it has to be one they can reach. |
-| `cacheDir` | `/tmp/melody-manager-cache` | Where audio from remote sources is kept. The image sets `/app/cache`. |
+| `cacheDir` | `cache`, beside the executable | Where audio from remote sources is kept, which in the container is the `/app/cache` volume. |
 | `cacheMaxFiles` | `500` | How many files the cache holds before the oldest are dropped. |
 | `cacheMaxSize` | `5368709120` (5 GiB) | How large it may grow, in bytes. |
 | `registrationAllowed` | `false` | Whether anyone may sign themselves up. The first account is always allowed, so a fresh install can be set up. |

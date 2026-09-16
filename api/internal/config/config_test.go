@@ -96,3 +96,19 @@ func TestLoadHealsEmptyValues(t *testing.T) {
 		t.Errorf("CacheMaxFiles = %d, want the default", got.CacheMaxFiles)
 	}
 }
+
+// The cache goes beside the executable, where pb_data already goes. It used to
+// default to the temporary directory, which is cleared on reboot, and which in
+// the container left the declared cache volume empty while every remote track
+// was fetched again after each restart.
+func TestDefaultCacheDirSitsBesideTheExecutable(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Skipf("no executable path on this platform: %v", err)
+	}
+
+	got := defaults().CacheDir
+	if parent := filepath.Dir(got); parent != filepath.Dir(exe) {
+		t.Errorf("the cache sits in %q, beside an executable in %q", parent, filepath.Dir(exe))
+	}
+}

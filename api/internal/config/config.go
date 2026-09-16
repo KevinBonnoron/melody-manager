@@ -160,10 +160,22 @@ func heal(cfg Config) Config {
 	return cfg
 }
 
+// defaultCacheDir puts the cache beside the executable, where pb_data already
+// goes. The temporary directory it used to default to is cleared on reboot, and
+// in the container it meant the declared cache volume held nothing at all: every
+// remote track was fetched again after a restart.
+func defaultCacheDir() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return filepath.Join(os.TempDir(), "melody-manager-cache")
+	}
+	return filepath.Join(filepath.Dir(exe), "cache")
+}
+
 func defaults() Config {
 	return Config{
 		PublicURL:           "http://localhost:8090",
-		CacheDir:            "/tmp/melody-manager-cache",
+		CacheDir:            defaultCacheDir(),
 		CacheMaxFiles:       500,
 		CacheMaxSize:        5 * 1024 * 1024 * 1024,
 		RegistrationAllowed: false,
