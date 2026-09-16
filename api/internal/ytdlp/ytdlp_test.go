@@ -236,6 +236,26 @@ func TestPickChapters(t *testing.T) {
 	}
 }
 
+func TestWorthSplitting(t *testing.T) {
+	cases := []struct {
+		name string
+		info TrackInfo
+		want bool
+	}{
+		{"a song people annotated", TrackInfo{Duration: 208}, false},
+		{"a three-track upload of twelve minutes", TrackInfo{Duration: 720}, true},
+		{"an hour-long mix with no chapters", TrackInfo{Duration: 3600}, true},
+		{"a mix the uploader already split up", TrackInfo{Duration: 3600, Chapters: []Chapter{{Title: "Intro"}, {Title: "Nekozilla"}, {Title: "Ark"}}}, false},
+		{"a mix whose chapters are only numbers", TrackInfo{Duration: 3600, Chapters: []Chapter{{Title: "1"}, {Title: "2"}, {Title: "3"}}}, true},
+		{"nothing known about the length", TrackInfo{}, false},
+	}
+	for _, c := range cases {
+		if got := worthSplitting(c.info); got != c.want {
+			t.Errorf("%s: worthSplitting = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
 func TestCommentArgs(t *testing.T) {
 	args := strings.Join(commentArgs(), " ")
 

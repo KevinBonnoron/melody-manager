@@ -140,6 +140,17 @@ func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, erro
 // InvalidateStreamURL drops a cached stream URL (e.g. after a 403).
 func InvalidateStreamURL(sourceURL string) { streamURLCache.Remove(sourceURL) }
 
+// multiTrackLength is the shortest an upload can be and still hold several
+// tracks: a floor on whether the question makes sense, not a number to tune.
+const multiTrackLength = 10 * time.Minute
+
+// worthSplitting reports whether timestamps around an upload are a track list.
+// Under a song they are not: "0:45 best drop" is somebody pointing at a moment,
+// and read as chapters it turns a single into several tracks.
+func worthSplitting(info TrackInfo) bool {
+	return info.Duration >= multiTrackLength.Seconds() && needsChapterRecovery(info)
+}
+
 // ExtractTrackInfo fetches metadata for a single track and, when the embedded
 // chapters are missing or poor, derives them from the description and, failing
 // that, from the comments.
@@ -152,7 +163,7 @@ func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo,
 		return nil, err
 	}
 
-	if needsChapterRecovery(*info) && info.Duration > 0 {
+	if worthSplitting(*info) {
 		fromDescription := ParseChapters(info.Description, info.Duration)
 		if len(fromDescription) <= 1 {
 			fromDescription = nil
