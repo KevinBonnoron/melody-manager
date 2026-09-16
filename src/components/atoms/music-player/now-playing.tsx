@@ -7,6 +7,7 @@ import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useTrackRatings } from '@/hooks/use-ratings';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
+import { useSelectDevice } from '@/hooks/use-select-device';
 import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getSourceColor } from '@/lib/source-colors';
@@ -21,9 +22,10 @@ interface Props {
 
 export function NowPlaying({ open, onClose }: Props) {
   const { t } = useTranslation();
-  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, switchDevice, playHere } = useMusicPlayer();
+  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, playHere } = useMusicPlayer();
   const { track, isPlaying, isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
+  const selectDevice = useSelectDevice();
   const remote = useRemotePlayback();
   const { isLiked, toggleLike } = useTrackRatings();
   const albumsById = useAlbumsById();
@@ -126,14 +128,7 @@ export function NowPlaying({ open, onClose }: Props) {
           <div className="flex items-center justify-center gap-2 border-t border-border/60 pt-3">
             <DeviceSelector
               activeDevice={activeDevice}
-              onDeviceChange={(device) => {
-                if (device && isRemote && remote?.track) {
-                  transferPlayback(device);
-                  return;
-                }
-
-                switchDevice(device);
-              }}
+              onDeviceChange={selectDevice}
               remote={isRemote ? remote?.device : undefined}
               onSelectClient={transferPlayback}
               onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as NonNullable<typeof remote.track>, remote.currentTime, remote.device) : undefined}

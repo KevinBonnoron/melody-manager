@@ -48,6 +48,7 @@ interface MusicPlayerContextValue {
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
   switchDevice: (device: Device | null) => void;
+  adoptDevice: (device: Device) => void;
   playHere: (track: Track, at: number, from: Device) => void;
   setAudioFormat: (format: AudioFormat) => void;
 
@@ -718,6 +719,14 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     setPlayerState((prev) => ({ ...prev, queue: [] }));
   }, []);
 
+  // Taking a device on as this tab's target without moving anything: what is
+  // playing there was started by whoever handed it over, and this tab only has
+  // to start driving it.
+  const adoptDevice = useCallback((device: Device) => {
+    deviceDecidedRef.current = true;
+    setActiveDevice(device);
+  }, []);
+
   const switchDevice = useCallback(
     async (device: Device | null) => {
       const wasPlaying = playerState.isPlaying;
@@ -964,6 +973,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     removeFromQueue,
     clearQueue,
     switchDevice,
+    adoptDevice,
     playHere,
     setAudioFormat,
     audioElement,

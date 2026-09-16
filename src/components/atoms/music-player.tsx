@@ -8,6 +8,7 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useDocumentPip } from '@/hooks/use-document-pip';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
+import { useSelectDevice } from '@/hooks/use-select-device';
 import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { useVolumeControl } from '@/hooks/use-volume-control';
 import { cn } from '@/lib/utils';
@@ -25,10 +26,11 @@ import { TrackInfo } from './music-player/track-info';
 
 export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, switchDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
+  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
+  const selectDevice = useSelectDevice();
   const pip = useDocumentPip();
   const closePip = pip.close;
   const inWindow = Boolean(pip.pipWindow);
@@ -76,20 +78,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
               </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-1.5 justify-end">
-                <DeviceSelector
-                  activeDevice={activeDevice}
-                  onDeviceChange={(device) => {
-                    if (device && isRemote && remote?.track) {
-                      transferPlayback(device);
-                      return;
-                    }
-
-                    switchDevice(device);
-                  }}
-                  remote={isRemote ? remote?.device : undefined}
-                  onSelectClient={transferPlayback}
-                  onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined}
-                />
+                <DeviceSelector activeDevice={activeDevice} onDeviceChange={selectDevice} remote={isRemote ? remote?.device : undefined} onSelectClient={transferPlayback} onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined} />
                 <div className="hidden @5xl:block">
                   <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
                 </div>
