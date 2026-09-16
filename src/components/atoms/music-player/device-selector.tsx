@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useDevices } from '@/hooks/use-devices';
 import { usePlugins } from '@/hooks/use-plugins';
 import { type ClientDevice, type Device, type DeviceType, isNetworkDevice, type NetworkDevice } from '@/shared';
+import { ControlDot } from './control-dot';
 
 const deviceIcons: Partial<Record<DeviceType, typeof Monitor>> = {
   browser: Monitor,
@@ -44,11 +45,19 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
   }, [speakers]);
   const elsewhere = remote ?? (activeDevice && isNetworkDevice(activeDevice) ? activeDevice : null);
 
+  // Nothing to choose between is not a choice: with no speaker on the network
+  // and no other session signed in, the menu holds one row saying where the
+  // sound already comes out. It comes back the moment something answers.
+  if (!elsewhere && others.length === 0 && speakers.length === 0) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={`h-9 w-9 shrink-0 rounded-full ${elsewhere ? 'bg-primary-soft text-primary hover:text-primary' : ''}`} title={elsewhere ? t('RemotePlayback.playingOn', { device: elsewhere.name }) : t('DeviceSelector.selectDevice')}>
+        <Button variant="ghost" size="icon" className={`group relative h-9 w-9 shrink-0 rounded-full ${elsewhere ? 'bg-primary-soft text-primary hover:text-primary' : ''}`} title={elsewhere ? t('RemotePlayback.playingOn', { device: elsewhere.name }) : t('DeviceSelector.selectDevice')}>
           <DeviceIcon type={elsewhere?.type ?? 'browser'} />
+          <ControlDot />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[200] w-72">
