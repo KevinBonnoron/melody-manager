@@ -35,8 +35,11 @@ jobs:
         with:
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
+      # Both Go trees, from the root: the desktop client is its own module and
+      # nothing was checking it.
       - name: Formatting
-        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+        working-directory: .
+        run: test -z "$(gofmt -l api desktop)" || { gofmt -l api desktop; exit 1; }
       - name: Vet
         run: go vet ./...
       - name: Test

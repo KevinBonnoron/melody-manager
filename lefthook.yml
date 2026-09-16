@@ -1,10 +1,14 @@
 pre-commit:
   jobs:
-    - name: biome format
+    - name: biome check
       glob: "*.{js,ts,jsx,tsx,css}"
-      # Without this, a commit touching only files biome's config excludes, a
-      # stylesheet for one, is refused: biome reports being given nothing to do.
-      run: bunx biome format --no-errors-on-unmatched --write {staged_files} && git add {staged_files}
+      # check, not format: the CI runs check, and a hook that only reformatted
+      # let lint errors through to be found there instead.
+      #
+      # --no-errors-on-unmatched, or a commit touching only files biome's config
+      # excludes, a stylesheet for one, is refused: biome reports being given
+      # nothing to do.
+      run: bunx biome check --no-errors-on-unmatched --write {staged_files} && git add {staged_files}
 
 pre-push:
   jobs:
