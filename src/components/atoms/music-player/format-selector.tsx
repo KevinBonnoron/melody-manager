@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { AudioFormat } from '@/contexts/music-player-context';
+import { usePointerDismiss } from '@/hooks/use-pointer-dismiss';
 import { ControlDot } from './control-dot';
 
 interface FormatSelectorProps {
@@ -12,6 +13,7 @@ interface FormatSelectorProps {
 
 export function FormatSelector({ audioFormat, onFormatChange }: FormatSelectorProps) {
   const { t } = useTranslation();
+  const dismiss = usePointerDismiss();
   const formatOptions: { value: AudioFormat; label: string }[] = [
     { value: 'source', label: t('FormatSelector.source') },
     { value: 'mp3', label: t('FormatSelector.mp3') },
@@ -22,13 +24,13 @@ export function FormatSelector({ audioFormat, onFormatChange }: FormatSelectorPr
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild {...dismiss.trigger}>
         <Button variant="ghost" size="icon" className="group relative h-9 w-9 rounded-full" title={t('FormatSelector.selectFormat')}>
           <FileAudio className="h-4 w-4" />
           <ControlDot />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48" {...dismiss.content}>
         <DropdownMenuLabel>{t('FormatSelector.audioFormat')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 

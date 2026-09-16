@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDevices } from '@/hooks/use-devices';
 import { usePlugins } from '@/hooks/use-plugins';
+import { usePointerDismiss } from '@/hooks/use-pointer-dismiss';
 import { type ClientDevice, type Device, type DeviceType, isNetworkDevice, type NetworkDevice } from '@/shared';
 import { ControlDot } from './control-dot';
 
@@ -32,6 +33,7 @@ interface Props {
 
 export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHere, onSelectClient }: Props) {
   const { t } = useTranslation();
+  const dismiss = usePointerDismiss();
   const { others, usableSpeakers: speakers } = useDevices();
   const { manifests } = usePlugins();
   const providerInfo = useMemo(() => getProviderInfoFromManifests(t, manifests), [t, manifests]);
@@ -54,13 +56,13 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild {...dismiss.trigger}>
         <Button variant="ghost" size="icon" className={`group relative h-9 w-9 shrink-0 rounded-full ${elsewhere ? 'bg-primary-soft text-primary hover:text-primary' : ''}`} title={elsewhere ? t('RemotePlayback.playingOn', { device: elsewhere.name }) : t('DeviceSelector.selectDevice')}>
           <DeviceIcon type={elsewhere?.type ?? 'browser'} />
           <ControlDot />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-[200] w-72">
+      <DropdownMenuContent align="end" className="z-[200] w-72" {...dismiss.content}>
         <DropdownMenuLabel>{t('DeviceSelector.playbackDevices')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
