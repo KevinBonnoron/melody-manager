@@ -80,10 +80,6 @@ export function getModifierKey(key: string) {
   return isMac ? `⌘${key.toUpperCase()}` : `Ctrl+${key.toUpperCase()}`;
 }
 
-// Opening a dialog straight from a menu item makes the two overlap: Radix is
-// still closing the menu and returning focus to its trigger while the dialog
-// mounts and marks everything outside itself aria-hidden, focused menu
-// included. Waiting a frame lets the menu finish before the dialog starts.
 export function afterMenuCloses(open: () => void) {
   requestAnimationFrame(open);
 }

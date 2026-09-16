@@ -6,8 +6,6 @@ interface Props {
   onClick: () => void;
 }
 
-// Shaped like the playlists beside it, because what it makes is one of them.
-// The dashed border is the only thing saying this card is not a playlist yet.
 export function NewPlaylistCard({ onClick }: Props) {
   const { t } = useTranslation();
 

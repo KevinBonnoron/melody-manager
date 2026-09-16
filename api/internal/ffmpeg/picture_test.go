@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-// silentFLAC writes a file with no cover, which is the case the optional map
-// exists for.
 func silentFLAC(t *testing.T, dir string) string {
 	t.Helper()
 	path := dir + "/silence.flac"
@@ -17,8 +15,6 @@ func silentFLAC(t *testing.T, dir string) string {
 	return path
 }
 
-// coveredFLAC writes a file that does carry one, which is the only input that
-// can tell a transcode keeping the cover from one dropping it.
 func coveredFLAC(t *testing.T, dir string) string {
 	t.Helper()
 	cover := dir + "/cover.jpg"
@@ -29,9 +25,6 @@ func coveredFLAC(t *testing.T, dir string) string {
 	return path
 }
 
-// Absent is a reason to skip; anything else is a reason to fail. Skipping on
-// every ffmpeg error meant a fixture command that had gone wrong took the tests
-// with it silently, and they reported as skipped rather than as broken.
 func run(t *testing.T, args ...string) {
 	t.Helper()
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
@@ -44,7 +37,6 @@ func run(t *testing.T, args ...string) {
 	}
 }
 
-// hasAttachedPicture asks ffprobe rather than trusting the size.
 func hasAttachedPicture(t *testing.T, path string) bool {
 	t.Helper()
 	if _, err := exec.LookPath("ffprobe"); err != nil {
@@ -58,10 +50,8 @@ func hasAttachedPicture(t *testing.T, path string) bool {
 	return strings.Contains(string(out), "1")
 }
 
-// A cover embedded in a file is a video stream as far as ffmpeg is concerned,
-// so "-vn" threw it away on every transcode. A speaker fetching the stream over
-// HTTP takes its artwork out of the file, and showed its own placeholder for a
-// track that had a cover all along.
+// A cover embedded in a file is a video stream as far as ffmpeg is concerned, so "-vn" threw it
+// away on every transcode.
 func TestPictureIsCarriedWhereTheContainerTakesOne(t *testing.T) {
 	for _, format := range []string{"mp3", "flac"} {
 		args := pictureArgs(format, formats[format])
@@ -71,15 +61,14 @@ func TestPictureIsCarriedWhereTheContainerTakesOne(t *testing.T) {
 		if !slices.Contains(args, "copy") {
 			t.Errorf("%s re-encodes the cover instead of copying it: %v", format, args)
 		}
-		// Optional, or a file with no cover would fail to transcode at all.
 		if !slices.Contains(args, "0:v?") {
 			t.Errorf("%s requires a cover rather than taking one if there is one: %v", format, args)
 		}
 	}
 }
 
-// wav and adts have nowhere to put one, and asking ffmpeg to copy a picture
-// into them fails the whole transcode.
+// wav and adts have nowhere to put one, and asking ffmpeg to copy a picture into them fails the
+// whole transcode.
 func TestPictureIsDroppedWhereItCannotGo(t *testing.T) {
 	for _, format := range []string{"wav", "aac"} {
 		if args := pictureArgs(format, formats[format]); !slices.Contains(args, "-vn") {
@@ -100,12 +89,7 @@ func TestMP3AsksForTheTagVersionPlayersAgreeOn(t *testing.T) {
 	}
 }
 
-// An unknown format falls back to mp3, and the name has to fall back with the
-// arguments: asked about the original name, pictureArgs left out the tag version
-// players agree on and the cover went into an mp3 nothing would read it from.
-//
-// The input has to carry a cover, or this passes just as well against the bug it
-// exists for: an audio-only file transcodes either way.
+// An unknown format falls back to mp3, and the name has to fall back with the arguments.
 func TestAnUnknownFormatFallsBackWholly(t *testing.T) {
 	dir := t.TempDir()
 	out := dir + "/out.mp3"
@@ -117,8 +101,6 @@ func TestAnUnknownFormatFallsBackWholly(t *testing.T) {
 		t.Error("the cover did not survive the fallback")
 	}
 
-	// ID3v2.3 is what the arguments ask for, and reading the header is the only
-	// way to see that they were asked for: the picture survives either version.
 	header, err := os.ReadFile(out)
 	if err != nil {
 		t.Fatalf("reading the output: %v", err)
@@ -131,8 +113,8 @@ func TestAnUnknownFormatFallsBackWholly(t *testing.T) {
 	}
 }
 
-// The same, for a format that is not a fallback, so the assertion above is
-// known to be one the working path satisfies.
+// The same, for a format that is not a fallback, so the assertion above is known to be one the
+// working path satisfies.
 func TestMP3KeepsTheCoverAndTheTagVersion(t *testing.T) {
 	dir := t.TempDir()
 	out := dir + "/out.mp3"

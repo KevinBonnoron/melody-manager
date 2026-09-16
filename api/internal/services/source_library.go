@@ -7,12 +7,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 )
 
-// OwnsItsLibrary reports whether a source's server configuration *is* its
-// library: the files the operator pointed the server at. Dropping that
-// configuration drops the library with it.
-//
-// Every other source keeps its tracks: a download path is a cache's address,
-// and forgetting it costs the copy, not the track.
+// OwnsItsLibrary reports whether a source's server configuration *is* its library: the files
+// the operator pointed the server at.
 func OwnsItsLibrary(providerType string) bool {
 	mf, ok := providers.ManifestFor(providerType)
 	if !ok || mf.Scope != "public" {
@@ -28,9 +24,8 @@ func OwnsItsLibrary(providerType string) bool {
 	return false
 }
 
-// DropSourceLibrary removes what a source put in the library, and the albums
-// and artists that nothing points at afterwards. Returns the number of tracks
-// removed.
+// DropSourceLibrary removes what a source put in the library, and the albums and artists that
+// nothing points at afterwards.
 func DropSourceLibrary(app core.App, providerType string) (int, error) {
 	tracks, err := app.FindRecordsByFilter("tracks", "source = {:s}", "", 0, 0, dbx.Params{"s": providerType})
 	if err != nil {
@@ -59,9 +54,6 @@ func DropSourceLibrary(app core.App, providerType string) (int, error) {
 	return len(tracks), nil
 }
 
-// Through the filter DSL rather than CountRecords, which takes raw SQL: "~" is
-// not an SQL operator, so counting the tracks still pointing at an artist
-// errored out and every artist survived the album it was on.
 func deleteIfUnused(app core.App, collection, id, trackFilter string) {
 	if id == "" {
 		return

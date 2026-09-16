@@ -26,13 +26,7 @@ export function AlbumCard({ album }: Props) {
   const { playTrack, setQueue } = useMusicPlayer();
   const isCurrentAlbum = nowPlaying?.album === album.id;
   const { status: downloadStatus } = getAlbumDownloadStatus(tracks);
-  // An album is only lost once every one of its tracks is: some missing files
-  // still leave something to play, and greying the whole cover would say
-  // otherwise.
   const unavailable = trackCount > 0 && tracks.every((track) => track.availability === 'none');
-  // The same rule as a track grid: a track whose file is gone never reaches a
-  // queue. An album can be partly available, so playing it must not start on
-  // one of the missing ones.
   const playable = tracks.filter((track) => track.availability !== 'none');
   const coverUrl = getAlbumCoverUrl(album);
   return (
@@ -50,13 +44,6 @@ export function AlbumCard({ album }: Props) {
 
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* The gradient above was already there, waiting for this: the cover
-            darkened on hover and nothing ever appeared on it. Inside the link,
-            so the whole cover still opens the album, with the click stopped
-            short here.
-
-            Always there on a touch screen, which has no hover to reveal it with
-            and would otherwise be left tapping the cover and opening the album. */}
         {playable.length > 0 && (
           <button
             type="button"

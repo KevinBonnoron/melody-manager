@@ -80,8 +80,6 @@ export function AddMusicButton() {
   const handleAdd = async (result: SearchResult) => {
     setAddingUrls((prev) => new Set(prev).add(result.origin));
     try {
-      // Every /add route queues a task and returns it, so no track count is
-      // known yet, progress shows up in the tasks panel.
       let title = '';
       if (isTrackResult(result)) {
         await tracksClient.addFromUrl(result.origin);

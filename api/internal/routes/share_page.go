@@ -8,11 +8,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// shareGone answers a link that no longer works.
-//
-// A share link is opened by a person in a browser, not by a program, so the
-// JSON a 404 normally carries is the wrong thing to show: whoever followed the
-// link sees the raw body. Anything that asks for HTML gets a page instead.
 func shareGone(e *core.RequestEvent, reason string) error {
 	if !strings.Contains(e.Request.Header.Get("Accept"), "text/html") {
 		return e.NotFoundError("invalid share link", nil)

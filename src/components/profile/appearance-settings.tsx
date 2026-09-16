@@ -11,9 +11,6 @@ const MODES = [
   { id: 'system' as const, icon: Monitor },
 ];
 
-// The swatch shows the theme it applies, so it has to be painted with that
-// theme's own colour rather than the one in force: data-accent on the swatch
-// itself resolves --primary to the right value.
 export function AppearanceSettings() {
   const { t } = useTranslation();
   const { theme, setTheme, accent, setAccent } = useTheme();

@@ -9,10 +9,6 @@ import (
 	m "github.com/pocketbase/pocketbase/migrations"
 )
 
-// A second kind of device. Off to begin with, unlike the sources the first
-// migration seeded: a deployment that upgrades into this did not ask for
-// Chromecast, and switching it on for them would have a server start looking
-// for devices on a network whose owner never mentioned any.
 func init() {
 	m.Register(func(app core.App) error {
 		if _, err := app.FindFirstRecordByFilter("provider_settings", "type = {:t}", dbx.Params{"t": "chromecast"}); err == nil {

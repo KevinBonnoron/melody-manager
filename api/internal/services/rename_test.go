@@ -49,7 +49,6 @@ func TestCheckDestinationsRefusesATakenName(t *testing.T) {
 		t.Fatalf("got %v, want ErrNameTaken", err)
 	}
 
-	// And the refusal has to be worth something: nothing moved.
 	if !isDir(filepath.Join(root, "a")) || !isDir(filepath.Join(root, "b")) {
 		t.Fatal("a destination check moved something")
 	}
@@ -84,7 +83,6 @@ func TestApplyMovesUndoesWhatItAlreadyDidWhenOneFails(t *testing.T) {
 
 	moves := []move{
 		{from: filepath.Join(root, "one", "Old"), to: filepath.Join(root, "one", "New")},
-		// Nothing to move: os.Rename fails, and the first move has to come back.
 		{from: filepath.Join(root, "two", "Missing"), to: filepath.Join(root, "two", "New")},
 	}
 	if err := applyMoves(moves); err == nil {

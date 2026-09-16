@@ -9,9 +9,6 @@ export function useRemotePlayback() {
   const { remoteActive } = useDevices();
   const playing = remoteActive?.playing ?? false;
   const position = useReportedPosition(remoteActive);
-  // Queried rather than read straight out of the collection: a device can name a
-  // track this client has not loaded yet, and reading it once leaves the bar
-  // showing a placeholder for as long as the page lives.
   const trackId = remoteActive?.trackId ?? '';
   const { data: rows = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.id, trackId)) });
 

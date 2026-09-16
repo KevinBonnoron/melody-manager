@@ -22,8 +22,6 @@ export function CheckAlbumMenuItem({ album }: Props) {
     setIsChecking(true);
     try {
       const result = await albumsClient.check(album.id);
-      // A pass that changed nothing is the answer too, and the common one: say
-      // so rather than leave the click looking like it did not register.
       toast.success(result.changed === 0 ? t('AlbumActionsMenu.checkClean', { count: result.checked }) : t('AlbumActionsMenu.checkChanged', { count: result.changed, lost: t('AlbumActionsMenu.checkLost', { count: result.lost }) }));
     } catch {
       toast.error(t('AlbumActionsMenu.checkError'));

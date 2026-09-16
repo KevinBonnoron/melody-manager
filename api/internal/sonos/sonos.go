@@ -1,5 +1,5 @@
-// Package sonos discovers and controls Sonos players over SSDP + UPnP/SOAP
-// (replacing the @svrooij/sonos npm lib). Control port is 1400.
+// Package sonos discovers and controls Sonos players over SSDP + UPnP/SOAP (replacing the
+// @svrooij/sonos npm lib).
 package sonos
 
 import (
@@ -70,8 +70,6 @@ func Discover(ctx context.Context, timeout time.Duration) []Player {
 		if err != nil {
 			continue
 		}
-		// [^:/] used to swallow the CRLF and the rest of the SSDP packet, and
-		// mangled IPv6 literals, yielding a host that url.Parse then rejected.
 		ip := loc.Hostname()
 		if ip == "" || seen[ip] {
 			continue
@@ -84,13 +82,9 @@ func Discover(ctx context.Context, timeout time.Duration) []Player {
 	return players
 }
 
-// sonosClient bounds every call to a speaker. A device that answers SSDP and
-// then black-holes TCP would otherwise hang the caller forever.
 var sonosClient = &http.Client{Timeout: 5 * time.Second}
 
-// Describe asks a speaker who it is. A Sonos that has stopped answering
-// M-SEARCH, which they do, without warning, still serves this, so a known
-// address can be confirmed without depending on discovery answering again.
+// Describe asks a speaker who it is.
 func Describe(ctx context.Context, ip string) (Player, bool) {
 	p := Player{IP: ip, Name: "Sonos"}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+ip+":1400/xml/device_description.xml", nil)
@@ -142,8 +136,6 @@ func soap(ctx context.Context, ip, service, action, inner string) (string, error
 }
 
 // Fault is a refusal from the speaker itself, as opposed to a network failure.
-// It carries the UPnP code so a caller can tell "nothing to resume" from "the
-// speaker is unreachable" instead of reporting one opaque failure for both.
 type Fault struct {
 	Action      string
 	Code        int
@@ -157,8 +149,8 @@ func (f *Fault) Error() string {
 	return fmt.Sprintf("sonos %s: UPnP error %d", f.Action, f.Code)
 }
 
-// TransitionNotAvailable is what a speaker answers when asked to play with
-// nothing loaded on it.
+// TransitionNotAvailable is what a speaker answers when asked to play with nothing loaded on
+// it.
 const TransitionNotAvailable = 701
 
 var (
@@ -166,8 +158,6 @@ var (
 	faultDescPattern = regexp.MustCompile(`<errorDescription>([^<]*)</errorDescription>`)
 )
 
-// faultFrom pulls the UPnP error out of the SOAP body, which is where the
-// speaker says what it actually objected to.
 func faultFrom(action, body string, status int) error {
 	fault := &Fault{Action: action}
 	if m := faultCodePattern.FindStringSubmatch(body); m != nil {
@@ -204,16 +194,9 @@ func Previous(ctx context.Context, ip string) error {
 	return av(ctx, ip, "Previous", `<InstanceID>0</InstanceID>`)
 }
 
-// acceptedMimes caches what each speaker said it accepts. A player's codec
-// support is fixed for as long as it is on the network, and asking costs a SOAP
-// round trip on the path that starts playback.
 var acceptedMimes sync.Map
 
-// Accepts reports whether a speaker can be handed this MIME type over plain
-// HTTP. The list comes from the player itself rather than from a table here:
-// models differ, and a wrong guess either wastes a transcode or plays nothing.
-// A speaker that cannot be asked accepts nothing, which leaves the caller on
-// its safe default.
+// Accepts reports whether a speaker can be handed this MIME type over plain HTTP.
 func Accepts(ctx context.Context, ip, mime string) bool {
 	mimes, ok := acceptedMimes.Load(ip)
 	if !ok {
@@ -227,9 +210,6 @@ func Accepts(ctx context.Context, ip, mime string) bool {
 	return mimes.(map[string]bool)[strings.ToLower(mime)]
 }
 
-// protocolInfo asks a speaker what it can be sent. Entries read
-// "http-get:*:audio/flac:*"; only the HTTP ones concern us, the rest describe
-// transports we do not use.
 func protocolInfo(ctx context.Context, ip string) (map[string]bool, error) {
 	body, err := soap(ctx, ip, "ConnectionManager", "GetProtocolInfo", ``)
 	if err != nil {
@@ -254,9 +234,7 @@ func parseSink(body string) map[string]bool {
 	return mimes
 }
 
-// Seek to position (seconds). A speaker still loading the stream answers UPnP
-// 701, "transition not available", so the first attempt right after handing it
-// a new URI is expected to fail; it accepts the seek once buffering settles.
+// Seek to position (seconds).
 func Seek(ctx context.Context, ip string, seconds int) error {
 	var err error
 	for attempt := range seekAttempts {
@@ -319,7 +297,6 @@ func GetState(ctx context.Context, ip string) string {
 }
 
 // Position reports where playback is, in seconds, and how long the track is.
-// A speaker that is not playing anything answers zeroes.
 func Position(ctx context.Context, ip string) (elapsed int, duration int) {
 	body, err := soap(ctx, ip, "AVTransport", "GetPositionInfo", `<InstanceID>0</InstanceID>`)
 	if err != nil {
@@ -328,9 +305,7 @@ func Position(ctx context.Context, ip string) (elapsed int, duration int) {
 	return hmsToSeconds(matchTag(body, "RelTime")), hmsToSeconds(matchTag(body, "TrackDuration"))
 }
 
-// CurrentURI reports what a speaker is playing, empty when it is playing
-// nothing. A speaker outlives the server that told it what to play, so this is
-// the only way back to which track that was.
+// CurrentURI reports what a speaker is playing, empty when it is playing nothing.
 func CurrentURI(ctx context.Context, ip string) string {
 	body, err := soap(ctx, ip, "AVTransport", "GetPositionInfo", `<InstanceID>0</InstanceID>`)
 	if err != nil {
@@ -346,8 +321,6 @@ func matchTag(body, tag string) string {
 	return ""
 }
 
-// hmsToSeconds reads the "H:MM:SS" form UPnP reports positions in. Sonos
-// answers "NOT_IMPLEMENTED" for streams it cannot seek, which reads as zero.
 func hmsToSeconds(raw string) int {
 	parts := strings.Split(raw, ":")
 	if len(parts) != 3 {
@@ -365,8 +338,7 @@ func hmsToSeconds(raw string) int {
 	return total
 }
 
-// Track is what a speaker is told about what it is being handed. The speaker
-// fetches the artwork itself, so ArtURL has to be an address it can reach.
+// Track is what a speaker is told about what it is being handed.
 type Track struct {
 	URL      string
 	MimeType string
@@ -378,11 +350,6 @@ type Track struct {
 }
 
 // PlayURL hands a speaker one track, through its queue.
-//
-// Pointing the transport straight at the URL also plays it, but a speaker then
-// treats it as a stream: no duration, no progress, and the controller shows a
-// bare title. Queueing the same URL with the same metadata makes it a track,
-// which is what it is.
 func PlayURL(ctx context.Context, ip string, track Track) error {
 	uuid, err := playerUUID(ctx, ip)
 	if err != nil {
@@ -402,8 +369,6 @@ func PlayURL(ctx context.Context, ip string, track Track) error {
 		return err
 	}
 
-	// The transport plays the queue rather than the track: the track is what the
-	// queue now holds.
 	transport := `<InstanceID>0</InstanceID><CurrentURI>x-rincon-queue:` + uuid + `#0</CurrentURI><CurrentURIMetaData></CurrentURIMetaData>`
 	if err := av(ctx, ip, "SetAVTransportURI", transport); err != nil {
 		return err
@@ -414,8 +379,6 @@ func PlayURL(ctx context.Context, ip string, track Track) error {
 	return Play(ctx, ip)
 }
 
-// playerUUID is the identity a speaker's own queue is addressed by. It is fixed
-// for as long as the speaker is on the network, so it is asked for once.
 var playerUUIDs sync.Map
 
 func playerUUID(ctx context.Context, ip string) (string, error) {
@@ -428,7 +391,6 @@ func playerUUID(ctx context.Context, ip string) (string, error) {
 		return "", errors.New("sonos: the speaker did not answer with an identity")
 	}
 
-	// The description carries it as "uuid:RINCON_…"; the queue address does not.
 	uuid := strings.TrimPrefix(player.UUID, "uuid:")
 	playerUUIDs.Store(ip, uuid)
 	return uuid, nil
@@ -476,18 +438,12 @@ func atoiSafe(s string) int {
 	return n
 }
 
-// What a Sonos decodes from a file it fetches itself: 48 kHz, 24 bit. Its
-// ProtocolInfo answers in containers, so it says yes to audio/flac and then
-// stops a few seconds into a 24/192 one, having buffered what it could and
-// found nothing it could do with it. The container is the question it answers;
-// this is the one it does not.
 const (
 	maxSampleRate = 48000
 	maxBitDepth   = 24
 )
 
 // Decodes reports whether a speaker can play a file with this rate and depth.
-// A depth of zero is a lossy codec, which has none to exceed.
 func Decodes(sampleRate, bitDepth int) bool {
 	return sampleRate > 0 && sampleRate <= maxSampleRate && bitDepth <= maxBitDepth
 }

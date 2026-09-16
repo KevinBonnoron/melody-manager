@@ -17,22 +17,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 )
 
-// Speaker addresses move out of the operator's configuration file and into the
-// Sonos source's own settings, beside the music directory of one source and the
-// download path of another. They only concern a deployment that owns a speaker,
-// which is not what the configuration file is for, and there they had no screen:
-// the file was the only way to set them.
-//
-// The file is read directly rather than through the settings store, which the
-// migrations do not carry, and is left as it is. The field simply stops being
-// read.
 func init() {
 	m.Register(func(app core.App) error {
-		// A migration that fails is run again; one that returns nil is recorded as
-		// applied and never looked at twice. An unreadable or malformed file must
-		// therefore travel: swallowed, it would take the addresses with it, and on
-		// a bridged network where discovery finds nothing those addresses are the
-		// only way to reach a speaker.
 		addresses, err := speakerAddressesFromFile(config.DefaultPath())
 		if err != nil {
 			return err
@@ -46,10 +32,6 @@ func init() {
 			return err
 		}
 
-		// Only "there is no row" means there is no row. Any other failure is a
-		// failure: taken for absence it would build a second one, which the unique
-		// index on type refuses, reporting a duplicate where the truth was that
-		// the query did not run.
 		rec, err := app.FindFirstRecordByFilter("provider_config", "type = {:t}", dbx.Params{"t": "sonos"})
 		if errors.Is(err, sql.ErrNoRows) {
 			rec = core.NewRecord(col)
@@ -58,11 +40,6 @@ func init() {
 			return err
 		}
 
-		// A decode failure used to become an empty map, which this then saved over
-		// whatever was there. Nothing else validates a migration's write, so the
-		// configuration a deployment already had would have gone, silently. Better
-		// to refuse: the migration is not recorded, the operator sees why, and the
-		// data is still there when it runs again.
 		var cfg map[string]any
 		if raw := rec.GetString("config"); raw != "" && raw != "null" {
 			if err := rec.UnmarshalJSONField("config", &cfg); err != nil {
@@ -75,10 +52,6 @@ func init() {
 			cfg = map[string]any{}
 		}
 
-		// Merged rather than skipped when something is already there. An entry
-		// that exists was decided about and keeps exactly the state it was given;
-		// an address that only ever lived in the file would otherwise be dropped
-		// for having a single speaker beside it.
 		var entries []any
 		if raw, present := cfg[services.SpeakerField]; present && raw != nil {
 			list, ok := raw.([]any)
@@ -106,18 +79,11 @@ func init() {
 			if address == "" || known[address] {
 				continue
 			}
-			// Skipped rather than fatal, unlike the cases above. Those risk
-			// destroying a configuration that exists; this is an address that could
-			// never have reached a speaker anyway, and refusing to boot over a typo
-			// in a field that has just been retired helps nobody. It is named, so
-			// it is not lost quietly.
 			if !services.ValidSpeakerAddress(address) {
 				slog.Warn("legacy sonos address is not an IPv4 address, not migrated", "address", address)
 				continue
 			}
 			known[address] = true
-			// Enabled, because they were in use: the file held the ones the
-			// server was told to try.
 			entries = append(entries, map[string]any{"address": address, "enabled": true})
 		}
 		cfg[services.SpeakerField] = entries
@@ -128,8 +94,6 @@ func init() {
 	})
 }
 
-// A deployment that never had a configuration file has nothing to carry over,
-// which is not a failure. Anything else is.
 func speakerAddressesFromFile(path string) ([]string, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {

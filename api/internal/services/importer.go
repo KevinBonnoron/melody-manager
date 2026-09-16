@@ -15,8 +15,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 )
 
-// ImportKind is what the caller asked to import; it selects the bookkeeping
-// done once the tracks are persisted.
+// ImportKind is what the caller asked to import.
 type ImportKind string
 
 const (
@@ -26,9 +25,8 @@ const (
 	KindPlaylist ImportKind = "playlists"
 )
 
-// Import resolves a URL via its provider and persists the resulting tracks
-// (creating artists/albums as needed). A playlist import also gets its own
-// playlist record, and the user's library is updated so the import is visible.
+// Import resolves a URL via its provider and persists the resulting tracks (creating
+// artists/albums as needed).
 func Import(ctx context.Context, app core.App, reg *providers.Registry, url string, kind ImportKind, userID string) ([]*core.Record, error) {
 	providerID := providers.DetectFromURL(url)
 	if providerID == "" {
@@ -38,9 +36,6 @@ func Import(ctx context.Context, app core.App, reg *providers.Registry, url stri
 
 	resolver := reg.TrackResolver(providerID)
 	if resolver == nil {
-		// A catalog-only source knows the track but cannot serve its audio.
-		// Pair its metadata with a playable source rather than storing a track
-		// nothing can play.
 		catalog := reg.CatalogResolver(providerID)
 		if catalog == nil {
 			return nil, fmt.Errorf("provider %q cannot resolve tracks", providerID)
@@ -71,10 +66,6 @@ func Import(ctx context.Context, app core.App, reg *providers.Registry, url stri
 		return nil, err
 	}
 
-	// persistTrack writes an artist, then an album, then the track. Without a
-	// transaction a failure on the last step left the first two behind: an album
-	// with no track belongs to no source (source lives on tracks), so it showed
-	// up on the home screen and nowhere else.
 	out := make([]*core.Record, 0, len(resolved))
 	if err := app.RunInTransaction(func(txApp core.App) error {
 		out = out[:0]
@@ -102,8 +93,6 @@ func Import(ctx context.Context, app core.App, reg *providers.Registry, url stri
 	return out, nil
 }
 
-// persistPlaylist mirrors the record the old importer created: without it the
-// playlist routes, which are driven off playlist_ratings, never see the import.
 func persistPlaylist(ctx context.Context, app core.App, resolver providers.TrackResolver, cfg providers.Config, url string, tracks []*core.Record, userID string) error {
 	if len(tracks) == 0 {
 		return nil
@@ -139,8 +128,6 @@ func persistPlaylist(ctx context.Context, app core.App, resolver providers.Track
 	return err
 }
 
-// autoLikeAlbums makes an import show up in the user's library, the way the
-// old importer's autoLikeFromTracks did.
 func autoLikeAlbums(app core.App, userID string, tracks []*core.Record) {
 	seen := make(map[string]bool, len(tracks))
 	for _, t := range tracks {
@@ -178,20 +165,14 @@ func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*
 	if err != nil {
 		return nil, err
 	}
-	// The provider resolved a cover; without this the library came out blank.
 	if rt.CoverURL != "" && album.GetString("cover") == "" {
 		setCoverFromURL(ctx, app, album, rt.CoverURL)
 	}
 
-	// Artists were created with a name and nothing else, so every imported one
-	// showed a placeholder. Only fill an empty image: a better one may have been
-	// set elsewhere, or by hand.
 	if rt.ArtistImageURL != "" && artist.GetString("cover") == "" {
 		setCoverFromURL(ctx, app, artist, rt.ArtistImageURL)
 	}
 
-	// Chaptered tracks share a origin with siblings, so when this is a
-	// segment dedupe on (origin, title) instead of origin alone.
 	filter := "origin = {:u}"
 	params := dbx.Params{"u": rt.Origin}
 	if rt.Metadata.StartTime != nil {
@@ -239,13 +220,8 @@ func setCoverFromURL(ctx context.Context, app core.App, rec *core.Record, u stri
 	_ = app.Save(rec)
 }
 
-// playbackProvider is the source a catalog-only track falls back to for audio.
 const playbackProvider = "youtube"
 
-// resolvePlayable finds the catalog track on a source that can actually stream
-// it, and keeps the catalogue's metadata: the title, artist and cover come from
-// Spotify, the audio from YouTube. `source` follows the audio, because that is
-// what picks the stream resolver everywhere else.
 func resolvePlayable(ctx context.Context, app core.App, reg *providers.Registry, meta domain.ResolvedTrack, userID string) (domain.ResolvedTrack, error) {
 	searcher := reg.Searcher(playbackProvider)
 	resolver := reg.TrackResolver(playbackProvider)

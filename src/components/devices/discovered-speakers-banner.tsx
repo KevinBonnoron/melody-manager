@@ -5,22 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useSpeakers } from '@/hooks/use-speakers';
 import type { NetworkDevice } from '@/shared';
 
-// The nudge to look at a speaker that turned up on the network. Discovery runs
-// whatever the operator has decided, so the alternative was either playing to
-// whatever answers, or never mentioning it: this is the third option, and it is
-// the only one an admin gets a say in.
 export function DiscoveredSpeakersBanner({ type, title, found, onConfigure }: { type: string; title: string; found: NetworkDevice[]; onConfigure: () => void }) {
   const { t } = useTranslation();
   const { apply } = useSpeakers(type);
 
-  // Dismissing is a decision like any other, written down the same way: the
-  // speaker joins the list switched off, so the next pass finds it already
-  // answered rather than asking again.
   const ignore = async () => {
     try {
-      // Rebased on what is stored: an admin answering here and on the screen
-      // behind it within the same breath would otherwise have one answer put
-      // the other back.
       await apply((current) => {
         const known = new Set(current.map((speaker) => speaker.address));
         return [...current, ...found.filter((device) => !known.has(device.ipAddress)).map((device) => ({ address: device.ipAddress, enabled: false }))];

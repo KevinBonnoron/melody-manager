@@ -6,8 +6,6 @@ interface BaseProvider extends PocketBaseRecord {
   enabled: boolean;
 }
 
-// Server-level configuration, admin-only. Split out of provider_settings so the
-// collection every user reads carries no credentials.
 export interface ProviderConfig extends PocketBaseRecord {
   type: string;
   config: Record<string, unknown>;

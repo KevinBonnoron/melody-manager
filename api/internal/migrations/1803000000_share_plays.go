@@ -5,7 +5,6 @@ import (
 	m "github.com/pocketbase/pocketbase/migrations"
 )
 
-// A share link had no way of telling whether anyone ever opened it.
 func init() {
 	m.Register(func(app core.App) error {
 		links, err := app.FindCollectionByNameOrId("share_links")

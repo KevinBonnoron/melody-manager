@@ -23,8 +23,6 @@ func TestPlayURLLaunchesTheReceiverAndLoadsTheTrack(t *testing.T) {
 		t.Fatalf("PlayURL: %v", err)
 	}
 
-	// The app has to be launched before a device will take a LOAD, and the LOAD
-	// has to be addressed to the app rather than to the device.
 	if receiver.sent("LAUNCH") == nil {
 		t.Error("the media receiver was never launched")
 	}
@@ -43,7 +41,6 @@ func TestPlayURLLaunchesTheReceiverAndLoadsTheTrack(t *testing.T) {
 	if media["contentType"] != "audio/mpeg" {
 		t.Errorf("contentType = %v", media["contentType"])
 	}
-	// A device told the stream is live refuses to seek in it.
 	if media["streamType"] != "BUFFERED" {
 		t.Errorf("streamType = %v, want BUFFERED", media["streamType"])
 	}
@@ -79,8 +76,7 @@ func TestTransportAndPositionComeBackFromTheDevice(t *testing.T) {
 	}
 }
 
-// Pause is what tells the two ids apart: it is addressed to the app, and it
-// carries the media session the device handed back when it took the LOAD.
+// Pause is what tells the two ids apart.
 func TestPauseCarriesTheMediaSession(t *testing.T) {
 	receiver := startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -106,9 +102,8 @@ func TestPauseCarriesTheMediaSession(t *testing.T) {
 	}
 }
 
-// Nothing loaded is not a failure to report against the device, and asking
-// anyway has it answer INVALID_MEDIA_SESSION_ID, which says the same later and
-// less well.
+// Nothing loaded is not a failure to report against the device, and asking anyway has it answer
+// INVALID_MEDIA_SESSION_ID, which says the same later and less well.
 func TestCommandsRefuseWhenNothingIsLoaded(t *testing.T) {
 	startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -125,8 +120,6 @@ func TestVolumeRoundTrips(t *testing.T) {
 	t.Cleanup(func() { closeAll(d) })
 
 	ctx := context.Background()
-	// The device speaks in a fraction of full scale and the rest of the server in
-	// percent, so the conversion is worth seeing both ways.
 	if got := d.Volume(ctx, fake); got != 40 {
 		t.Errorf("Volume = %d, want 40", got)
 	}
@@ -138,8 +131,7 @@ func TestVolumeRoundTrips(t *testing.T) {
 	}
 }
 
-// One session per device: two would have each undo the other, and a device
-// drops a sender that opens a second connection without closing the first.
+// One session per device.
 func TestOneSessionPerDevice(t *testing.T) {
 	startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -159,8 +151,8 @@ func TestOneSessionPerDevice(t *testing.T) {
 	}
 }
 
-// A device that went away and came back gets a new session rather than commands
-// posted into a closed socket.
+// A device that went away and came back gets a new session rather than commands posted into a
+// closed socket.
 func TestASessionThatDiedIsReopened(t *testing.T) {
 	startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -201,11 +193,7 @@ func closeAll(d *Devices) {
 	}
 }
 
-// A device drops a sender that stops answering its heartbeat. Nothing in a test
-// runs long enough for the ticker to fire, so the half that matters here is the
-// other one: a PING arriving from the device has to come back as a PONG, or a
-// real session dies about ten seconds in and every command after that is posted
-// into a socket nobody is reading.
+// A device drops a sender that stops answering its heartbeat.
 func TestADevicePingIsAnswered(t *testing.T) {
 	receiver := startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -221,9 +209,8 @@ func TestADevicePingIsAnswered(t *testing.T) {
 	_ = c
 }
 
-// Status arrives unprompted whenever somebody else touches the device, from its
-// own app or a phone in the same room. Dropping those would have this server
-// reporting a volume nobody is at.
+// Status arrives unprompted whenever somebody else touches the device, from its own app or a
+// phone in the same room.
 func TestUnpromptedStatusIsKept(t *testing.T) {
 	receiver := startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -255,9 +242,7 @@ func waitFor(t *testing.T, done func() bool) {
 	t.Fatal("timed out waiting")
 }
 
-// A device answers a request it will not carry out with the same requestId as
-// one it will. Without reading the type, a pause or a seek the receiver refused
-// came back as success and nothing upstream ever learned otherwise.
+// A device answers a request it will not carry out with the same requestId as one it will.
 func TestARefusalIsAnError(t *testing.T) {
 	for _, payload := range []string{
 		`{"type":"INVALID_REQUEST","requestId":1,"reason":"INVALID_MEDIA_SESSION_ID"}`,
@@ -280,8 +265,8 @@ func TestARefusalIsAnError(t *testing.T) {
 	}
 }
 
-// A socket can stay writable long after the device behind it stopped listening,
-// so a write that succeeds says nothing. The answer to the last ping does.
+// A socket can stay writable long after the device behind it stopped listening, so a write that
+// succeeds says nothing.
 func TestASilentPeerIsDropped(t *testing.T) {
 	startReceiver(t)
 	d := &Devices{conns: map[string]*conn{}}
@@ -292,7 +277,6 @@ func TestASilentPeerIsDropped(t *testing.T) {
 		t.Fatalf("session: %v", err)
 	}
 
-	// One beat goes unanswered, as it would against a half-open socket.
 	c.mu.Lock()
 	c.awaitingPong = true
 	c.mu.Unlock()

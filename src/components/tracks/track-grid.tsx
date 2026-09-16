@@ -17,8 +17,6 @@ export function TrackGrid({ tracks, provider }: Props) {
   const { playTrack, togglePlayPause, currentTrack, isLoading, setQueue } = useMusicPlayer();
   const { track: nowPlaying, isPlaying } = useNowPlaying();
   const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.source === provider.type)), [tracks, provider]);
-  // A track whose file is gone never reaches a queue: skipping it at playback
-  // time would look like a player fault rather than a missing file.
   const playableTracks = useMemo(() => filteredTracks.filter((track) => track.availability !== 'none'), [filteredTracks]);
   const handlePlayTrack = useCallback(
     (track: Track) => {

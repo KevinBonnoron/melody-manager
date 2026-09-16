@@ -39,8 +39,6 @@ export function SourcePage({ type }: Props) {
   const { tab } = useSearch({ from: '/sources/$type' });
   const navigate = useNavigate({ from: '/sources/$type' });
   const { manifests } = usePlugins();
-  // Enabled, like the list this page is reached from: a disabled provider has no
-  // page, or typing its address would walk straight into its connection flow.
   const { data: provider } = useLiveQuery({
     query: (q) =>
       q
@@ -128,9 +126,6 @@ export function SourcePage({ type }: Props) {
 
 type EmptyTabInfo = { title: string; description: string; action: 'connect' | 'search' };
 
-// Offering to connect a source the server has no credentials of its own for
-// leads to a connection that cannot fetch anything, so searching is all that is
-// left to offer.
 function resolveEmptyTab(tab: SourceTab, counts: { artists: number; albums: number; tracks: number }, status: string, connectable: boolean): EmptyTabInfo | null {
   const action = status === 'unlinked' && connectable ? 'connect' : 'search';
   if (tab === 'artists') {
@@ -162,8 +157,6 @@ function Section({ title, count, children, bare, onSeeAll }: { title: string; co
     return <section>{children}</section>;
   }
 
-  // The heading counts everything the source holds while the grid below shows a
-  // preview of it, so without this the numbers looked like missing tracks.
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between gap-3">

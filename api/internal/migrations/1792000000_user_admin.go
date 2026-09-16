@@ -6,10 +6,6 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-// Admins could list every account but not act on any: update and delete were
-// pinned to "id = @request.auth.id", so the admin screen could only ever be a
-// read-only list. Role changes stay gated by a hook, the rule alone cannot
-// express "an admin may change someone else's role, nobody may change theirs".
 func init() {
 	m.Register(func(app core.App) error {
 		users, err := app.FindCollectionByNameOrId("users")

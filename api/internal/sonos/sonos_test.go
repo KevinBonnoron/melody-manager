@@ -5,9 +5,6 @@ import (
 	"testing"
 )
 
-// A Sonos Beam's own answer: only the http-get entries describe the transport
-// we hand it a URL over, and x-file-cifs or sonos.com-http must not be read as
-// support for a stream we serve ourselves.
 const beamProtocolInfo = `<Sink>http-get:*:audio/mpeg:*,http-get:*:audio/mp3:*,x-file-cifs:*:audio/mpeg:*,` +
 	`http-get:*:audio/flac:*,x-file-cifs:*:audio/flac:*,sonos.com-http:*:audio/mp4:*,` +
 	`http-get:*:audio/wav:*,x-file-cifs:*:audio/x-ms-wma:*,http-get:*:application/ogg:*</Sink>`
@@ -34,8 +31,8 @@ func TestParseSinkEmpty(t *testing.T) {
 	}
 }
 
-// The speaker fetches the artwork itself from what the metadata names, so an
-// absent cover has to leave the element out rather than name nothing.
+// The speaker fetches the artwork itself from what the metadata names, so an absent cover has
+// to leave the element out rather than name nothing.
 func TestDidlLiteArtwork(t *testing.T) {
 	with := didlLite(Track{URL: "http://host/s", MimeType: "audio/mpeg", Title: "T", ArtURL: "http://host/c.jpg?thumb=500x500"})
 	if !strings.Contains(with, "<upnp:albumArtURI>http://host/c.jpg?thumb=500x500</upnp:albumArtURI>") {

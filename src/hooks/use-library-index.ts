@@ -6,16 +6,6 @@ import { genreCollection } from '@/collections/genre.collection';
 import { trackCollection } from '@/collections/track.collection';
 import type { Album, Artist, Genre, Track } from '@/shared';
 
-// Every collection is synced whole, so a record's relations are already here
-// under their own identity. Asking the server to expand them again shipped a
-// second copy of the same rows, and a copy is a snapshot: renaming an album
-// left a stale name inside every track that carried one.
-//
-// The indexes are built once for the whole application rather than once per
-// component: a grid of a thousand track cards asked for three of them each,
-// which is three thousand live queries over the same three collections and a
-// second of work before anything appeared.
-
 function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]));
 }
@@ -65,8 +55,6 @@ export function useTracksById(): Map<string, Track> {
   return useContext(LibraryIndexContext).tracks;
 }
 
-// Resolves a list of relation ids, dropping the ones not yet synced rather than
-// leaving holes the callers would each have to filter out.
 export function resolveAll<T>(ids: readonly string[] | undefined, index: Map<string, T>): T[] {
   if (!ids) {
     return [];

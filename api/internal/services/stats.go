@@ -17,8 +17,8 @@ type monthRow struct {
 	Count int    `db:"count"`
 }
 
-// Overview returns aggregate listening stats for a user, in the shape the
-// stats page consumes (see StatsData in src/components/stats/stats-page.tsx).
+// Overview returns aggregate listening stats for a user, in the shape the stats page consumes
+// (see StatsData in src/components/stats/stats-page.tsx).
 func Overview(app core.App, userID string) map[string]any {
 	params := dbx.Params{"u": userID}
 
@@ -47,7 +47,6 @@ func Overview(app core.App, userID string) map[string]any {
 		WHERE tp.user = {:u} AND t.album != ''
 		GROUP BY t.album ORDER BY count DESC LIMIT {:n}`, params)
 
-	// artists and genres are multi-relations, stored as JSON arrays.
 	topArtists := groupCount(app, `
 		SELECT je.value AS id, COUNT(*) AS count
 		FROM track_plays tp JOIN tracks t ON t.id = tp.track, json_each(t.artists) je

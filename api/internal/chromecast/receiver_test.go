@@ -15,10 +15,6 @@ import (
 	"time"
 )
 
-// fakeReceiver is a Chromecast as far as this client can tell: TLS on a port it
-// is told about, framed CASTV2 messages, a receiver that launches an app and a
-// media session inside it. It answers the way the protocol says a device does,
-// which is the part that can be checked without one in the room.
 type fakeReceiver struct {
 	t        *testing.T
 	listener net.Listener
@@ -187,9 +183,6 @@ func (r *fakeReceiver) sent(kind string) map[string]any {
 	return nil
 }
 
-// ping and announceVolume are the device talking first, which is half of what a
-// real one does: it pings, and it says what it is doing whenever anybody else
-// touches it.
 func (r *fakeReceiver) ping() {
 	r.say(nsHeartbeat, map[string]any{"type": "PING"})
 }
@@ -199,7 +192,6 @@ func (r *fakeReceiver) announceVolume(level float64) {
 	r.volume = level
 	status := r.receiverStatus(nil)
 	r.mu.Unlock()
-	// No requestId: nobody asked.
 	delete(status, "requestId")
 	r.say(nsReceiver, status)
 }

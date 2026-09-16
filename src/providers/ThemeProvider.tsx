@@ -2,9 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 
-// The colour the interface is built around. Everything tinted derives from
-// --primary, so a theme is one variable and the rest follows: buttons, rings,
-// the sidebar mark, the scrollbar.
 export const ACCENTS = ['violet', 'emerald', 'amber', 'rose', 'sky'] as const;
 export type Accent = (typeof ACCENTS)[number];
 

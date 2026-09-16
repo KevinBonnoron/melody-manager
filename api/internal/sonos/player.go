@@ -10,10 +10,7 @@ import (
 // Kind is the provider a Sonos speaker is configured under.
 const Kind = "sonos"
 
-// Speakers adapts this package to the shape the rest of the server asks in. The
-// functions below keep their own names and signatures: they are what the SOAP
-// calls look like, and a test of this package should read as Sonos, not as an
-// interface it happens to satisfy.
+// Speakers adapts this package to the shape the rest of the server asks in.
 type Speakers struct{}
 
 func NewPlayer() players.Player { return Speakers{} }

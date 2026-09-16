@@ -12,7 +12,6 @@ async function initializeApp() {
     throw new Error("Root element not found. Check if it's in your index.html or if the id is correct.");
   }
 
-  // Render the app
   if (!rootElement.innerHTML) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(

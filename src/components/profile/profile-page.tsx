@@ -120,9 +120,6 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Left-aligned like every other screen, and laid out like the library
-          headers: portrait, then who it is. It used to be a narrow centred
-          column, alone in the application. */}
       <div className="flex items-center gap-4">
         <button type="button" className="relative group" onClick={() => fileInputRef.current?.click()} disabled={isUploadingAvatar}>
           <Avatar className="h-24 w-24">
@@ -139,7 +136,6 @@ export function ProfilePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        {/* Name */}
         <Card className="p-4">
           <form onSubmit={handleUpdateName} className="space-y-3">
             <Label htmlFor="name">{t('ProfilePage.name')}</Label>
@@ -151,7 +147,6 @@ export function ProfilePage() {
           </form>
         </Card>
 
-        {/* Password */}
         <Card className="p-4 lg:row-span-2">
           <form onSubmit={handleUpdatePassword} className="space-y-3">
             <h3 className="font-semibold">{t('ProfilePage.changePassword')}</h3>
@@ -181,7 +176,6 @@ export function ProfilePage() {
 
       <Separator />
 
-      {/* Logout */}
       <Button variant="destructive" className="w-fit" onClick={handleLogout}>
         <LogOut className="h-4 w-4" />
         {t('SignOutDropdownMenuItem.label')}

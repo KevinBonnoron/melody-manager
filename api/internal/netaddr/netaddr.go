@@ -1,12 +1,11 @@
-// Package netaddr lists the addresses other machines on the network can reach
-// this one at, so an operator does not have to go looking for them.
+// Package netaddr lists the addresses other machines on the network can reach this one at, so
+// an operator does not have to go looking for them.
 package netaddr
 
 import "net"
 
-// Candidates lists the addresses this machine could plausibly be reached at,
-// private ranges first: a LAN address is what a speaker or a phone needs, and a
-// public one is rarely what a self-hosted server actually answers on.
+// Candidates lists the addresses this machine could plausibly be reached at, private ranges
+// first.
 func Candidates() []string {
 	var private, other []string
 	for _, addr := range usableAddresses() {
@@ -20,8 +19,6 @@ func Candidates() []string {
 	return append(private, other...)
 }
 
-// usableAddresses skips what no other machine can use: interfaces that are
-// down, the loopback, and link-local addresses nobody routes to.
 func usableAddresses() []*net.IPNet {
 	interfaces, err := net.Interfaces()
 	if err != nil {

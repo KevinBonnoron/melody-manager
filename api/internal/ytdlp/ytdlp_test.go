@@ -5,9 +5,7 @@ import (
 	"testing"
 )
 
-// Ported from the deleted server/src/utils/yt-dlp.util.test.ts: this parser
-// splits an album upload into tracks, so a regression here silently produces
-// one giant track instead of a tracklist.
+// Ported from the deleted server/src/utils/yt-dlp.util.test.ts.
 func TestParseChapters(t *testing.T) {
 	type want struct {
 		title string
@@ -79,7 +77,6 @@ func TestParseChapters(t *testing.T) {
 			},
 		},
 		{
-			// Regression from main's 2216e8e.
 			name:     "dash-separated track numbers",
 			text:     "1-01 Main Theme 0:00\n1-02 Opening [Episode One]  01:10\n1-03 The Book [First Episode]  01:52",
 			duration: 800,
@@ -133,8 +130,8 @@ func TestParseChapters(t *testing.T) {
 	}
 }
 
-// yt-dlp reads any argv entry starting with "-" as an option, so a URL that is
-// not really a URL must never reach the command line.
+// yt-dlp reads any argv entry starting with "-" as an option, so a URL that is not really a URL
+// must never reach the command line.
 func TestValidateURL(t *testing.T) {
 	valid := []string{
 		"https://www.youtube.com/watch?v=abc",

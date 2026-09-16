@@ -76,11 +76,9 @@ export function HistoryPage() {
       .filter(Boolean) as { play: TrackPlay; track: Track; providerType: string; bucket: TimeBucket }[];
   }, [trackPlays, trackMap, now]);
 
-  // Stats
   const totalPlays = recentlyPlayed.length;
   const totalDuration = useMemo(() => recentlyPlayed.reduce((sum, item) => sum + (item.track.duration ?? 0), 0), [recentlyPlayed]);
 
-  // Breakdown by provider type
   const breakdown = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const item of recentlyPlayed) {
@@ -92,7 +90,6 @@ export function HistoryPage() {
 
   const providerTypes = useMemo(() => Object.keys(breakdown).sort((a, b) => breakdown[b] - breakdown[a]), [breakdown]);
 
-  // Filtering
   const filtered = useMemo(() => {
     return recentlyPlayed.filter((item) => {
       if (sourceFilter !== 'all' && item.providerType !== sourceFilter) {
@@ -125,7 +122,6 @@ export function HistoryPage() {
     });
   }, [recentlyPlayed, sourceFilter, periodFilter, query, artistMap]);
 
-  // Temporal grouping
   const grouped = useMemo(() => {
     const order: TimeBucket[] = ['today', 'week', 'month', 'older'];
     const labels: Record<TimeBucket, string> = {
@@ -168,7 +164,6 @@ export function HistoryPage() {
 
   return (
     <div className="space-y-5">
-      {/* Stats header */}
       <div className="grid grid-cols-[auto_auto_1fr] gap-6 sm:gap-7 items-center rounded-xl border bg-card/50 p-4 sm:p-5">
         <div>
           <div className="text-3xl font-bold tabular-nums leading-none">{totalPlays}</div>
@@ -183,7 +178,6 @@ export function HistoryPage() {
         <div className="min-w-0 space-y-2">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('HistoryPage.bySource')}</div>
 
-          {/* Breakdown bar */}
           <div className="flex h-2 rounded-full overflow-hidden bg-muted">
             {providerTypes.map((type) => {
               const pct = totalPlays > 0 ? (breakdown[type] / totalPlays) * 100 : 0;
@@ -204,7 +198,6 @@ export function HistoryPage() {
             })}
           </div>
 
-          {/* Legend */}
           <div className="flex gap-3 flex-wrap items-center">
             {providerTypes.map((type) => (
               <button
@@ -229,7 +222,6 @@ export function HistoryPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
         <div className="flex items-center gap-2 rounded-lg border bg-card/50 px-3 py-2 flex-1 sm:max-w-sm">
           <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -250,7 +242,6 @@ export function HistoryPage() {
         </div>
       </div>
 
-      {/* Grouped list */}
       {grouped.length === 0 ? (
         <div className="py-10 text-center text-muted-foreground text-sm border border-dashed rounded-xl">{t('HistoryPage.noResults')}</div>
       ) : (

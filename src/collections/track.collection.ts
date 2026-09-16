@@ -10,7 +10,6 @@ export const trackCollection = createCollection(
   }),
 );
 
-// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
 trackCollection.createIndex((row) => row.id, { indexType: BasicIndex });
 trackCollection.createIndex((row) => row.album, { indexType: BasicIndex });
 trackCollection.createIndex((row) => row.source, { indexType: BasicIndex });

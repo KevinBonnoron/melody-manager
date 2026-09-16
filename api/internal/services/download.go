@@ -22,8 +22,6 @@ import (
 
 var unsafeFilenameChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
 
-// sanitizeFilename mirrors the naming the old server used, so a library
-// downloaded before the migration keeps the same shape.
 func sanitizeFilename(name string) string {
 	name = unsafeFilenameChars.ReplaceAllString(name, "_")
 	name = strings.Join(strings.Fields(name), " ")
@@ -33,7 +31,6 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
-// artistName prefers the track's own artist and falls back to the album's.
 func artistName(app core.App, track, album *core.Record) string {
 	for _, ids := range [][]string{track.GetStringSlice("artists"), album.GetStringSlice("artists")} {
 		if len(ids) == 0 {
@@ -48,8 +45,6 @@ func artistName(app core.App, track, album *core.Record) string {
 	return "Unknown Artist"
 }
 
-// trackArtists names everyone credited on the track, in the form a tag can
-// hold and splitArtistName can take apart again on the way back in.
 func trackArtists(app core.App, track, album *core.Record) string {
 	ids := track.GetStringSlice("artists")
 	if len(ids) == 0 {
@@ -71,10 +66,8 @@ func trackArtists(app core.App, track, album *core.Record) string {
 	return strings.Join(names, "; ")
 }
 
-// DownloadAlbum downloads an album's tracks to the provider's configured
-// downloadPath and points each track at the local file. Tracks sharing a source
-// URL (chaptered YouTube albums) are downloaded once then segmented per chapter.
-// Runs in the background and reports progress via the task service.
+// DownloadAlbum downloads an album's tracks to the provider's configured downloadPath and
+// points each track at the local file.
 func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audio *cache.Cache, taskID, albumID string) {
 	fail := func(err error) {
 		taskSvc.Update(taskID, func(t *tasks.Task) { t.Status = tasks.Failed; t.Error = err.Error() })
@@ -129,8 +122,6 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 			return
 		}
 
-		// artist/album/NN - Title.ext, the layout any music player expects :
-		// flat files named after a record id are unusable outside the app.
 		albumDir := filepath.Join(dir, sanitizeFilename(artistName(app, grp[0], album)), sanitizeFilename(album.GetString("name")))
 		if err := os.MkdirAll(albumDir, 0o755); err != nil {
 			fail(err)
@@ -156,10 +147,6 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 				number = *meta.TrackNumber
 			}
 			out := filepath.Join(albumDir, fmt.Sprintf("%02d - %s%s", number, sanitizeFilename(t.GetString("title")), ext))
-			// Copy rather than re-encode: the point of downloading is to keep
-			// the source quality, and it is much faster. The tags are written
-			// in the same pass, since a file carrying none reads back as
-			// "Unknown Artist" to the scanner and to every other player.
 			tags := []ffmpeg.Tag{
 				{Name: "title", Value: t.GetString("title")},
 				{Name: "artist", Value: trackArtists(app, t, album)},
@@ -171,8 +158,6 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 				tags = append(tags, ffmpeg.Tag{Name: "date", Value: strconv.Itoa(year)})
 			}
 			if err := ffmpeg.SaveSegmentCopy(ctx, tmp, start, end, out, tags...); err != nil {
-				// Remember why, so a run where every track fails does not end up
-				// reported as a success with nothing to show for it.
 				app.Logger().Warn("album download: segment failed", "track", t.Id, "error", err)
 				if firstErr == nil {
 					firstErr = fmt.Errorf("%s: %w", t.GetString("title"), err)
@@ -181,8 +166,6 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 			}
 			t.Set("availability", AvailabilityFile)
 			_ = app.Save(t)
-			// The track plays from disk now, so the extract cached for it is
-			// dead weight.
 			if audio != nil {
 				audio.Forget(segmentKey(u, start, end))
 			}
@@ -201,7 +184,6 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 		t.Status = tasks.Completed
 		t.Progress = 100
 		if firstErr != nil {
-			// Partial success is still a success, but say what was skipped.
 			t.Error = fmt.Sprintf("%d of %d tracks failed, first: %v", total-done, total, firstErr)
 		}
 	})

@@ -31,20 +31,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
 
-// Register mounts the melody-specific endpoints. PocketBase already serves
-// /api/health, /api/collections/* (used by the client to read library data),
-// /api/realtime, /api/files/* and auth.
-// appShellCORS answers the desktop and mobile shells with their own origin.
-//
-// Those clients are served from a scheme of their own, wails:// or capacitor://,
-// so every call they make is cross-origin. PocketBase answers with a wildcard,
-// which a WebKit webview refuses for a non-http scheme: it wants the exact
-// origin echoed back. Nothing is widened here, the wildcard already allowed
-// everyone; the header is narrowed so that a webview will accept it.
 func appShellCORS() *hook.Handler[*core.RequestEvent] {
 	return &hook.Handler[*core.RequestEvent]{
-		// Ahead of PocketBase's own, which would otherwise answer the preflight
-		// and stop there.
 		Priority: apis.DefaultCorsMiddlewarePriority - 1,
 		Func: func(e *core.RequestEvent) error {
 			origin := e.Request.Header.Get("Origin")
@@ -56,10 +44,6 @@ func appShellCORS() *hook.Handler[*core.RequestEvent] {
 			header.Set("Access-Control-Allow-Origin", origin)
 			header.Add("Vary", "Origin")
 			if e.Request.Method != http.MethodOptions {
-				// PocketBase's own CORS runs after this one and would overwrite
-				// the header with its wildcard. Without an Origin to read it
-				// leaves the response alone, which is what we want: the answer
-				// has already been written here.
 				e.Request.Header.Del("Origin")
 				return e.Next()
 			}
@@ -73,9 +57,6 @@ func appShellCORS() *hook.Handler[*core.RequestEvent] {
 	}
 }
 
-// isAppShellOrigin reports whether an origin belongs to a client shipped as an
-// application rather than opened in a browser: those are the ones served from
-// their own scheme.
 func isAppShellOrigin(origin string) bool {
 	scheme, _, found := strings.Cut(origin, "://")
 	return found && scheme != "http" && scheme != "https"
@@ -84,10 +65,6 @@ func isAppShellOrigin(origin string) bool {
 func Register(se *core.ServeEvent, deps *app.Deps) {
 	se.Router.Bind(appShellCORS())
 
-	// Endpoints that cannot carry an Authorization header: <audio> elements set
-	// the URL directly and Sonos speakers fetch it themselves. They authenticate
-	// with a short-lived token in the query string instead (streamUserID), and
-	// share links are meant to be opened by anonymous recipients.
 	se.Router.GET("/api/tracks/{id}/stream", func(e *core.RequestEvent) error {
 		trackID := e.Request.PathValue("id")
 		uid, errResp := streamUserID(e, trackID)
@@ -96,11 +73,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		}
 		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, trackID, e.Request.URL.Query().Get("transcode"), uid)
 	})
-	// A stable, public address for an album's artwork. Outside the authenticated
-	// group for the same reason as the stream above: the speaker fetches it itself
-	// and has no way to authenticate. The file was already public, this only gives
-	// it a plain path with no query string, which Sonos is less fussy about than
-	// the shape PocketBase happens to file it under.
 	se.Router.GET("/api/albums/{id}/cover", func(e *core.RequestEvent) error {
 		album, err := e.App.FindRecordById("albums", e.Request.PathValue("id"))
 		if err != nil {
@@ -118,8 +90,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		}
 		defer fsys.Close()
 
-		// The smaller copy is the one worth sending over the network; the
-		// original is there when it was never generated.
 		base := album.BaseFilesPath()
 		thumb := fmt.Sprintf("%s/thumbs_%s/%s_%s", base, name, coverThumbSize, name)
 		if err := fsys.Serve(e.Response, e.Request, thumb, name); err == nil {
@@ -129,14 +99,10 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 
 	se.Router.GET("/api/tracks/{id}/peaks", func(e *core.RequestEvent) error {
-		// The waveform is drawn from the same audio, so it is reached the same way
-		// and by the same permission.
 		uid, errResp := streamUserID(e, e.Request.PathValue("id"))
 		if errResp != nil {
 			return errResp
 		}
-		// The waveform is decoration: a source we cannot decode must not turn into
-		// a failed request, it just means no waveform.
 		peaks, err := services.TrackPeaks(e.Request.Context(), e.App, deps.Registry, deps.Cache, e.Request.PathValue("id"), uid)
 		if err != nil {
 			e.App.Logger().Warn("peaks unavailable", "track", e.Request.PathValue("id"), "error", err)
@@ -153,8 +119,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return shareGone(e, "expired")
 		}
 
-		// Range requests are how a player seeks, so only the first one counts as
-		// somebody listening.
 		if e.Request.Header.Get("Range") == "" {
 			link.Set("plays", link.GetInt("plays")+1)
 			if err := e.App.Save(link); err != nil {
@@ -165,10 +129,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, link.GetString("track"), e.Request.URL.Query().Get("transcode"), "")
 	})
 
-	// One endpoint, answering to what the caller is allowed to see: the login
-	// screen needs a single flag before anyone is authenticated, the admin page
-	// needs the whole file. Registered outside the group so the blanket auth
-	// requirement does not apply.
 	se.Router.GET("/api/config", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.JSON(http.StatusOK, map[string]any{"registrationAllowed": deps.Config.Get().RegistrationAllowed})
@@ -183,10 +143,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g := se.Router.Group("/api")
 	g.Bind(apis.RequireAuth())
 
-	// Mints the token the player and Sonos append to stream URLs.
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
-		// Per track: a token that opened anything the listener could read was a
-		// session in a query string, and stream URLs are made to be handed out.
 		trackID := e.Request.URL.Query().Get("track")
 		if trackID == "" {
 			return e.BadRequestError("missing track", nil)
@@ -199,8 +156,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 
 	g.GET("/plugins", func(e *core.RequestEvent) error {
-		// provider_config is admin-only, so the client cannot tell whether a
-		// source has what its manifest says search needs. Answer it here.
 		manifests := providers.Manifests()
 		out := make([]providers.Manifest, 0, len(manifests))
 		for _, mf := range manifests {
@@ -210,10 +165,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, out)
 	})
 
-	// --- Configuration ---
-	// Candidates rather than one answer: a machine with Wi-Fi, Ethernet and a
-	// docker bridge has several addresses and only the operator knows which one
-	// the speakers and phones sit behind.
 	g.GET("/config/address-candidates", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
@@ -224,7 +175,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			scheme = "https"
 		}
 
-		// The port the caller reached us on is the one that demonstrably works.
 		port := ""
 		if _, p, err := net.SplitHostPort(e.Request.Host); err == nil {
 			port = p
@@ -244,8 +194,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.ForbiddenError("admin only", nil)
 		}
 
-		// Bound onto the current values, so a partial body only changes what it
-		// carries rather than resetting the rest to zero.
 		next := deps.Config.Get()
 		if err := e.BindBody(&next); err != nil {
 			return e.BadRequestError("invalid configuration", err)
@@ -256,13 +204,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, next)
 	})
 
-	// --- Devices (Sonos speakers and the user's own open clients) ---
 	g.GET("/devices", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, map[string]any{"success": true, "data": deps.Devices.List(userID(e))})
 	})
-	// No register/heartbeat pair: a client declares itself when it opens its
-	// stream and is gone the moment that stream ends. Only what it is playing
-	// still has to be pushed, and only when it actually changes.
 	g.POST("/devices/{id}/state", func(e *core.RequestEvent) error {
 		uid := userID(e)
 		if uid == "" {
@@ -284,8 +228,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	})
 	g.POST("/devices/{id}/play/{trackId}", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
 	g.POST("/devices/{id}/play", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
-	// Method expressions, so the route names the thing to do and the device says
-	// who does it. A client of the user's own is told over its own stream instead.
 	g.POST("/devices/{id}/pause", deviceAction(deps, "pause", players.Player.Pause))
 	g.POST("/devices/{id}/stop", deviceAction(deps, "stop", players.Player.Stop))
 	g.POST("/devices/{id}/next", deviceAction(deps, "next", players.Player.Next))
@@ -295,9 +237,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if !ok {
 			return e.NotFoundError("device not found", nil)
 		}
-		// Seconds, not a whole number of them: the target comes from a click on a
-		// progress bar. Binding it as an int silently left it at zero, and the
-		// speaker obediently went back to the start of the track.
 		var body struct {
 			Position float64 `json:"position"`
 		}
@@ -365,8 +304,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if typ == "" {
 			typ = domain.ResultTrack
 		}
-		// The request context, so an aborted search stops the yt-dlp processes
-		// it spawned instead of running them to completion.
 		results, provErrs := services.SearchProviders(e.Request.Context(), e.App, deps.Registry, body.Query, typ, userID(e))
 		return e.JSON(http.StatusOK, toSearchResponse(results, provErrs))
 	})
@@ -382,8 +319,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusAccepted, services.ScanLocalTask(context.Background(), e.App, deps.Tasks))
 	})
 
-	// Marks what can no longer be played instead of deleting it: the likes, the
-	// play counts and the playlists pointing at a track outlive its file.
 	g.POST("/library/check", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
@@ -407,10 +342,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusAccepted, task)
 	})
 
-	// An admin is a role on a record, not a PocketBase superuser, so it cannot
-	// set someone else's email or password through the collection API: both go
-	// through a confirmation flow there. Everything else about a user is an
-	// ordinary field the update rule already allows.
 	g.PATCH("/users/{id}/credentials", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
@@ -455,9 +386,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusAccepted, task)
 	})
 
-	// Renaming moves the folders on disk with the record, so the library and
-	// the filesystem keep saying the same thing. It refuses rather than merges
-	// when the destination is taken, and nothing is moved when it refuses.
 	g.PATCH("/albums/{id}", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
@@ -500,8 +428,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
 	})
 
-	// Both answer about one album and finish in the time of the request, so
-	// neither is worth a background task the caller would then have to follow.
 	g.POST("/albums/{id}/check", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
@@ -576,8 +502,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, r)
 	})
 
-	// A playlist of one's own: manual, empty, and in the library of whoever
-	// asked for it, since that membership is what every playlist screen reads.
 	g.POST("/playlists", func(e *core.RequestEvent) error {
 		uid := userID(e)
 		if uid == "" {
@@ -668,9 +592,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, rec)
 	})
 
-	// One stream for everything the server pushes: browsers cap concurrent
-	// connections per origin, and a long-lived one holds a slot for as long as
-	// the tab stays open.
 	g.POST("/events", func(e *core.RequestEvent) error {
 		return streamEvents(e, deps)
 	})
@@ -711,11 +632,6 @@ func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestE
 	}
 }
 
-// An idle stream carries no bytes for as long as nothing changes, which is
-// exactly what proxies reap. It is a named event rather than a comment line so
-// that it also serves as proof of life: a stream that ends cleanly raises no
-// error a browser can see, and without something arriving on a known schedule a
-// client cannot tell a quiet server from a dead one.
 const sseKeepAlive = 25 * time.Second
 
 func writeKeepAlive(w io.Writer, flusher http.Flusher) {
@@ -725,8 +641,6 @@ func writeKeepAlive(w io.Writer, flusher http.Flusher) {
 	}
 }
 
-// Events carried by the stream. One list, so what travels on it is readable in
-// one place instead of being pieced together from the call sites.
 const (
 	eventRegistered = "registered" // this client's own device, once, on connect
 	eventDevices    = "devices"    // the user's device list, whenever it changes
@@ -737,16 +651,11 @@ const (
 
 func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	owner := userID(e)
-	// The body has to be read before anything is written back: once the response
-	// headers are out, the request body is no longer reliably readable, and the
-	// identity silently comes back empty.
 	var identity struct {
 		Type    string `json:"type"`
 		Session string `json:"session"`
 		Name    string `json:"name"`
 	}
-	// Tolerated empty on purpose, unlike the commands above: a client that only
-	// wants to listen sends no identity and registers no device.
 	_ = e.BindBody(&identity)
 
 	var registered *devices.Device
@@ -766,8 +675,6 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	h.Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 	flusher, _ := w.(http.Flusher)
-	// Flush the headers straight away: without any data the client would sit in
-	// CONNECTING until the first event, which may never come.
 	if flusher != nil {
 		flusher.Flush()
 	}
@@ -819,8 +726,6 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	}
 }
 
-// streamUserID authenticates a request for one track's audio, either from the
-// Authorization header or from the token minted for that track alone.
 func streamUserID(e *core.RequestEvent, trackID string) (string, error) {
 	if e.Auth != nil {
 		return e.Auth.Id, nil
@@ -836,7 +741,6 @@ func streamUserID(e *core.RequestEvent, trackID string) (string, error) {
 	return uid, nil
 }
 
-// albumName labels a task with its subject rather than a sentence.
 func albumName(app core.App, id string) string {
 	if rec, err := app.FindRecordById("albums", id); err == nil {
 		return rec.GetString("name")
@@ -844,20 +748,13 @@ func albumName(app core.App, id string) string {
 	return ""
 }
 
-// speakerError reports what the speaker objected to, and says whose fault it
-// is: a refusal is not an internal error, and "nothing to resume" is not a
-// failure the caller can do anything about by retrying the same way.
 func speakerError(e *core.RequestEvent, err error) error {
-	// A device that has no such idea is not a device that failed. A Chromecast
-	// handed one track has no queue, so asking it for the next one is a question
-	// it cannot be asked, not an error to blame it for.
 	if errors.Is(err, players.ErrUnsupported) {
 		return e.Error(http.StatusNotImplemented, "the device does not support this", err)
 	}
 
 	var fault *sonos.Fault
 	if !errors.As(err, &fault) {
-		// No fault body: the device could not be reached at all.
 		return e.Error(http.StatusBadGateway, "the device could not be reached", err)
 	}
 
@@ -886,8 +783,6 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	}
 	ctx := e.Request.Context()
 	trackID := e.Request.PathValue("trackId")
-	// The position rides along: handing playback over has to resume where the
-	// other device was, not restart the track.
 	var body struct {
 		Position float64 `json:"position"`
 	}
@@ -931,8 +826,6 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		album = al.GetString("name")
 		artURL = deps.Devices.CoverURL(al.Id, al.GetString("cover"))
 	}
-	// The device fetches the stream itself, so a loopback public URL points it at
-	// itself. Say so rather than hand it an address it cannot use.
 	if !deps.Devices.Reachable() {
 		return e.BadRequestError("the server public URL is not reachable from the device; set it in the admin settings", nil)
 	}
@@ -941,11 +834,6 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	if err != nil {
 		return e.InternalServerError("stream token", err)
 	}
-	// Every speaker plays mp3, and some play more. Ask this one rather than
-	// re-encoding a lossless file on the way to it, and ask about the file as
-	// well as the container: a speaker says yes to audio/flac and then stops
-	// three seconds into a 24-bit 192 kHz one, having buffered what it could and
-	// found nothing to do with it. A probe that fails transcodes, which plays.
 	format, mime := "mp3", "audio/mpeg"
 	if native := services.MimeFor(services.LocalFormat(e.App, track)); native != "" && player.Accepts(ctx, dev.IPAddress, native) {
 		if audio, err := services.LocalAudio(ctx, e.App, track); err == nil && player.Decodes(audio.SampleRate, audio.BitDepth) {
@@ -966,8 +854,6 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		return speakerError(e, err)
 	}
 
-	// Handing playback over resumes where it was. Best effort: a speaker that
-	// refuses to seek still plays, and losing the offset beats losing the track.
 	if position > 0 {
 		if err := player.Seek(ctx, dev.IPAddress, position); err != nil {
 			slog.Warn("seek after handover failed", "device", dev.ID, "kind", dev.Type, "position", position, "error", err)
@@ -979,16 +865,10 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 	return e.JSON(http.StatusOK, map[string]any{"success": true})
 }
 
-// coverThumbSize is one of the sizes the albums collection generates.
 const coverThumbSize = "500x500"
 
-// passwordMinLength mirrors what PocketBase itself enforces, so a password it
-// would refuse is refused here with a message that says why.
 const passwordMinLength = 8
 
-// rounded turns a value a browser computed, a position dragged on a bar or a
-// level dragged on a slider, into the whole number the wire carries. Truncating
-// would lose most of a second on every seek, which shows on a progress bar.
 func rounded(v float64) int {
 	if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
 		return 0
@@ -996,20 +876,8 @@ func rounded(v float64) int {
 	return int(math.Round(v))
 }
 
-// A browser device has no address to talk to: the action reaches it over the
-// stream it already listens on.
-// Sonos speakers are driven over SOAP; a client of the user's own is reached
-// through the stream it is already listening on.
-// A device this server speaks a protocol to is on the network; everything else
-// is a client of the user's own, told what to do over the stream it opened.
-// This used to ask whether the type was "sonos", which made every kind added
-// after it a browser tab, and playing to one went looking for a stream nobody
-// had opened.
 func clientDevice(deps *app.Deps, d devices.Device) bool { return !deps.Devices.Speaks(d.Type) }
 
-// usableDevice looks up a device a request may act on. A speaker nobody agreed
-// to play to is discovered all the same, so that an admin can be shown it; that
-// is not the same as somewhere sound may be sent in the meantime.
 func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
 	dev, ok := deps.Devices.Get(e.Request.PathValue("id"))
 	if !ok || (!clientDevice(deps, dev) && !dev.Usable) {
@@ -1042,10 +910,6 @@ func deviceAction(deps *app.Deps, action string, fn func(players.Player, context
 	}
 }
 
-// ownedPlaylist loads the playlist if the current user owns it (likes it),
-// otherwise returns the appropriate error response.
-// renameError tells apart the one failure the caller can do something about,
-// a name already taken, from everything else.
 func renameError(e *core.RequestEvent, err error) error {
 	if errors.Is(err, services.ErrNameTaken) {
 		return e.BadRequestError(err.Error(), err)
@@ -1081,8 +945,6 @@ func union(a, b []string) []string {
 	return out
 }
 
-// toSearchResponse maps internal results to the client's SearchResponse shape
-// ({ results, providerErrors }) with the field names the TS types expect.
 func toSearchResponse(results []domain.SearchResult, provErrs []services.ProviderError) map[string]any {
 	mapped := make([]map[string]any, 0, len(results))
 	for _, r := range results {

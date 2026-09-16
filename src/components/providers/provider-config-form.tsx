@@ -31,10 +31,6 @@ export function ProviderConfigForm(props: Props) {
   const { manifests } = usePlugins();
   const providerInfo = getProviderInfoFromManifests(t, manifests);
   const info = providerInfo[type] ?? null;
-  // No fallback to the server fields: a source with nothing to ask its users
-  // asks them nothing. Falling back put the admin's own credentials, the
-  // Spotify client secret included, in a form every user sees and writes to
-  // his own connection.
   const fields = useConnectionSchema ? (info?.connectionFields ?? []) : info?.fields;
   const requiredKeys = fields?.filter((f) => f.required && f.type !== 'checkbox').map((f) => f.key) ?? [];
   const form = useForm({
@@ -99,9 +95,6 @@ export function ProviderConfigForm(props: Props) {
     );
   }
 
-  // Without the manifest there is no schema, so the form would render empty and
-  // happily save nothing, which is how a provider ended up configured with no
-  // configuration at all.
   if (!fields) {
     return <p className="text-muted-foreground text-sm">{t('ProviderCardActions.schemaUnavailable')}</p>;
   }

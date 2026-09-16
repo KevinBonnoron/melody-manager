@@ -25,7 +25,6 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
   const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 border-b px-3 py-2">
-      {/* Provider chips */}
       {providers.length > 0 && (
         <div className="flex items-center gap-1.5">
           <Badge
@@ -71,7 +70,6 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
         </div>
       )}
 
-      {/* Genre select */}
       {genres.length > 0 && (
         <>
           {providers.length > 0 && <div className="h-4 w-px bg-border" />}
@@ -80,7 +78,6 @@ export function SearchFiltersBar({ filters, onChange, providers, genres }: Props
               <SelectTrigger size="sm" className="h-6 gap-1 border-dashed text-xs">
                 <SelectValue />
               </SelectTrigger>
-              {/* The palette overlay sits at z-200; the portalled content defaults to z-50. */}
               <SelectContent className="z-[300]">
                 <SelectItem value="all">{t('GlobalSearch.filters.allGenres')}</SelectItem>
                 {genres.map((g) => (

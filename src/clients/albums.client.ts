@@ -12,8 +12,6 @@ export const albumsClient = universalClient(
       check: (albumId: string) => http.post<{ checked: number; changed: number; lost: number }>(`/albums/${albumId}/check`, {}),
       refreshCover: (albumId: string) => http.post(`/albums/${albumId}/cover`, {}),
       delete: (albumId: string) => http.delete(`/albums/${albumId}`),
-      // Renaming moves the folders on disk with the record, so it goes through
-      // the API rather than the collection.
       update: (albumId: string, body: { name?: string; artist?: string }) => http.patch(`/albums/${albumId}`, body),
     };
   }),

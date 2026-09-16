@@ -12,13 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Given, the new playlist is filled with them and the caller stays where it
-  // is: creating one from a track's menu means putting that track in it.
   trackIds?: string[];
 }
 
-// Until now a playlist could only arrive by import: there was no route to make
-// one, so there was no button either.
 export function CreatePlaylistDialog({ open, onOpenChange, trackIds }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -34,8 +30,6 @@ export function CreatePlaylistDialog({ open, onOpenChange, trackIds }: Props) {
 
     setIsSaving(true);
     try {
-      // The tracks travel with the creation: adding them in a second call left
-      // an empty playlist behind whenever it failed, and retrying made another.
       const playlist = await playlistsClient.create({ name: trimmed, description: description.trim() || undefined, trackIds });
       toast.success(t('CreatePlaylist.created', { name: trimmed }));
       onOpenChange(false);

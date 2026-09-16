@@ -33,8 +33,6 @@ func TestSettledWaitsForTheWriterToFinish(t *testing.T) {
 		t.Fatal("settled reported the file never stopped changing")
 	}
 
-	// Measured the instant it answered: read after waiting for the writer, the
-	// file is whole however early the answer came.
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)

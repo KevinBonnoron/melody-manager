@@ -10,7 +10,6 @@ class EnvEntry {
   }
 
   public string(defaultValue: string): string {
-    // An empty variable means "not set", as it does on the server side.
     return this.value || defaultValue;
   }
 

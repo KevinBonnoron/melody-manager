@@ -1,5 +1,5 @@
-// Package pbx holds thin helpers over the PocketBase DAO (the Go counterpart of
-// the old repositories/ + lib/pocketbase.ts).
+// Package pbx holds thin helpers over the PocketBase DAO (the Go counterpart of the old
+// repositories/ + lib/pocketbase.ts).
 package pbx
 
 import (
@@ -10,10 +10,9 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 )
 
-// EffectiveConfig resolves a provider's effective config for a user: the
-// server-level provider_settings.config overlaid with the user's
-// connections.config (per docs/guide/configuration.md). Server and
-// user keys are disjoint by design, so a flat merge is unambiguous.
+// EffectiveConfig resolves a provider's effective config for a user: the server-level
+// provider_settings.config overlaid with the user's connections.config (per
+// docs/guide/configuration.md).
 func EffectiveConfig(app core.App, userID, providerType string) providers.Config {
 	cfg := providers.Config{}
 
@@ -56,9 +55,8 @@ func merge(dst providers.Config, src map[string]any) {
 	}
 }
 
-// MissingConfig reports, per capability the manifest declares requirements for,
-// which server-level fields are still empty. An empty result means everything
-// the source needs is set.
+// MissingConfig reports, per capability the manifest declares requirements for, which
+// server-level fields are still empty.
 func MissingConfig(app core.App, providerType string) map[string][]string {
 	mf, ok := providers.ManifestFor(providerType)
 	if !ok || len(mf.Requires) == 0 {

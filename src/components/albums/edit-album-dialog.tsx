@@ -19,10 +19,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-// Renaming and re-attaching are the same edit from where the operator sits, and
-// both move folders on disk, so they travel in one request. The artist is
-// picked from the ones that exist: this attaches the album to another artist,
-// it does not invent one.
 export function EditAlbumDialog({ album, currentArtistId, open, onOpenChange }: Props) {
   const { t } = useTranslation();
   const { data: artists = [] } = useArtists();

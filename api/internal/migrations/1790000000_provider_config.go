@@ -6,10 +6,6 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-// Server-level provider configuration moves out of provider_settings into its
-// own admin-only collection. provider_settings stayed readable by every
-// authenticated user, it has to be, the sources screens list what exists, so
-// anything stored in its `config` leaked, the Spotify client secret included.
 func init() {
 	m.Register(func(app core.App) error {
 		admin := "@request.auth.role = \"admin\""

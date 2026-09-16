@@ -1,20 +1,16 @@
-// Package domain holds the core data types shared across providers and
-// services, the Go counterpart of the TS shared/ package (which the client
-// still uses; a unified contract is a deferred decision).
+// Package domain holds the core data types shared across providers and services, the Go
+// counterpart of the TS shared/ package (which the client still uses.
 package domain
 
-// Chapter is a segment of a longer source, used to split an uploaded album
-// video into individual tracks.
+// Chapter is a segment of a longer source, used to split an uploaded album video into
+// individual tracks.
 type Chapter struct {
 	Title     string  `json:"title"`
 	StartTime float64 `json:"startTime"`
 	EndTime   float64 `json:"endTime"`
 }
 
-// TrackMetadata is the metadata JSON stored on a track. It must stay in sync
-// with the TS TrackMetadata (src/shared/types/track.type.ts): services
-// round-trip records through this struct, so any key missing here is dropped
-// from the stored document on the next save.
+// TrackMetadata is the metadata JSON stored on a track.
 type TrackMetadata struct {
 	Year          *int      `json:"year,omitempty"`
 	Bitrate       *float64  `json:"bitrate,omitempty"`
@@ -32,14 +28,10 @@ type TrackMetadata struct {
 	MusicbrainzID string    `json:"musicbrainzId,omitempty"`
 	SpotifyID     string    `json:"spotifyId,omitempty"`
 	YoutubeID     string    `json:"youtubeId,omitempty"`
-	// MeasuredFrom is the file modification time the duration was read from.
-	// The record's own updated stamp cannot say whether the file has changed
-	// since, because anything else saving the record advances it too.
-	MeasuredFrom *int64 `json:"measuredFrom,omitempty"`
+	MeasuredFrom  *int64    `json:"measuredFrom,omitempty"`
 }
 
-// ResolvedTrack is what a provider returns when resolving a URL, not yet
-// persisted. ArtistName/AlbumName are resolved to ids at persist time.
+// ResolvedTrack is what a provider returns when resolving a URL, not yet persisted.
 type ResolvedTrack struct {
 	Title          string        `json:"title"`
 	Duration       int           `json:"duration"`

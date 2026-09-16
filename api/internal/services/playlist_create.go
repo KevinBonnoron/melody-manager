@@ -5,13 +5,9 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// CreatePlaylist makes a manual playlist and puts it in the user's library,
-// which is the only thing that makes it visible to them: every playlist screen
-// reads playlist_ratings, not an owner column.
-//
-// The tracks it starts with are part of the same write. Adding them afterwards
-// would leave an empty playlist behind whenever that second call failed, and
-// the obvious retry would make a second one.
+// CreatePlaylist makes a manual playlist and puts it in the user's library, which is the only
+// thing that makes it visible to them: every playlist screen reads playlist_ratings, not an
+// owner column.
 func CreatePlaylist(app core.App, userID, name, description string, trackIDs []string) (*core.Record, error) {
 	collection, err := app.FindCollectionByNameOrId("playlists")
 	if err != nil {
@@ -24,8 +20,6 @@ func CreatePlaylist(app core.App, userID, name, description string, trackIDs []s
 	playlist.Set("type", "manual")
 	playlist.Set("tracks", trackIDs)
 
-	// Both writes or neither: a playlist saved without its rating belongs to
-	// nobody, and no screen would ever show it again.
 	if err := app.RunInTransaction(func(txApp core.App) error {
 		if err := txApp.Save(playlist); err != nil {
 			return err

@@ -39,9 +39,8 @@ func SearchLibrary(app core.App, query string) []domain.SearchResult {
 	return out
 }
 
-// ProviderError reports a provider that could not answer, in the shape the
-// client renders as a "connect this source" prompt (ProviderError in
-// src/shared/types/search-result.type.ts).
+// ProviderError reports a provider that could not answer, in the shape the client renders as a
+// "connect this source" prompt (ProviderError in src/shared/types/search-result.type.ts).
 type ProviderError struct {
 	Provider string `json:"provider"`
 	Code     string `json:"code"`
@@ -52,10 +51,8 @@ const (
 	codeCredentialsRequired = "CREDENTIALS_REQUIRED"
 )
 
-// SearchProviders queries every enabled provider that supports search and that
-// the user can use, marking results already present in the library. Providers
-// that fail are reported rather than dropped: an expired cookie or a missing
-// Spotify credential is actionable by the user.
+// SearchProviders queries every enabled provider that supports search and that the user can
+// use, marking results already present in the library.
 func SearchProviders(ctx context.Context, app core.App, reg *providers.Registry, query string, typ domain.SearchResultType, userID string) ([]domain.SearchResult, []ProviderError) {
 	var out []domain.SearchResult
 	errs := make([]ProviderError, 0)
@@ -85,8 +82,6 @@ func SearchProviders(ctx context.Context, app core.App, reg *providers.Registry,
 	return out, errs
 }
 
-// authErrorCode classifies a provider failure the user can act on, or returns
-// "" for anything else (a network blip is not a credentials problem).
 func authErrorCode(provider string, err error) string {
 	msg := strings.ToLower(err.Error())
 	switch provider {

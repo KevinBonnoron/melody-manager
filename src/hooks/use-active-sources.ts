@@ -8,9 +8,6 @@ import type { Connection, Provider, Track } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 import { usePlugins } from './use-plugins';
 
-// One definition of "this source is in use": server-managed, linked to this
-// user, or already feeding the library. Screens kept re-deriving it slightly
-// differently, which is how YouTube ended up listed as unconnected.
 export function useActiveSources() {
   const user = useAuthUser();
   const { manifests } = usePlugins();

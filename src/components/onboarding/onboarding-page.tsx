@@ -33,10 +33,8 @@ export function OnboardingPage() {
     }
   }, [user.id, navigate]);
 
-  // For non-admins, only show providers that are configured and require user credentials
   const configuredProviderTypes = new Set(providers.filter((p) => p.enabled).map((p) => p.type));
   const visibleManifests = isAdmin ? manifests : manifests.filter((m) => m.connectionSchema?.some((f) => f.required) && configuredProviderTypes.has(m.id));
-  // Auto-skip onboarding for non-admins if there's nothing to connect
   useEffect(() => {
     if (!isAdmin && !loading && visibleManifests.length === 0) {
       handleContinue();

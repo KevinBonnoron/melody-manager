@@ -1,6 +1,5 @@
-// Package cache keeps audio fetched from remote sources on disk so a track is
-// not re-downloaded on every play. It is the Go counterpart of the old
-// server/src/services/cache.service.ts, which the first port dropped.
+// Package cache keeps audio fetched from remote sources on disk so a track is not re-downloaded
+// on every play.
 package cache
 
 import (
@@ -20,8 +19,6 @@ import (
 const TTL = 7 * 24 * time.Hour
 
 type entry struct {
-	// key is the hashed form: it is also the file's base name, so entries
-	// adopted from disk at startup index identically to freshly stored ones.
 	key      string
 	path     string
 	size     int64
@@ -39,12 +36,11 @@ type Cache struct {
 	order   *list.List               // most recently used at the front
 	size    int64
 
-	// inflight collapses concurrent misses for the same key onto one producer.
 	inflight sync.Map
 }
 
-// New prepares the cache directory and adopts whatever it already holds, so a
-// restart does not throw the library away.
+// New prepares the cache directory and adopts whatever it already holds, so a restart does not
+// throw the library away.
 func New(dir string, maxFiles int, maxSize int64) (*Cache, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("cache dir %s: %w", dir, err)
@@ -61,8 +57,6 @@ func New(dir string, maxFiles int, maxSize int64) (*Cache, error) {
 }
 
 // Fetch returns the cached file for key, producing it with produce on a miss.
-// The produced file is moved into the cache and belongs to it from then on :
-// callers must not delete what they get back.
 func (c *Cache) Fetch(ctx context.Context, key string, produce func(context.Context) (string, error)) (string, error) {
 	if path, ok := c.get(key); ok {
 		return path, nil
@@ -76,7 +70,6 @@ func (c *Cache) Fetch(ctx context.Context, key string, produce func(context.Cont
 		c.inflight.Delete(key)
 	}()
 
-	// A concurrent producer may have finished while we waited.
 	if path, ok := c.get(key); ok {
 		return path, nil
 	}
@@ -105,8 +98,7 @@ func (c *Cache) Size() int64 {
 	return c.size
 }
 
-// Forget drops an entry and its file. Used when the data it held has been
-// superseded, a downloaded track makes its cached extract dead weight.
+// Forget drops an entry and its file.
 func (c *Cache) Forget(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -127,7 +119,6 @@ func (c *Cache) get(key string) (string, bool) {
 		c.removeElement(el)
 		return "", false
 	}
-	// A file removed behind our back must not be served.
 	if _, err := os.Stat(e.path); err != nil {
 		c.removeElement(el)
 		return "", false
@@ -137,7 +128,6 @@ func (c *Cache) get(key string) (string, bool) {
 	return e.path, true
 }
 
-// adopt moves a produced file into the cache under its hashed name.
 func (c *Cache) adopt(key, produced string) (string, error) {
 	info, err := os.Stat(produced)
 	if err != nil {
@@ -175,8 +165,6 @@ func (c *Cache) removeElement(el *list.Element) {
 	_ = os.Remove(e.path)
 }
 
-// adoptExisting rebuilds the index from the files already on disk, oldest
-// first so the LRU order survives a restart.
 func (c *Cache) adoptExisting() {
 	files, err := os.ReadDir(c.dir)
 	if err != nil {
@@ -220,14 +208,11 @@ func hashKey(key string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// keyFromFilename recovers the hashed key a cached file was stored under.
 func keyFromFilename(path string) string {
 	base := filepath.Base(path)
 	return base[:len(base)-len(filepath.Ext(base))]
 }
 
-// move renames when it can and falls back to a copy across filesystems, which
-// is the common case: yt-dlp writes to the system temp dir.
 func move(src, dest string) error {
 	if err := os.Rename(src, dest); err == nil {
 		return nil

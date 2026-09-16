@@ -18,8 +18,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-// Server-level settings, admin only: the paths the server writes to and the app
-// credentials it holds. Distinct from a user activating the source for himself.
 export function ProviderConfigDialog({ type, title, description, serverConfig, open, onOpenChange }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
@@ -33,8 +31,6 @@ export function ProviderConfigDialog({ type, title, description, serverConfig, o
           })
         : providerConfigCollection.insert({ id: providerConfigCollection.utils.newId(), type, config } as ProviderConfig);
       await tx.isPersisted.promise;
-      // What the source still lacks is computed server-side and travels with
-      // the manifest, so the screens keep a stale answer until it is reread.
       await refreshPluginsAfterWrite();
       toast.success(t('ProviderCardActions.providerUpdatedSuccess', { title }));
       onOpenChange(false);
