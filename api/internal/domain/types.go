@@ -32,6 +32,10 @@ type TrackMetadata struct {
 	MusicbrainzID string    `json:"musicbrainzId,omitempty"`
 	SpotifyID     string    `json:"spotifyId,omitempty"`
 	YoutubeID     string    `json:"youtubeId,omitempty"`
+	// MeasuredFrom is the file modification time the duration was read from.
+	// The record's own updated stamp cannot say whether the file has changed
+	// since, because anything else saving the record advances it too.
+	MeasuredFrom *int64 `json:"measuredFrom,omitempty"`
 }
 
 // ResolvedTrack is what a provider returns when resolving a URL, not yet
