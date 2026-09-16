@@ -72,6 +72,92 @@ jobs:
             e2e/.artifacts
           retention-days: 7
 
+  # A second install path nobody runs is decoration. This one is run on every
+  # change, in both shapes it can write.
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Syntax
+        run: bash -n install.sh
+      - name: Shellcheck
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck && shellcheck install.sh
+      - name: On a network of its own
+        run: |
+          mkdir -p /tmp/music /tmp/bridge
+          ./install.sh --dir /tmp/bridge --music /tmp/music --discovery no --port 9000 --public-url http://192.168.1.20:9000
+          docker compose -f /tmp/bridge/docker-compose.yml config -q
+          python3 -c "import json; json.load(open('/tmp/bridge/config/config.json'))"
+          grep -q '"9000:8090"' /tmp/bridge/docker-compose.yml
+      # A directory is allowed to hold a quote and a dollar. Written as they came,
+      # the first makes a compose file docker cannot read and the second is read
+      # by compose itself, which mounts a directory nobody named.
+      - name: On a path it has to spell out
+        run: |
+          mkdir -p '/tmp/a"b$HOME' /tmp/quoted
+          touch '/tmp/a"b$HOME/marker'
+          ./install.sh --dir /tmp/quoted --music '/tmp/a"b$HOME' --discovery no --port 9000 --public-url 'http://192.168.1.20:9000/"x'
+          docker compose -f /tmp/quoted/docker-compose.yml config -q
+          python3 -c "import json; json.load(open('/tmp/quoted/config/config.json'))"
+          # That the file parses is not the question. Where the mount lands is,
+          # and only something that mounts it can answer.
+          printf 'services:\n  probe:\n    image: busybox\n    command: ls /music\n    volumes:\n' > /tmp/quoted/probe.yml
+          grep ':/music:ro' /tmp/quoted/docker-compose.yml >> /tmp/quoted/probe.yml
+          docker compose -f /tmp/quoted/probe.yml run --rm probe | grep -q marker
+
+      # A speaker is the only reason the address has to be a real one. Without
+      # one, localhost is exactly right, and refusing it would be refusing the
+      # ordinary install.
+      - name: In a browser alone, where localhost is the right answer
+        run: |
+          mkdir -p /tmp/browser
+          ./install.sh --dir /tmp/browser --music /tmp/music --discovery no --port 9000 --public-url http://localhost:9000
+          python3 -c "import json; assert json.load(open('/tmp/browser/config/config.json'))['publicUrl'] == 'http://localhost:9000'"
+
+      # Without ip(8) the address comes from hostname -I, and an IPv6 one is not
+      # a URL until it is bracketed.
+      - name: On a host that answers with IPv6
+        run: |
+          mkdir -p /tmp/stub /tmp/v6
+          printf '#!/bin/sh\nexit 1\n' > /tmp/stub/ip
+          printf '#!/bin/sh\necho 2001:db8::1\n' > /tmp/stub/hostname
+          chmod +x /tmp/stub/ip /tmp/stub/hostname
+          PATH=/tmp/stub:$PATH ./install.sh --dir /tmp/v6 --music /tmp/music --discovery no --port 9000
+          python3 -c "import json; assert json.load(open('/tmp/v6/config/config.json'))['publicUrl'] == 'http://[2001:db8::1]:9000'"
+
+      - name: On the host network, where speakers are found
+        run: |
+          mkdir -p /tmp/host
+          ./install.sh --dir /tmp/host --music /tmp/music --discovery yes --public-url http://192.168.1.20:8090
+          docker compose -f /tmp/host/docker-compose.yml config -q
+          grep -q 'network_mode: host' /tmp/host/docker-compose.yml
+          ! grep -q 'ports:' /tmp/host/docker-compose.yml
+      # Written out rather than with a leading "!", for which set -e is ignored:
+      # the step passed whether the installer refused or not.
+      - name: It refuses rather than guesses
+        run: |
+          refuses() {
+            if ./install.sh "$@" >/dev/null 2>&1; then
+              echo "install.sh accepted what it should have refused: $*" >&2
+              exit 1
+            fi
+          }
+          mkdir -p "$(printf '/tmp/new\nline')"
+          refuses --dir /tmp/bridge --music /tmp/does-not-exist --discovery no
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --public-url ftp://nope
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --public-url http://
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --public-url 'http://?query'
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --public-url 'http://#fragment'
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --port 70000 --public-url http://192.168.1.20:8090
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no --port 999999999999999999999999 --public-url http://192.168.1.20:8090
+          refuses --dir /tmp/bridge --music "$(printf '/tmp/new\nline')" --discovery no --public-url http://192.168.1.20:8090
+          refuses --dir "$(printf '/tmp/new\nline')" --music /tmp/music --discovery no --public-url http://192.168.1.20:8090
+          refuses --dir /tmp/bridge --music /tmp/music --discovery yes --public-url http://localhost:8090
+          refuses --dir /tmp/bridge --music /tmp/music --discovery yes --public-url 'http://[::1]:8090'
+          refuses --dir /tmp/bridge --music /tmp/music --discovery yes --public-url 'http://[::ffff:127.0.0.1]:8090'
+          refuses --dir /tmp/bridge --music /tmp/music --discovery yes --public-url 'http://[::FFFF:7f00:1]:8090'
+          refuses --dir /tmp/bridge --music /tmp/music --discovery no
+
   docs:
     runs-on: ubuntu-latest
     steps:

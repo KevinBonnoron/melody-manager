@@ -32,10 +32,13 @@ defaults on first start, so there is nothing to create by hand.
 network and you pick one. A change to `listenAddr` applies at the next restart;
 the other two take effect at once.
 
-::: tip
-Leaving `publicUrl` empty is allowed: the server then uses its own address on
-the network the speaker is on. Setting it explicitly is better whenever the
-server has several addresses, or sits behind a reverse proxy.
+::: warning
+`localhost`, `127.0.0.1` and `::1` mean "this machine" to whatever reads them,
+and what reads this one is the speaker. The server refuses to play to a speaker
+rather than hand over an address it would resolve to itself, so playback answers
+`400` until this is a real address on the network. Leaving the key empty comes to
+the same thing: the default, `http://localhost:8090`, takes over. Behind a
+reverse proxy, the address to put here is the proxy's.
 :::
 
 ## Environment variables
