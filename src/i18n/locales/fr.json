@@ -470,8 +470,21 @@
     "play": "Lecture",
     "pause": "Pause",
     "loadingPlayback": "Chargement de la lecture",
-    "seek": "Se déplacer dans la piste",
-    "playingInWindow": "Le lecteur est dans sa propre fenêtre"
+    "seek": "Se déplacer dans la lecture",
+    "playingInWindow": "Le lecteur est dans sa propre fenêtre",
+    "mute": "Couper le son",
+    "unmute": "Rétablir le son",
+    "shuffleOn": "Activer la lecture aléatoire",
+    "shuffleOff": "Désactiver la lecture aléatoire",
+    "repeatOff": "Activer la répétition",
+    "repeatAll": "Répéter la playlist",
+    "repeatOne": "Répéter le morceau",
+    "seekWaveform": "Barre de déplacement en forme d'onde",
+    "settings": "Paramètres de lecture",
+    "settingsDescription": "Choisir l'appareil de lecture et le format audio",
+    "like": "Ajouter aux titres likés",
+    "unlike": "Retirer des titres likés",
+    "volume": "Volume"
   },
   "DeviceSelector": {
     "selectDevice": "Sélectionner un appareil de lecture",

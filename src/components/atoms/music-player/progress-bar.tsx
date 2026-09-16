@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import WaveSurfer from 'wavesurfer.js';
 import { tracksClient } from '@/clients/tracks.client';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 
 export function ProgressBar() {
+  const { t } = useTranslation();
   const { currentTrack, currentTime, seek, audioElement } = useMusicPlayer();
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
@@ -103,7 +105,7 @@ export function ProgressBar() {
   return (
     <div className="relative w-full min-h-[28px]">
       {peaks === null || peaks.length === 0 ? (
-        <button type="button" className="mx-10 h-[28px] w-[calc(100%-5rem)] flex items-center cursor-pointer" onClick={handleSimpleBarClick} aria-label="Seek playback position">
+        <button type="button" className="mx-10 h-[28px] w-[calc(100%-5rem)] flex items-center cursor-pointer" onClick={handleSimpleBarClick} aria-label={t('MusicPlayer.seek')}>
           <div className="relative w-full h-1 bg-muted-foreground/30 rounded-full overflow-hidden">
             <div className="absolute inset-y-0 left-0 bg-primary rounded-full transition-none" style={{ width: `${progressPercent}%` }} />
           </div>
@@ -112,7 +114,7 @@ export function ProgressBar() {
         <div
           ref={containerRef}
           className="cursor-pointer mx-10 [&_canvas]:!bg-transparent"
-          aria-label="Waveform seek bar"
+          aria-label={t('MusicPlayer.seekWaveform')}
           role="slider"
           tabIndex={0}
           aria-valuenow={currentTime}

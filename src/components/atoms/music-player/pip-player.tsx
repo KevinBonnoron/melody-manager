@@ -88,7 +88,7 @@ export function PipPlayer() {
 
         <div className="flex shrink-0 items-center gap-1 pl-1">
           <MuteButton onClick={volume.toggle} isMuted={volume.isMuted} volume={volume.level} />
-          <Slider value={[volume.level * 100]} max={100} step={1} onValueChange={([value]) => volume.apply(value / 100)} className="w-16" />
+          <Slider aria-label={t('MusicPlayer.volume')} value={[volume.level * 100]} max={100} step={1} onValueChange={([value]) => volume.apply(value / 100)} className="w-16" />
         </div>
       </div>
 

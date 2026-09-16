@@ -470,8 +470,21 @@
     "play": "Play",
     "pause": "Pause",
     "loadingPlayback": "Loading playback",
-    "seek": "Seek",
-    "playingInWindow": "The player is in its own window"
+    "seek": "Seek playback position",
+    "playingInWindow": "The player is in its own window",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "shuffleOn": "Enable shuffle",
+    "shuffleOff": "Disable shuffle",
+    "repeatOff": "Enable repeat",
+    "repeatAll": "Repeat playlist",
+    "repeatOne": "Repeat track",
+    "seekWaveform": "Waveform seek bar",
+    "settings": "Playback settings",
+    "settingsDescription": "Configure playback device and audio format",
+    "like": "Like track",
+    "unlike": "Remove from liked songs",
+    "volume": "Volume"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
