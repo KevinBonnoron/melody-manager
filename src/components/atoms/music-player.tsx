@@ -1,5 +1,5 @@
 import { ListMusic, Maximize2, PictureInPicture2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useDocumentPip } from '@/hooks/use-document-pip';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { useTransferPlayback } from '@/hooks/use-transfer-playback';
+import { useVolumeControl } from '@/hooks/use-volume-control';
 import { cn } from '@/lib/utils';
 import { isNetworkDevice, type Track } from '@/shared';
 import { DeviceSelector } from './music-player/device-selector';
@@ -21,74 +22,17 @@ import { QueueSheet } from './music-player/queue-sheet';
 import { SimpleProgressBar } from './music-player/simple-progress-bar';
 import { TrackInfo } from './music-player/track-info';
 
-const REMOTE_VOLUME_DEBOUNCE_MS = 150;
-
 export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, isPlaying, isLoading, seek, volume, setVolume, activeDevice, switchDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
+  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, switchDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
   const pip = useDocumentPip();
   const closePip = pip.close;
   const inWindow = Boolean(pip.pipWindow);
-  const [pendingVolume, setPendingVolume] = useState<number | null>(null);
-  const volumeCommandRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const remoteVolume = remote?.volume;
-  useEffect(() => {
-    if (pendingVolume === null || remoteVolume === undefined) {
-      return;
-    }
-
-    if (Math.abs(remoteVolume - pendingVolume) < 0.01) {
-      setPendingVolume(null);
-      return;
-    }
-
-    const timer = setTimeout(() => setPendingVolume(null), 2000);
-    return () => clearTimeout(timer);
-  }, [remoteVolume, pendingVolume]);
-
-  const level = isRemote && remote ? (pendingVolume ?? remote.volume) : volume;
-  const isMuted = level === 0;
-  const [previousVolume, setPreviousVolume] = useState(1.0);
+  const { level, isMuted, apply: applyVolume, toggle: handleVolumeToggle } = useVolumeControl();
   const [queueOpen, setQueueOpen] = useState(false);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the device is what invalidates the pending command, not the object
-  useEffect(() => {
-    return () => {
-      if (volumeCommandRef.current) {
-        clearTimeout(volumeCommandRef.current);
-        volumeCommandRef.current = null;
-      }
-    };
-  }, [isRemote, remote?.device.id]);
-
-  const applyVolume = (next: number) => {
-    if (isRemote && remote) {
-      setPendingVolume(next);
-      if (volumeCommandRef.current) {
-        clearTimeout(volumeCommandRef.current);
-      }
-
-      volumeCommandRef.current = setTimeout(() => remote.setVolume(next), REMOTE_VOLUME_DEBOUNCE_MS);
-      return;
-    }
-
-    setVolume(next);
-  };
-
-  const handleVolumeToggle = () => {
-    if (isMuted) {
-      applyVolume(previousVolume > 0 ? previousVolume : 0.5);
-    } else {
-      if (level > 0) {
-        setPreviousVolume(level);
-      }
-
-      applyVolume(0);
-    }
-  };
 
   const track = (isRemote ? remote?.track : currentTrack) ?? null;
   const holder = isRemote ? remote?.device : null;
@@ -175,19 +119,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
 
                 <div className="hidden items-center gap-1.5 pl-2 @2xl:flex">
                   <MuteButton onClick={handleVolumeToggle} isMuted={isMuted} volume={level} />
-                  <Slider
-                    value={[level * 100]}
-                    max={100}
-                    step={1}
-                    onValueChange={([value]) => {
-                      const nextVolume = value / 100;
-                      applyVolume(nextVolume);
-                      if (nextVolume > 0) {
-                        setPreviousVolume(nextVolume);
-                      }
-                    }}
-                    className="w-16 @5xl:w-20"
-                  />
+                  <Slider value={[level * 100]} max={100} step={1} onValueChange={([value]) => applyVolume(value / 100)} className="w-16 @5xl:w-20" />
                 </div>
               </div>
             </div>
