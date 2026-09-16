@@ -27,7 +27,7 @@ export default defineConfig({
           { text: 'Getting Started', link: '/guide/getting-started' },
           { text: 'Configuration', link: '/guide/configuration' },
           { text: 'Docker', link: '/guide/docker' },
-          { text: 'Sonos Integration', link: '/guide/sonos' },
+          { text: 'Speakers and Devices', link: '/guide/devices' },
           { text: 'API Reference', link: '/guide/api' },
         ],
       },

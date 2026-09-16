@@ -3,8 +3,11 @@ layout: home
 
 hero:
   name: Melody Manager
-  text: Self-Hosted Music Library
-  tagline: Aggregate music from YouTube, Spotify, SoundCloud, Bandcamp, and local files into a single interface. Stream to your browser or Sonos speakers.
+  text: Your music, wherever it lives
+  tagline: One self-hosted library from your own files, YouTube, Spotify, SoundCloud and Bandcamp. Play it in the browser, or out loud on a Sonos speaker or a Chromecast.
+  image:
+    src: /screenshots/home.jpg
+    alt: The Melody Manager home screen
   actions:
     - theme: brand
       text: Get Started
@@ -14,12 +17,12 @@ hero:
       link: https://github.com/KevinBonnoron/melody-manager
 
 features:
-  - title: Multiple Sources
-    details: Import and search music from YouTube, Spotify, SoundCloud, Bandcamp, and local files — all in one place.
-  - title: Sonos Streaming
-    details: Stream audio to Sonos speakers on your local network, with automatic FLAC-to-MP3 transcoding.
-  - title: Plugin System
-    details: Extensible plugin architecture to add new music sources without modifying the core server.
-  - title: Docker Ready
-    details: One-command deployment with Docker. A single Go binary embedding PocketBase, the API and the client — one process, one container.
+  - title: One library, several sources
+    details: Local files are scanned and tagged from the folder you point at. YouTube, Spotify, SoundCloud and Bandcamp are searched and imported alongside them, and a track from any of them plays the same way.
+  - title: Plays where you are
+    details: In the browser, in a window of its own outside it, or on a speaker on the network. Sonos and Chromecast are discovered on their own, and what a speaker cannot decode is transcoded on the way to it.
+  - title: Several people, one server
+    details: Each account has its own library, playlists, likes, history and connections to the sources it uses. Nothing about your music leaves the machine it runs on.
+  - title: One container
+    details: A single Go binary embedding PocketBase, the API and the client. No reverse proxy, no separate database, on x86 and on ARM alike.
 ---

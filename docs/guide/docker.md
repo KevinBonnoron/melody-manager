@@ -1,18 +1,16 @@
-# Docker Deployment
+# Docker
 
-The image is a single Go binary in a single container. It embeds PocketBase —
-database, auth, admin UI, REST and realtime — serves the melody-specific `/api`
-endpoints, and ships the built client as static files. No reverse proxy, no
-process manager, no separate database process.
-
-## Architecture
+The image is one Go binary in one container. It embeds PocketBase, which brings
+the database, the authentication, the realtime channel and an admin UI; it
+serves the melody-specific `/api` endpoints; and it ships the built client as
+static files. No reverse proxy, no process manager, no separate database.
 
 ```
 ┌──────────────────────────────────────────┐
 │            Docker Container              │
 │                                          │
 │   ┌──────────────────────────────┐       │
-│   │   melody-api        :8090    │◄──────┼── client requests
+│   │   melody-api        :8090    │◄──────┼── everything
 │   │                              │       │
 │   │   /api/*   melody endpoints  │       │
 │   │   /_/*     PocketBase admin  │       │
@@ -24,20 +22,7 @@ process manager, no separate database process.
 └──────────────────────────────────────────┘
 ```
 
-## Quick Start
-
-```bash
-docker run -d \
-  --name melody-manager \
-  -p 8090:8090 \
-  -e PB_SUPERUSER_EMAIL=admin@example.com \
-  -e PB_SUPERUSER_PASSWORD=your-secure-password \
-  -v melody-manager-data:/app/pb_data \
-  -v melody-manager-cache:/app/cache \
-  ghcr.io/kevinbonnoron/melody-manager:latest
-```
-
-## Docker Compose
+## Compose
 
 ```yaml
 services:
@@ -49,30 +34,86 @@ services:
     volumes:
       - melody-manager-data:/app/pb_data
       - melody-manager-cache:/app/cache
-      # Mount local music (optional)
-      # - /path/to/your/music:/music:ro
-    environment:
-      - SERVER_URL=http://localhost:8090
-      - PB_SUPERUSER_EMAIL=admin@example.com
-      - PB_SUPERUSER_PASSWORD=your-secure-password
-      - CACHE_MAX_FILES=500
-      - CACHE_MAX_SIZE=5GB
+      - ./config:/config
+      # Your music, read-only
+      - /path/to/your/music:/music:ro
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8090/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 volumes:
   melody-manager-data:
-    driver: local
   melody-manager-cache:
-    driver: local
 ```
 
-## Building from Source
+The image declares its own healthcheck against `/api/health`, so there is none
+to write.
+
+To play on a speaker, read [Speakers and devices](/guide/devices) first:
+discovery is multicast, and multicast does not cross a bridge network.
+
+## Volumes
+
+| Mount | What is in it |
+|---|---|
+| `/app/pb_data` | The database, the uploaded covers, the auth keys. Back this one up. |
+| `/app/cache` | Audio fetched or transcoded for a speaker. Safe to drop, refills on demand. |
+| `/config` | `config.json`, the operator settings. Mounted from the host so it can be read and edited with the server down. |
+| `/music` | Your own files, wherever you mount them. `:ro` is enough. |
+
+The image declares all four as volumes, so Docker creates anonymous ones for
+anything you do not mount yourself. Anonymous volumes are easy to lose track of;
+`pb_data` in particular is worth naming.
+
+## Tags
+
+| Tag | What it points at |
+|---|---|
+| `latest` | The tip of `main` |
+| `1.2.3`, `1.2`, `1` | A release, at three levels of pinning |
+| `sha-abc1234` | One exact commit |
+
+Built for `linux/amd64` and `linux/arm64`, so an x86 server and a Raspberry Pi 4
+or newer both work.
+
+Only a revision that reached `main` is ever released: the workflow refuses a tag
+whose commit is not an ancestor of it.
+
+## Configuration
+
+Operator settings live in `config.json`, not in the environment. The image
+points `CONFIG_FILE` at `/config/config.json` and writes the file with its
+defaults on first start. See [Configuration](/guide/configuration) for the keys.
+
+Only two environment variables are worth setting in a compose file, and only
+before the first start:
+
+```yaml
+    environment:
+      - PB_SUPERUSER_EMAIL=admin@example.com
+      - PB_SUPERUSER_PASSWORD=a-long-password
+```
+
+They create the PocketBase superuser, who administers the database at `/_/`.
+That is a different thing from the application's own first account, which is
+whoever signs up first.
+
+::: warning
+`SERVER_URL`, `CACHE_DIR`, `CACHE_MAX_FILES` and `CACHE_MAX_SIZE` used to be
+environment variables. They are not read any more. Carry the values over into
+`config.json`.
+:::
+
+## Networking
+
+One port, `8090`, and the binary serves everything on it. Behind Traefik, Caddy
+or nginx, proxy to that port and nothing else.
+
+The entrypoint passes `--http=0.0.0.0:8090`, so the `listenAddr` key has no
+effect inside the container.
+
+If you switch to `network_mode: host` for speaker discovery, drop the `ports`
+mapping: host mode makes it meaningless, and Compose will complain.
+
+## Building it yourself
 
 ```bash
 cd docker
@@ -80,45 +121,7 @@ docker compose build
 docker compose up -d
 ```
 
-The Dockerfile builds in stages: the client with Bun, the Go binary with
-`CGO_ENABLED=0` (PocketBase uses the pure-Go SQLite driver), and a standalone
-yt-dlp for the target architecture. The final image is `debian:bookworm-slim`
-with ffmpeg, ca-certificates and curl.
-
-## Volumes
-
-| Mount | Purpose |
-|-------|---------|
-| `melody-manager-data:/app/pb_data` | Database, uploaded covers, auth keys — required for persistence |
-| `melody-manager-cache:/app/cache` | Cached audio from remote sources — safe to drop, refills on demand |
-| `/path/to/music:/music:ro` | Local music library (optional), then point the local source at it |
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SERVER_URL` | `http://localhost:8090` | Public URL of this server. Sonos speakers fetch stream URLs themselves, so it must be reachable from them |
-| `PB_SUPERUSER_EMAIL` | — | Bootstraps a PocketBase superuser on first run |
-| `PB_SUPERUSER_PASSWORD` | — | Password for that superuser |
-| `CACHE_DIR` | `/app/cache` | Where cached audio is stored |
-| `CACHE_MAX_FILES` | `500` | Maximum number of cached files |
-| `CACHE_MAX_SIZE` | `5GB` | Maximum total cache size (`512MB`, `5GB`, or a byte count) |
-
-The client is served from the same origin as the API, so it needs no build-time
-or runtime URL configuration.
-
-## Networking
-
-The container exposes a single port, `8090`, and the binary serves everything on
-it: `/api/*`, the PocketBase admin UI under `/_/*`, and the client for any other
-path. Behind a reverse proxy (Traefik, Caddy, nginx), proxy to that port.
-
-## Health Check
-
-`GET /api/health` returns `200 OK` once the server is up; the image declares it
-as its healthcheck.
-
-## Multi-Platform Support
-
-The image is built for `linux/amd64` and `linux/arm64` in CI, so it runs on x86
-servers and on ARM devices (Raspberry Pi 4+, Apple Silicon).
+The build runs in stages: the client with Bun, the Go binary with
+`CGO_ENABLED=0` so it needs no libc, and a standalone yt-dlp for the target
+architecture. The final image is `debian:bookworm-slim` with ffmpeg,
+ca-certificates and curl.
