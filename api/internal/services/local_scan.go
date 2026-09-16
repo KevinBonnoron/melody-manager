@@ -92,6 +92,9 @@ func ScanLocal(ctx context.Context, app core.App) (ScanResult, error) {
 			if merr := remeasureChanged(ctx, app, abs, sourceURL); merr != nil && firstErr == nil {
 				firstErr = merr
 			}
+			if nerr := numberKnownTrack(app, abs, sourceURL); nerr != nil && firstErr == nil {
+				firstErr = nerr
+			}
 			back, serr := SetLocalFilePresence(app, abs, true)
 			restored += back
 			if serr != nil && firstErr == nil {
@@ -125,6 +128,79 @@ func ScanLocal(ctx context.Context, app core.App) (ScanResult, error) {
 		err = firstErr
 	}
 	return ScanResult{Added: added, Restored: restored}, err
+}
+
+// trackPlace is where a file says it sits in its release. A tag that says
+// nothing leaves the field nil rather than zero.
+type trackPlace struct {
+	number *int
+	total  *int
+	disc   *int
+}
+
+func placeOf(m tag.Metadata) trackPlace {
+	var place trackPlace
+	if n, total := m.Track(); n > 0 {
+		place.number = &n
+		if total > 0 {
+			place.total = &total
+		}
+	}
+	if n, _ := m.Disc(); n > 0 {
+		place.disc = &n
+	}
+	return place
+}
+
+// numberKnownTrack backfills the position of a track imported before anything
+// read that tag. Only for records that have none, so a library that already
+// carries its numbers does not reopen every file on every walk.
+func numberKnownTrack(app core.App, abs, sourceURL string) error {
+	recs, err := app.FindRecordsByFilter("tracks", "origin = {:u}", "", 0, 0, dbx.Params{"u": sourceURL})
+	if err != nil {
+		return nil
+	}
+
+	metas := make([]domain.TrackMetadata, 0, len(recs))
+	wanting := make([]*core.Record, 0, len(recs))
+	for _, rec := range recs {
+		var meta domain.TrackMetadata
+		_ = rec.UnmarshalJSONField("metadata", &meta)
+		if meta.TrackNumber != nil {
+			continue
+		}
+		wanting = append(wanting, rec)
+		metas = append(metas, meta)
+	}
+	if len(wanting) == 0 {
+		return nil
+	}
+
+	f, err := os.Open(abs)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = f.Close() }()
+	m, err := tag.ReadFrom(f)
+	if err != nil {
+		return nil
+	}
+
+	place := placeOf(m)
+	if place.number == nil {
+		return nil
+	}
+
+	var firstErr error
+	for i, rec := range wanting {
+		meta := metas[i]
+		meta.TrackNumber, meta.TotalTracks, meta.DiscNumber = place.number, place.total, place.disc
+		rec.Set("metadata", meta)
+		if err := app.Save(rec); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 // remeasureChanged re-reads a duration when the file has changed since it was
@@ -344,6 +420,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 	genreName := ""
 	var year *int
 	var picture *tag.Picture
+	var place trackPlace
 
 	if f, err := os.Open(path); err == nil {
 		if m, err := tag.ReadFrom(f); err == nil {
@@ -361,6 +438,7 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 			}
 			genreName = strings.TrimSpace(m.Genre())
 			picture = m.Picture()
+			place = placeOf(m)
 		}
 		_ = f.Close()
 	}
@@ -414,7 +492,13 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 	}
 
 	// The origin is the file: nothing else has to record where it sits.
-	meta := domain.TrackMetadata{Format: strings.TrimPrefix(filepath.Ext(path), "."), Year: year}
+	meta := domain.TrackMetadata{
+		Format:      strings.TrimPrefix(filepath.Ext(path), "."),
+		Year:        year,
+		TrackNumber: place.number,
+		TotalTracks: place.total,
+		DiscNumber:  place.disc,
+	}
 	rec, err := getOrCreate(app, "tracks", "origin = {:u}", dbx.Params{"u": sourceURL}, func(r *core.Record) {
 		r.Set("title", title)
 		r.Set("duration", duration)
