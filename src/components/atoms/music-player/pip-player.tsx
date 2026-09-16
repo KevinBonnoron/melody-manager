@@ -1,10 +1,12 @@
 import { Music2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LikeButton } from '@/components/atoms/like-button';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
+import { useTrackRatings } from '@/hooks/use-ratings';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { useVolumeControl } from '@/hooks/use-volume-control';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
@@ -33,6 +35,7 @@ export function PipPlayer() {
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artists = artistNames(track?.artists, artistsById);
   const volume = useVolumeControl();
+  const { isLiked, toggleLike } = useTrackRatings();
   const hostRef = useRef<HTMLDivElement>(null);
   const [scrub, setScrub] = useState<number | null>(null);
 
@@ -84,6 +87,7 @@ export function PipPlayer() {
           <PreviousButton disabled={!canGoPrevious} onPrevious={control.previous} />
           <PlayButton isPlaying={isPlaying} isLoading={control.loading} onToggle={control.toggle} />
           <NextButton disabled={!canGoNext} onNext={control.next} />
+          {track && <LikeButton isLiked={isLiked(track.id)} toggleLike={() => toggleLike(track.id)} />}
         </div>
 
         <div className="flex shrink-0 items-center gap-1 pl-1">
