@@ -1,6 +1,9 @@
 package ytdlp
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Ported from the deleted server/src/utils/yt-dlp.util.test.ts: this parser
 // splits an album upload into tracks, so a regression here silently produces
@@ -230,5 +233,18 @@ func TestPickChapters(t *testing.T) {
 	}
 	if got := pickChapters(short, sameCountFurther, 1000); got[len(got)-1].EndTime != 900 {
 		t.Fatalf("on a tie the list reaching further wins, got %v", got)
+	}
+}
+
+func TestCommentArgs(t *testing.T) {
+	args := strings.Join(commentArgs(), " ")
+
+	if !strings.Contains(args, "--write-comments") {
+		t.Fatalf("the comments are not asked for at all: %q", args)
+	}
+	for _, want := range []string{"comment_sort=top", "max_comments=100,all,0,0"} {
+		if !strings.Contains(args, want) {
+			t.Errorf("missing %q in %q", want, args)
+		}
 	}
 }

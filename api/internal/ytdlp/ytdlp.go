@@ -158,8 +158,12 @@ func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo,
 			fromDescription = nil
 		}
 
-		// Fetching the comments costs a second, much slower call, so it only
-		// happens for an upload whose own chapters did not hold up.
+		// Fetching the comments costs a second call that pages through every
+		// comment on the upload, and popular music videos have hundreds of
+		// thousands of them: a three-minute song took a second to read and then
+		// minutes to look through 146,000 comments for a track list it was never
+		// going to have. Only a recording long enough to hold a track list is
+		// worth asking, and a song is not one.
 		fromComments := chaptersFromComments(ctx, url, cookiesFile, info.Duration)
 		if best := pickChapters(fromDescription, fromComments, info.Duration); len(best) > 1 {
 			info.Chapters = best
@@ -187,12 +191,26 @@ func extractInfo(ctx context.Context, url, cookiesFile string, extra ...string) 
 	return &info, nil
 }
 
+// topComments bounds the fetch. Asking for all of them cost minutes on a
+// popular upload, which yt-dlp pages through in full; a track list is pinned or
+// upvoted, so the top of the list holds it. Replies are off because only
+// top-level comments are read.
+const topComments = 100
+
+func commentArgs() []string {
+	return []string{
+		"--write-comments",
+		"--extractor-args",
+		fmt.Sprintf("youtube:comment_sort=top;max_comments=%d,all,0,0", topComments),
+	}
+}
+
 // chaptersFromComments returns the longest track list any top-level comment
 // holds. A description is capped at 5000 characters, so the uploader of a long
 // compilation routinely ends it with "check the comments" and someone else
 // posts the rest.
 func chaptersFromComments(ctx context.Context, url, cookiesFile string, duration float64) []Chapter {
-	info, err := extractInfo(ctx, url, cookiesFile, "--write-comments")
+	info, err := extractInfo(ctx, url, cookiesFile, commentArgs()...)
 	if err != nil {
 		return nil
 	}
