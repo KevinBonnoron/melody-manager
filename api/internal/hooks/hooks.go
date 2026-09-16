@@ -20,6 +20,30 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/watcher"
 )
 
+// roleForNewUser is the role an account is created with.
+func roleForNewUser(existing int64, asked string) string {
+	if existing == 0 {
+		return "admin"
+	}
+	if asked == "" {
+		return "user"
+	}
+	return asked
+}
+
+// mayRegister reports whether an account may be created by someone signing themselves up.
+func mayRegister(existing int64, registrationAllowed bool) bool {
+	return existing == 0 || registrationAllowed
+}
+
+// roleAfterUpdate is the role an account keeps after an update request.
+func roleAfterUpdate(stored, asked, editorRole string, editingSomeoneElse bool) string {
+	if editingSomeoneElse && editorRole == "admin" {
+		return asked
+	}
+	return stored
+}
+
 // Register wires the lifecycle hooks onto the app.
 func Register(app core.App, settings *config.Store) {
 	app.OnRecordCreate("users").BindFunc(func(e *core.RecordEvent) error {
@@ -28,11 +52,7 @@ func Register(app core.App, settings *config.Store) {
 			if err != nil {
 				return err
 			}
-			if count == 0 {
-				e.Record.Set("role", "admin")
-			} else if e.Record.GetString("role") == "" {
-				e.Record.Set("role", "user")
-			}
+			e.Record.Set("role", roleForNewUser(count, e.Record.GetString("role")))
 			return e.Next()
 		})
 	})
@@ -48,7 +68,7 @@ func Register(app core.App, settings *config.Store) {
 			if err != nil {
 				return err
 			}
-			if count > 0 && !settings.Get().RegistrationAllowed {
+			if !mayRegister(count, settings.Get().RegistrationAllowed) {
 				return apis.NewForbiddenError("Registration is disabled", nil)
 			}
 			return e.Next()
@@ -65,10 +85,12 @@ func Register(app core.App, settings *config.Store) {
 		}
 
 		auth := e.Auth
+		editorRole := ""
 		editingSomeoneElse := auth != nil && auth.Id != e.Record.Id
-		if !(editingSomeoneElse && auth.GetString("role") == "admin") {
-			e.Record.Set("role", stored.GetString("role"))
+		if auth != nil {
+			editorRole = auth.GetString("role")
 		}
+		e.Record.Set("role", roleAfterUpdate(stored.GetString("role"), e.Record.GetString("role"), editorRole, editingSomeoneElse))
 
 		if stored.GetString("role") == "admin" && e.Record.GetString("role") != "admin" {
 			return inRequestTransaction(e, func(txApp core.App) error {
