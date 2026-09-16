@@ -17,7 +17,10 @@ export function useDevices() {
     speakers,
     usableSpeakers,
     others,
-    remoteActive: elsewhere.find((d) => d.playing) ?? elsewhere.find((d) => d.trackId),
+    // Something is playing somewhere else, which is not the same question as
+    // where this tab sends its own sound: that one is answered by the device it
+    // selected, and only this one when it has selected none.
+    playingElsewhere: elsewhere.find((d) => d.playing) ?? elsewhere.find((d) => d.trackId),
   };
 }
 
