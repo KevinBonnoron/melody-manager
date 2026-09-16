@@ -1,4 +1,5 @@
 import { FileAudio, Monitor, Settings, Speaker } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +16,7 @@ interface MobileSettingsProps {
 }
 
 export function MobileSettings({ activeDevice, onDeviceChange, devices, audioFormat, onFormatChange }: MobileSettingsProps) {
+  const { t } = useTranslation();
   const formatOptions: { value: AudioFormat; label: string }[] = [
     { value: 'source', label: 'Source (original)' },
     { value: 'mp3', label: 'MP3 320kbps' },
@@ -26,14 +28,14 @@ export function MobileSettings({ activeDevice, onDeviceChange, devices, audioFor
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full md:hidden" title="Playback settings">
+        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full md:hidden" title={t('MusicPlayer.settings')}>
           <Settings className="h-4 w-4" />
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-auto max-h-[80vh] px-3">
         <SheetHeader className="pb-4">
-          <SheetTitle>Playback Settings</SheetTitle>
-          <SheetDescription>Configure playback device and audio format</SheetDescription>
+          <SheetTitle>{t('MusicPlayer.settings')}</SheetTitle>
+          <SheetDescription>{t('MusicPlayer.settingsDescription')}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6 pb-6 overflow-y-auto">

@@ -119,7 +119,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
 
                 <div className="hidden items-center gap-1.5 pl-2 @2xl:flex">
                   <MuteButton onClick={handleVolumeToggle} isMuted={isMuted} volume={level} />
-                  <Slider value={[level * 100]} max={100} step={1} onValueChange={([value]) => applyVolume(value / 100)} className="w-16 @5xl:w-20" />
+                  <Slider aria-label={t('MusicPlayer.volume')} value={[level * 100]} max={100} step={1} onValueChange={([value]) => applyVolume(value / 100)} className="w-16 @5xl:w-20" />
                 </div>
               </div>
             </div>
