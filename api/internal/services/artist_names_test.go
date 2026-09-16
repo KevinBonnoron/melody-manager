@@ -32,6 +32,8 @@ func TestSplitArtistName(t *testing.T) {
 		{"a featuring always splits", "Daft Punk feat. Pharrell Williams", nil, []string{"Random Access Memories", "Daft Punk"}, "Daft Punk|Pharrell Williams"},
 		{"one artist stays one", "Boards of Canada", nil, []string{"Geogaddi", "Boards of Canada"}, "Boards of Canada"},
 		{"the same artist twice is named once", "Air & Air", nil, []string{"Moon Safari", "Air"}, "Air"},
+		{"a pair the library already holds whole", "Doc & Lena Selyanina", onRecord("Doc & Lena Selyanina", "Lena Selyanina"), []string{"Nangilima"}, "Doc & Lena Selyanina"},
+		{"the same pair before it was on record", "Doc & Lena Selyanina", onRecord("Lena Selyanina"), []string{"Nangilima"}, "Doc|Lena Selyanina"},
 	}
 
 	for _, tc := range cases {
