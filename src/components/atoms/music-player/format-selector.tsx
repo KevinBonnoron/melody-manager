@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { AudioFormat } from '@/contexts/music-player-context';
+import { ControlDot } from './control-dot';
 
 interface FormatSelectorProps {
   audioFormat: AudioFormat;
@@ -22,8 +23,9 @@ export function FormatSelector({ audioFormat, onFormatChange }: FormatSelectorPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" title={t('FormatSelector.selectFormat')}>
+        <Button variant="ghost" size="icon" className="group relative h-9 w-9 rounded-full" title={t('FormatSelector.selectFormat')}>
           <FileAudio className="h-4 w-4" />
+          <ControlDot />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

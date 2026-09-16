@@ -12,6 +12,7 @@ import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { useVolumeControl } from '@/hooks/use-volume-control';
 import { cn } from '@/lib/utils';
 import { isNetworkDevice, type Track } from '@/shared';
+import { ControlDot } from './music-player/control-dot';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
 import { MuteButton } from './music-player/mute-button';
@@ -93,12 +94,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                   <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
                 </div>
 
-                {track && (
-                  <Button variant="ghost" size="icon" className="hidden h-8 w-8 @xl:inline-flex" onClick={onExpand} title={t('NowPlaying.title')} aria-label={t('NowPlaying.title')}>
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                )}
-
                 {pip.supported && (
                   <Button
                     variant="ghost"
@@ -112,8 +107,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                   </Button>
                 )}
 
-                <Button variant="ghost" size="icon" className="relative h-8 w-8 shrink-0" onClick={() => setQueueOpen(true)} title={t('NowPlaying.queue')} aria-label={t('NowPlaying.queue')}>
+                <Button variant="ghost" size="icon" className="group relative h-8 w-8 shrink-0" data-state={queueOpen ? 'open' : 'closed'} onClick={() => setQueueOpen(true)} title={t('NowPlaying.queue')} aria-label={t('NowPlaying.queue')}>
                   <ListMusic className="h-4 w-4" />
+                  <ControlDot />
                   {queue.length > 0 && <span className="absolute -top-1 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-muted text-[9px] font-medium tabular-nums flex items-center justify-center text-muted-foreground">{queue.length > 99 ? '99+' : queue.length}</span>}
                 </Button>
 
@@ -121,6 +117,12 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                   <MuteButton onClick={handleVolumeToggle} isMuted={isMuted} volume={level} />
                   <Slider aria-label={t('MusicPlayer.volume')} value={[level * 100]} max={100} step={1} onValueChange={([value]) => applyVolume(value / 100)} className="w-16 @5xl:w-20" />
                 </div>
+
+                {track && (
+                  <Button variant="ghost" size="icon" className="hidden h-8 w-8 @xl:inline-flex" onClick={onExpand} title={t('NowPlaying.title')} aria-label={t('NowPlaying.title')}>
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
