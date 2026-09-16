@@ -8,9 +8,6 @@ import { useDevices } from '@/hooks/use-devices';
 import { usePlugins } from '@/hooks/use-plugins';
 import { type ClientDevice, type Device, type DeviceType, isNetworkDevice, type NetworkDevice } from '@/shared';
 
-// Partial on purpose: the kinds of device on the network are whatever is
-// installed, so a kind this list has never heard of still has to draw. It gets
-// the speaker, which is what it is.
 const deviceIcons: Partial<Record<DeviceType, typeof Monitor>> = {
   browser: Monitor,
   desktop: Laptop,
@@ -45,8 +42,6 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
 
     return [...groups.entries()];
   }, [speakers]);
-  // A speaker is somewhere else just as much as another browser is, and the
-  // button says where the sound comes out, not which kind of device it is.
   const elsewhere = remote ?? (activeDevice && isNetworkDevice(activeDevice) ? activeDevice : null);
 
   return (
@@ -56,15 +51,10 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
           <DeviceIcon type={elsewhere?.type ?? 'browser'} />
         </Button>
       </DropdownMenuTrigger>
-      {/* Wide enough for a device name beside the badge that says it is the one
-          playing: at w-56 the name was cut to a few characters. */}
       <DropdownMenuContent align="end" className="z-[200] w-72">
         <DropdownMenuLabel>{t('DeviceSelector.playbackDevices')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* Named, never verbed. Every other row is a device the click moves the
-            music to, and this one is no different; calling it "play here" only
-            when something plays elsewhere renamed the row under the listener. */}
         <DropdownMenuItem onClick={() => (onPlayHere ? onPlayHere() : onDeviceChange(null))} className={!remote && !(activeDevice && isNetworkDevice(activeDevice)) ? 'bg-accent' : ''}>
           <Monitor className="h-4 w-4 mr-2 shrink-0" />
           <span className="min-w-0 flex-1 truncate">{t('DeviceSelector.thisBrowser')}</span>
@@ -84,8 +74,6 @@ export function DeviceSelector({ activeDevice, onDeviceChange, remote, onPlayHer
           </>
         )}
 
-        {/* Grouped by kind, and named after it: a single heading reading "Sonos
-            speakers" put every Chromecast under it. */}
         {byKind.map(([kind, devices]) => (
           <div key={kind}>
             <DropdownMenuSeparator />

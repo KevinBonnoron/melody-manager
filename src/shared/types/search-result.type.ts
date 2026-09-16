@@ -63,7 +63,6 @@ export interface SearchResponse {
   providerErrors: ProviderError[];
 }
 
-// Type guards
 export function isTrackResult(result: SearchResult): result is TrackSearchResult {
   return result.type === 'track';
 }

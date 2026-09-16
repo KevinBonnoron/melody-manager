@@ -18,9 +18,6 @@ interface Props {
   origin?: string;
 }
 
-// The playlist had no menu at all, so an imported one could be listened to and
-// never removed: the route and the client method existed, nothing called them.
-// A smart playlist is generated rather than kept, so it is not offered.
 export function PlaylistActionsMenu({ playlist, name, origin }: Props) {
   const { t } = useTranslation();
   const menuFocus = useMenuFocus();
@@ -36,7 +33,6 @@ export function PlaylistActionsMenu({ playlist, name, origin }: Props) {
     try {
       await playlistsClient.delete(playlist.id);
       toast.success(t('PlaylistPage.deleteSuccess', { name }));
-      // There is no playlists index; the library's own tab is where they live.
       navigate({ to: '/library', search: { tab: 'playlists' } });
     } catch {
       toast.error(t('PlaylistPage.deleteError'));

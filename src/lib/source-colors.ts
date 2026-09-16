@@ -1,5 +1,3 @@
-// Palette from the design handoff (MM_SOURCE_COLORS). Kept in one place: five
-// copies had already drifted apart, bandcamp most of all.
 const SOURCE_COLORS: Record<string, string> = {
   local: '#9b6cff',
   youtube: '#ff3b3b',

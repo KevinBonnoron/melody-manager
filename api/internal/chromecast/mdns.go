@@ -12,12 +12,10 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/players"
 )
 
-// service is the name a Chromecast answers to on multicast DNS.
 const service = "_googlecast._tcp.local."
 
 var mdnsGroup = &net.UDPAddr{IP: net.IPv4(224, 0, 0, 251), Port: 5353}
 
-// instance is one device, assembled from the several records it answers with.
 type instance struct {
 	name    string
 	id      string
@@ -25,13 +23,7 @@ type instance struct {
 	address string
 }
 
-// Discover asks the local network who is listening. Multicast, so it does not
-// cross a bridged network, which is why an address can also be typed in.
-//
-// One question, many answers, and each device answers in pieces: a PTR naming
-// the instance, an SRV pointing at a host, a TXT holding the name somebody gave
-// it in the app, and an A record with the address. They arrive in any order and
-// across any number of packets, so they are collected and read at the end.
+// Discover asks the local network who is listening.
 func (d *Devices) Discover(_ context.Context, timeout time.Duration) []players.Found {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
@@ -51,7 +43,6 @@ func (d *Devices) Discover(_ context.Context, timeout time.Duration) []players.F
 	instances := map[string]*instance{}
 	hosts := map[string]string{}
 
-	// Big enough for an mDNS packet, which may not be fragmented.
 	buf := make([]byte, 9000)
 	for {
 		n, _, err := conn.ReadFrom(buf)
@@ -88,15 +79,11 @@ func assemble(instances map[string]*instance, hosts map[string]string) []players
 			address = hosts[entry.host]
 		}
 		if address == "" {
-			// A device that named itself and never said where it is. The next pass
-			// will have the rest of it.
 			continue
 		}
 
 		name := entry.name
 		if name == "" {
-			// The instance is named after the device's own id, which nobody chose.
-			// Better the address than a hex string.
 			name = address
 		}
 		id := entry.id
@@ -108,9 +95,6 @@ func assemble(instances map[string]*instance, hosts map[string]string) []players
 	return found
 }
 
-// read folds one packet into what is known so far. Anything that will not parse
-// is dropped: a network carries mDNS for printers and speakers alike, and a
-// packet that is not ours is not a failure.
 func read(packet []byte, instances map[string]*instance, hosts map[string]string) {
 	var parser dnsmessage.Parser
 	if _, err := parser.Start(packet); err != nil {
@@ -120,9 +104,6 @@ func read(packet []byte, instances map[string]*instance, hosts map[string]string
 		return
 	}
 
-	// The answer section carries the PTR, and most devices put the SRV, the TXT
-	// and the A record in the additional section of the same packet. Some send
-	// them separately, which is why nothing here needs them together.
 	if !section(&parser, parser.AnswerHeader, parser.SkipAnswer, instances, hosts) {
 		return
 	}
@@ -155,10 +136,6 @@ func at(instances map[string]*instance, key string) *instance {
 }
 
 func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func() error, instances map[string]*instance, hosts map[string]string) bool {
-	// DNS names are case insensitive and a device is free to answer in whatever
-	// case it likes. Compared as they arrive, a PTR naming _GoogleCast and an SRV
-	// naming _googlecast are two different services, and the device assembles
-	// into nothing.
 	name := strings.ToLower(h.Name.String())
 	switch h.Type {
 	case dnsmessage.TypePTR:
@@ -191,7 +168,6 @@ func resource(parser *dnsmessage.Parser, h dnsmessage.ResourceHeader, skip func(
 				if !found {
 					continue
 				}
-				// The keys of a DNS-SD record are case insensitive too.
 				switch strings.ToLower(key) {
 				case "fn":
 					entry.name = value

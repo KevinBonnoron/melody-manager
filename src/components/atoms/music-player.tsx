@@ -29,16 +29,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
-  // And out of the browser altogether, in a window of its own that stays above
-  // the other applications. Chromium only, so the control is there or not.
   const pip = useDocumentPip();
   const closePip = pip.close;
-  // The window holds the player while it is up. The page keeps a line saying so
-  // and nothing else: two players on one screen is two sets of controls for one
-  // piece of music, and the one under the hand is the wrong one half the time.
   const inWindow = Boolean(pip.pipWindow);
-  // A remote change is only reflected once the device has reported it back, so
-  // the slider follows the hand until then rather than the round trip.
   const [pendingVolume, setPendingVolume] = useState<number | null>(null);
   const volumeCommandRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteVolume = remote?.volume;
@@ -61,8 +54,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const [previousVolume, setPreviousVolume] = useState(1.0);
   const [queueOpen, setQueueOpen] = useState(false);
 
-  // The pending command closes over the device it was made for, so it has to go
-  // when that device does, and when the bar does.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the device is what invalidates the pending command, not the object
   useEffect(() => {
     return () => {
@@ -75,8 +66,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
 
   const applyVolume = (next: number) => {
     if (isRemote && remote) {
-      // The slider emits a change per pixel; the display follows every one of
-      // them, the device is only told where the drag settled.
       setPendingVolume(next);
       if (volumeCommandRef.current) {
         clearTimeout(volumeCommandRef.current);
@@ -102,15 +91,9 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   };
 
   const track = (isRemote ? remote?.track : currentTrack) ?? null;
-  // A device reporting a track this client has not loaded yet still has to be
-  // stoppable, so the bar follows what is playing, not what is known about it.
   const holder = isRemote ? remote?.device : null;
   const nothingToShow = !track && !holder;
 
-  // The bar is what carries the control that closes the window, so a bar with
-  // nothing to show would leave an empty window on top of everything with no
-  // way back. Unmounting covers the rest; this is the case where the component
-  // stays and renders nothing.
   useEffect(() => {
     if (nothingToShow) {
       closePip();
@@ -121,22 +104,11 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
     return null;
   }
 
-  // WaveSurfer reads its progress off the local audio element, which sits idle
-  // whenever something else is doing the playing. A speaker or another browser
-  // reports where it is instead, and that is what the bar has to follow.
   const onAnotherClient = isRemote && remote ? { trackId: remote.track?.id, currentTime: remote.currentTime, duration: remote.duration, playing: remote.isPlaying, onSeek: remote.seek } : null;
   const onSpeaker = activeDevice && isNetworkDevice(activeDevice) && track ? { trackId: track.id, currentTime, duration: track.duration, playing: isPlaying, loading: isLoading, onSeek: seek } : null;
   const reported = onAnotherClient ?? onSpeaker;
 
-  // Until the first paint has measured the panel there is no point to place it
-  // at, and a fixed element with no insets would sit at its flow position; the
-  // position lands before that shows, from a layout effect.
-
-  // On mobile, the mini-player is integrated into the BottomNav dock, hide this component
   return (
-    // A container, so what the bar shows is decided from its own width. The
-    // viewport says nothing about a 28rem panel in a 2000px window, and the
-    // volume slider used to be drawn into a box that could not hold it.
     <div className="hidden md:block @container fixed bottom-3 left-16 right-4 z-40 overflow-hidden rounded-xl border border-primary-border bg-card/[0.92] backdrop-blur-[24px] backdrop-saturate-[1.2] shadow-[0_20px_60px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.02)] transition-[left] duration-200 ease-linear peer-data-[state=expanded]:left-[17rem]">
       {inWindow ? (
         <button type="button" onClick={closePip} className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left transition-colors hover:bg-muted/40" title={t('MusicPlayer.closePip')}>
@@ -147,35 +119,21 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
       ) : (
         <div className="w-full px-3.5 py-2.5">
           <div className="flex flex-col gap-2">
-            {/* Full-width progress bar on top */}
             {reported ? <SimpleProgressBar {...reported} /> : <ProgressBar />}
 
-            {/* Left and right share what the transport does not take, so the
-              transport stays centred and never has to give ground: letting it
-              shrink past its buttons is what put them on top of the title. */}
             <div className="flex items-center gap-2 min-w-0 @2xl:gap-4">
-              {/* LEFT, track info. It takes its whole half, which is what keeps
-                the transport centred, and a title only gives way once it truly
-                runs out of room. */}
               <div className="flex min-w-0 flex-1">
                 <TrackInfo track={track} fallbackTitle={holder?.name} />
               </div>
 
-              {/* CENTER, transport controls */}
               <div className="flex flex-none justify-center">
                 <PlaybackControls remote={isRemote && remote ? { isPlaying: remote.isPlaying, track: remote.track, togglePlayPause: remote.togglePlayPause, playNext: remote.playNext, playPrevious: remote.playPrevious } : undefined} />
               </div>
 
-              {/* RIGHT, device, format, queue, volume. Everything but the device
-                gives way as the window narrows, widest use first. */}
               <div className="flex min-w-0 flex-1 items-center gap-1.5 justify-end">
                 <DeviceSelector
                   activeDevice={activeDevice}
                   onDeviceChange={(device) => {
-                    // Playing somewhere else is somebody else's playback to move,
-                    // not this tab's to re-point: switchDevice would leave the
-                    // music where it was and only change what this tab would play
-                    // next.
                     if (device && isRemote && remote?.track) {
                       transferPlayback(device);
                       return;
@@ -197,8 +155,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
                   </Button>
                 )}
 
-                {/* Out of the window, above everything else. The audio element
-                  never moves, so the music does not notice either way. */}
                 {pip.supported && (
                   <Button
                     variant="ghost"
@@ -240,8 +196,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
       )}
 
       <QueueSheet open={queueOpen} onOpenChange={setQueueOpen} />
-      {/* Another document, so its own tree: the providers are still this one's,
-          which is what keeps the two views on the same playback. */}
       {pip.pipWindow && createPortal(<PipPlayer />, pip.pipWindow.document.body)}
     </div>
   );

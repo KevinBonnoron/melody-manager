@@ -22,8 +22,6 @@ export function usePageHeaderValue() {
   return useContext(PageHeaderContext).header;
 }
 
-// Routes with dynamic params have no entry in the static title map, so the page
-// itself declares what the app header should show.
 export function usePageHeader(header: PageHeader | null) {
   const { setHeader } = useContext(PageHeaderContext);
   const title = header?.title;

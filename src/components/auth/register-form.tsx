@@ -43,10 +43,6 @@ export function RegisterForm() {
       await signIn.email(email, password);
 
       toast.success(t('RegisterForm.success'));
-      // A full reload, not a route change: the realtime stream and the
-      // collections were started before anyone was signed in, so they carry
-      // no token and never retry. Everything that reads the session once, at
-      // startup, has to start again now that there is one.
       window.location.replace('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('RegisterForm.errors.createFailed');

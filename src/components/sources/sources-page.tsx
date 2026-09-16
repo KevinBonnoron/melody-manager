@@ -118,8 +118,6 @@ export function SourcesPage() {
         <section>
           <h3 className="text-sm font-semibold">{t('ProvidersPage.addSource')}</h3>
           <p className="mt-1 mb-3 text-[13px] text-muted-foreground">{t('ProvidersPage.addSourceDescription')}</p>
-          {/* The same track size as the active grid, so the two sections line up
-              column for column instead of splitting the same width differently. */}
           <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
             {availableProviders.map((p) => (
               <AvailableCard
@@ -192,13 +190,6 @@ function ConnectedCard({
 
   return (
     <div className="relative flex flex-col gap-3.5 rounded-xl border bg-card px-[18px] pt-[18px] pb-4 transition-colors hover:border-[var(--plat)]" style={{ '--plat': color } as React.CSSProperties}>
-      {/* The title's link is stretched over the whole card, so anywhere that is
-          not a control opens the source. Nesting the buttons inside an anchor
-          would be invalid markup and would swallow their clicks.
-
-          The status sits on its own line rather than beside the title: sharing
-          that row left it a third of the card, which no wording survives in
-          every language. */}
       <div className="flex flex-col gap-1.5">
         <Link to="/sources/$type" params={{ type: provider.type }} className="flex min-w-0 items-center gap-3 after:absolute after:inset-0 after:content-['']">
           <div className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.3),0_1px_2px_rgba(0,0,0,0.3)]" style={{ backgroundColor: color }}>
@@ -218,10 +209,6 @@ function ConnectedCard({
         <Metric value={metrics.artists} label={t('SourcesPage.artists', { count: metrics.artists })} />
       </div>
 
-      {/* Icons rather than labels: what a source offers depends on its scope,
-          and spelled out the row wrapped into a different shape on every card.
-          Each control keeps its own place, so the set reads the same
-          everywhere. */}
       <div className="relative flex items-center justify-end gap-1">
         {ownsLibrary && <CardAction icon={RefreshCw} label={t('SourcesPage.scan')} onClick={scan} />}
         {configurable && <CardAction icon={SlidersHorizontal} label={t('SourcesPage.serverSettings')} onClick={() => setConfigOpen(true)} />}
@@ -260,8 +247,6 @@ function AvailableCard({ provider, title, subtitle, icon: Icon, serverConfig, co
   const [open, setOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
 
-  // A source the server owns is not connected, it is configured: sending it to
-  // the connect dialog would write a connection row nothing ever reads.
   const start = connectable ? () => setOpen(true) : configurable ? () => setConfigOpen(true) : undefined;
 
   return (

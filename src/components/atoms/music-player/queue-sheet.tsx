@@ -9,8 +9,6 @@ import { getAlbumCoverUrl } from '@/lib/cover-url';
 interface QueueSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // The full-screen player sits above the sheet's own layer, so opening the
-  // queue from there has to lift it over the player rather than under it.
   elevated?: boolean;
 }
 

@@ -7,15 +7,12 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
-// YouTube uses yt-dlp for search, resolution and streaming. Multi-chapter
-// videos are split into one track per chapter (album import).
+// YouTube uses yt-dlp for search, resolution and streaming.
 type YouTube struct{}
 
 func (YouTube) ID() string { return "youtube" }
 
 func (YouTube) Search(ctx context.Context, query string, typ domain.SearchResultType, cfg Config) ([]domain.SearchResult, error) {
-	// yt-dlp's search only yields videos; anything else would just repeat the
-	// track hits under another label.
 	if typ != domain.ResultTrack {
 		return nil, nil
 	}
@@ -37,12 +34,8 @@ func (YouTube) ResolveTracks(ctx context.Context, url string, cfg Config) ([]dom
 		return nil, err
 	}
 	base := ytdlp.BuildResolvedTrack(*info, "youtube")
-	// One extra yt-dlp run per import, not per track: the avatar lives on the
-	// channel, and every track of an import shares it.
 	base.ArtistImageURL = ytdlp.ChannelAvatar(ctx, firstNonEmpty(info.ChannelURL, info.UploaderURL), cookiesFile)
 	if len(info.Chapters) > 1 {
-		// The video is the album, so it is named after the video rather than
-		// the "<channel> - <provider>" placeholder a standalone track gets.
 		if info.Album == "" && info.Title != "" {
 			base.AlbumName = info.Title
 		}

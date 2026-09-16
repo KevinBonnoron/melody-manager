@@ -8,8 +8,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 )
 
-// Config is the effective per-request provider config: server-level
-// (provider_settings.config) overlaid with the user connection (connections.config).
+// Config is the effective per-request provider config.
 type Config map[string]any
 
 // String returns a string config value, or "".
@@ -29,8 +28,6 @@ type Stream struct {
 	URL      string
 	Path     string
 	MimeType string
-	// Download, when set, fetches the audio to a local file (used for sources
-	// whose direct URLs expire quickly, e.g. SoundCloud).
 	Download func(ctx context.Context) (string, error)
 }
 
@@ -57,8 +54,8 @@ type Registry struct {
 	providers map[string]Provider
 }
 
-// PlaylistNamer is optionally implemented by providers that can name a
-// playlist URL, so an imported playlist keeps its own title.
+// PlaylistNamer is optionally implemented by providers that can name a playlist URL, so an
+// imported playlist keeps its own title.
 type PlaylistNamer interface {
 	PlaylistName(ctx context.Context, url string, cfg Config) (string, error)
 }
@@ -113,8 +110,6 @@ func DetectFromURL(url string) string {
 	return ""
 }
 
-// writeCookies materialises a Netscape cookies file from config, returning its
-// path and a cleanup func.
 func writeCookies(cfg Config) (string, func()) {
 	c := cfg.String("cookies")
 	if c == "" {
@@ -129,9 +124,8 @@ func writeCookies(cfg Config) (string, func()) {
 	return f.Name(), func() { _ = os.Remove(f.Name()) }
 }
 
-// CatalogResolver describes a source that knows a track but cannot serve its
-// audio, Spotify, whose streams are DRM-protected. The importer pairs what it
-// returns with a playable source.
+// CatalogResolver describes a source that knows a track but cannot serve its audio, Spotify,
+// whose streams are DRM-protected.
 type CatalogResolver interface {
 	ResolveCatalogTrack(ctx context.Context, url string, cfg Config) (domain.ResolvedTrack, error)
 }

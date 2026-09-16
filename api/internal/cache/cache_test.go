@@ -10,8 +10,6 @@ import (
 	"testing"
 )
 
-// producer writes a file of the given size in a temp dir, the way yt-dlp does,
-// and counts how many times it ran.
 func producer(t *testing.T, size int, calls *int32, mu *sync.Mutex) func(context.Context) (string, error) {
 	t.Helper()
 	tmp := t.TempDir()
@@ -94,7 +92,6 @@ func TestEvictsByFileCount(t *testing.T) {
 	if c.Len() != 2 {
 		t.Errorf("cache holds %d files, want 2", c.Len())
 	}
-	// "a" was the least recently used, so it is the one that went.
 	if _, ok := c.get("a"); ok {
 		t.Error("the oldest entry survived eviction")
 	}
@@ -137,7 +134,6 @@ func TestSurvivesRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A restart must adopt what is already on disk rather than re-download.
 	reopened, err := New(dir, 10, 1<<20)
 	if err != nil {
 		t.Fatal(err)
@@ -235,6 +231,5 @@ func TestForgetDropsTheEntryAndItsFile(t *testing.T) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Errorf("the file was left behind: %v", err)
 	}
-	// Forgetting something that was never cached must be harmless.
 	c.Forget("never-stored")
 }

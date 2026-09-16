@@ -18,9 +18,6 @@ export function SidebarPlatforms() {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
   const { pathname } = useLocation();
-  // The one definition of "in use", shared with the sources screen: this list
-  // used to derive its own, which is how a source nobody had configured sat
-  // here as though it were feeding the library.
   const { trackProviders, statusOf, countByType, totalTracks } = useActiveSources();
   const providerInfo = useMemo(() => getProviderInfoFromManifests(t, manifests), [t, manifests]);
   const connectedProviders = useMemo(() => trackProviders.filter((p) => isSourceInUse(statusOf(p.type))), [trackProviders, statusOf]);
@@ -37,7 +34,6 @@ export function SidebarPlatforms() {
         <span className="text-[10px] text-muted-foreground/60 font-normal">{t('AppSidebar.platformsConnected', { count: connectedProviders.length })}</span>
       </SidebarGroupLabel>
       <SidebarMenu>
-        {/* All sources, click to clear filter */}
         <SidebarMenuItem>
           <SidebarMenuButton asChild tooltip={t('AppSidebar.allSources')} isActive={pathname === '/sources'}>
             <Link to="/sources">
@@ -52,7 +48,6 @@ export function SidebarPlatforms() {
           </SidebarMenuButton>
         </SidebarMenuItem>
 
-        {/* Connected providers, click to filter */}
         {connectedProviders.map((p) => {
           const info = providerInfo[p.type];
           const Icon = info?.icon ?? Music2;
@@ -73,7 +68,6 @@ export function SidebarPlatforms() {
           );
         })}
 
-        {/* Divider + available providers */}
         {availableProviders.length > 0 && <div className="mx-2 my-1 h-px bg-border" />}
         {availableProviders.map((p) => (
           <AvailableSourceItem key={p.id} provider={p} title={providerInfo[p.type]?.title ?? p.type} icon={providerInfo[p.type]?.icon ?? Music2} manifests={manifests} />
@@ -83,9 +77,6 @@ export function SidebarPlatforms() {
   );
 }
 
-// An unlinked source has nothing to show on its own page yet, so the row opens
-// what it needs: the connect dialog for a source the user links himself, the
-// server settings for one the operator configures.
 function AvailableSourceItem({ provider, title, icon: Icon, manifests }: { provider: Provider; title: string; icon: ProviderIcon; manifests: PluginManifest[] }) {
   const { t } = useTranslation();
   const user = useAuthUser();

@@ -63,8 +63,6 @@ export function ArtistPage({ artistId }: Props) {
         </div>
       ) : artist ? (
         <>
-          {/* Title, one subtitle, one row of actions: the same three parts as the
-              album header, so moving between the two does not reshuffle the page. */}
           <PageHeader
             media={
               <div className="h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">

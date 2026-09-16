@@ -1,10 +1,6 @@
 const CLEANUP = /^[\s\u3000\u00A0\u200B\uFEFF]*[-–—‐‑]\s*|^[\s\u3000\u00A0\u200B\uFEFF]+|^(["'])(.+)\1$|^(["'])([^"']+)$|^([^"']+)(["'])$/u;
 
-/**
- * Normalizes track titles by stripping surrounding/unmatched quotes (single or double),
- * leading dashes and whitespace often found in YouTube chapter titles.
- * This is the single entry point for all title cleaning after timecode removal.
- */
+/** Normalizes track titles by stripping surrounding/unmatched quotes (single or double), leading dashes and whitespace often found in YouTube chapter titles. */
 export function normalizeTrackTitle(title: string): string {
   let normalized = title;
   let prev: string;

@@ -6,10 +6,6 @@ import (
 )
 
 // PlaybackPositions writes the resume point of a user's playback.
-//
-// It exists for speakers: they play with no client watching, so the position
-// would otherwise be recorded by a browser that is not playing anything, or by
-// nobody at all once every browser is closed.
 type PlaybackPositions struct {
 	app core.App
 }
@@ -18,9 +14,7 @@ func NewPlaybackPositions(app core.App) *PlaybackPositions {
 	return &PlaybackPositions{app: app}
 }
 
-// SavePosition records where this user's playback got to. The queue is left
-// alone: only a client knows what it is playing next, and only the fields
-// touched here are written.
+// SavePosition records where this user's playback got to.
 func (p *PlaybackPositions) SavePosition(owner, trackID string, position float64) error {
 	record, err := p.app.FindFirstRecordByFilter("playback_state", "user = {:user}", dbx.Params{"user": owner})
 	if err != nil {

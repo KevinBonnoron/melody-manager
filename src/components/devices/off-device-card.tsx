@@ -5,11 +5,6 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { getSourceColor } from '@/lib/source-colors';
 import type { Provider } from '@/shared';
 
-// A kind of device that is switched off, in the compact shape a source that is
-// not in service has. Like a source the server owns, the row opens its settings
-// rather than putting it in service on the spot: the switch is in there, next to
-// the addresses it is worth nothing without, and closing the dialog changes
-// nothing.
 export function OffDeviceCard({ provider, title, subtitle, icon: Icon, onConfigure }: { provider: Provider; title: string; subtitle?: string; icon: ProviderIcon; onConfigure: () => void }) {
   const { t } = useTranslation();
   const user = useAuthUser();

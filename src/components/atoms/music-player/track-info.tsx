@@ -6,15 +6,9 @@ import { resolveAll, useAlbumsById, useArtistsById } from '@/hooks/use-library-i
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import type { Track } from '@/shared';
 
-// react-fast-marquee ships CJS only, and Vite's interop hands back the whole
-// module.exports ({ __esModule, default }) rather than its default export, so
-// the component sits one level deeper than the import suggests.
 const Marquee = (MarqueeExport as unknown as { default?: typeof MarqueeExport }).default ?? MarqueeExport;
 
 interface Props {
-  // Null while a device reports a track this client has not loaded yet: the
-  // controls still have to be there, or there is no way to stop what is
-  // playing.
   track: Track | null;
   fallbackTitle?: string;
 }
@@ -27,10 +21,6 @@ export function TrackInfo({ track, fallbackTitle }: Props) {
   const probeRef = useRef<HTMLSpanElement>(null);
   const [overflows, setOverflows] = useState(false);
 
-  // Measured on a copy laid out on one line and never shown. The visible title
-  // is either truncated or inside the marquee, and neither reports the width
-  // the text would actually need. Watching the container is what makes a
-  // window resize, or the sidebar opening, reconsider the decision.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the title is read through the DOM, and it is the signal that a new one has to be measured
   useLayoutEffect(() => {
     const container = trackRef.current;

@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// A missing file is written with the defaults, so a fresh install has something
-// to read and an operator something to edit.
+// A missing file is written with the defaults, so a fresh install has something to read and an
+// operator something to edit.
 func TestLoadCreatesTheFileWithDefaults(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 
@@ -27,8 +27,8 @@ func TestLoadCreatesTheFileWithDefaults(t *testing.T) {
 	}
 }
 
-// The file is the only source of truth, and a partial one keeps the defaults
-// for whatever it leaves out rather than zeroing those fields.
+// The file is the only source of truth, and a partial one keeps the defaults for whatever it
+// leaves out rather than zeroing those fields.
 func TestLoadReadsTheFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte(`{"publicUrl":"http://saved:9000"}`), 0o600); err != nil {
@@ -73,9 +73,7 @@ func TestSaveRoundTrips(t *testing.T) {
 	}
 }
 
-// A file can hold values nothing can use: an empty listen address is what a
-// hand-edited or half-written file leaves behind, and taking it literally moves
-// the server somewhere nobody asked for.
+// A file can hold values nothing can use.
 func TestLoadHealsEmptyValues(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte(`{"listenAddr":"","publicUrl":"","cacheMaxFiles":0}`), 0o600); err != nil {

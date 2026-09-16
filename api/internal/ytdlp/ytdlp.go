@@ -1,6 +1,5 @@
-// Package ytdlp wraps the yt-dlp binary (provided by the nix dev shell) used by
-// the youtube, soundcloud and bandcamp providers for metadata, stream URLs and
-// downloads.
+// Package ytdlp wraps the yt-dlp binary (provided by the nix dev shell) used by the youtube,
+// soundcloud and bandcamp providers for metadata, stream URLs and downloads.
 package ytdlp
 
 import (
@@ -51,8 +50,7 @@ type TrackInfo struct {
 	Comments    []Comment `json:"comments"`
 }
 
-// Comment is the subset of a yt-dlp comment we use. A long upload's track list
-// often lives in a comment rather than the description, which YouTube caps.
+// Comment is the subset of a yt-dlp comment we use.
 type Comment struct {
 	Text   string `json:"text"`
 	Parent string `json:"parent"`
@@ -60,15 +58,6 @@ type Comment struct {
 
 var streamURLCache = expirable.NewLRU[string, string](1000, nil, streamURLTTL)
 
-// extraArgs are appended to every yt-dlp invocation. We intentionally do NOT
-// force `--extractor-args youtube:player_client=default` (the web client is the
-// one most aggressively hit by YouTube bot detection): letting yt-dlp pick its
-// own client priority (tv/android_vr/...) is far more reliable. Kept as a var so
-// a working client set can be injected later if needed.
-//
-// YouTube extraction without a JavaScript runtime is deprecated and drops
-// formats. yt-dlp only enables deno by default; bun is already a dependency
-// here, and an unavailable runtime is skipped rather than fatal.
 var extraArgs = []string{"--js-runtimes", "bun"}
 
 func cookieArgs(cookiesFile string) []string {
@@ -78,9 +67,6 @@ func cookieArgs(cookiesFile string) []string {
 	return []string{"--cookies", cookiesFile}
 }
 
-// validateURL rejects anything yt-dlp would read as an option rather than a
-// target. Callers hand user-supplied strings straight to argv, and yt-dlp
-// treats any leading "-" as a flag.
 func validateURL(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -103,8 +89,6 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// streamURLTTL matches how long a signed CDN URL stays valid; without an
-// expiry a stale entry made a track permanently unplayable.
 const streamURLTTL = 4 * time.Hour
 
 // StreamURL resolves a direct audio URL for the source (cached for streamURLTTL).
@@ -137,23 +121,17 @@ func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, erro
 	return url, nil
 }
 
-// InvalidateStreamURL drops a cached stream URL (e.g. after a 403).
+// InvalidateStreamURL drops a cached stream URL (e.g.
 func InvalidateStreamURL(sourceURL string) { streamURLCache.Remove(sourceURL) }
 
-// multiTrackLength is the shortest an upload can be and still hold several
-// tracks: a floor on whether the question makes sense, not a number to tune.
 const multiTrackLength = 10 * time.Minute
 
-// worthSplitting reports whether timestamps around an upload are a track list.
-// Under a song they are not: "0:45 best drop" is somebody pointing at a moment,
-// and read as chapters it turns a single into several tracks.
 func worthSplitting(info TrackInfo) bool {
 	return info.Duration >= multiTrackLength.Seconds() && needsChapterRecovery(info)
 }
 
-// ExtractTrackInfo fetches metadata for a single track and, when the embedded
-// chapters are missing or poor, derives them from the description and, failing
-// that, from the comments.
+// ExtractTrackInfo fetches metadata for a single track and, when the embedded chapters are
+// missing or poor, derives them from the description and, failing that, from the comments.
 func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo, error) {
 	if err := validateURL(url); err != nil {
 		return nil, err
@@ -169,12 +147,6 @@ func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo,
 			fromDescription = nil
 		}
 
-		// Fetching the comments costs a second call that pages through every
-		// comment on the upload, and popular music videos have hundreds of
-		// thousands of them: a three-minute song took a second to read and then
-		// minutes to look through 146,000 comments for a track list it was never
-		// going to have. Only a recording long enough to hold a track list is
-		// worth asking, and a song is not one.
 		fromComments := chaptersFromComments(ctx, url, cookiesFile, info.Duration)
 		if best := pickChapters(fromDescription, fromComments, info.Duration); len(best) > 1 {
 			info.Chapters = best
@@ -202,10 +174,6 @@ func extractInfo(ctx context.Context, url, cookiesFile string, extra ...string) 
 	return &info, nil
 }
 
-// topComments bounds the fetch. Asking for all of them cost minutes on a
-// popular upload, which yt-dlp pages through in full; a track list is pinned or
-// upvoted, so the top of the list holds it. Replies are off because only
-// top-level comments are read.
 const topComments = 100
 
 func commentArgs() []string {
@@ -216,10 +184,6 @@ func commentArgs() []string {
 	}
 }
 
-// chaptersFromComments returns the longest track list any top-level comment
-// holds. A description is capped at 5000 characters, so the uploader of a long
-// compilation routinely ends it with "check the comments" and someone else
-// posts the rest.
 func chaptersFromComments(ctx context.Context, url, cookiesFile string, duration float64) []Chapter {
 	info, err := extractInfo(ctx, url, cookiesFile, commentArgs()...)
 	if err != nil {
@@ -244,8 +208,6 @@ func chaptersFromComments(ctx context.Context, url, cookiesFile string, duration
 	return best
 }
 
-// pickChapters takes whichever list names more tracks, and on a tie whichever
-// reaches further into the upload.
 func pickChapters(fromDescription, fromComments []Chapter, duration float64) []Chapter {
 	switch {
 	case len(fromDescription) == 0:
@@ -273,11 +235,6 @@ func coverage(chapters []Chapter, duration float64) float64 {
 
 var numberedTitleRe = regexp.MustCompile(`^\d+[.)]*\s*$`)
 
-// needsChapterRecovery reports whether the upload's own chapters can be trusted.
-//
-// A last chapter running far longer than the others is the signature of a list
-// that stops early: what follows it is not a track, it is everything the
-// uploader could not fit.
 func needsChapterRecovery(info TrackInfo) bool {
 	if len(info.Chapters) <= 1 {
 		return true
@@ -312,9 +269,7 @@ func lastChapterOutsized(chapters []Chapter) bool {
 
 var searchSpecRe = regexp.MustCompile(`^(yt|sc)search\d*:`)
 
-// SearchEntries runs a yt-dlp search spec (ytsearch20:…, scsearch20:…). Kept
-// apart from the URL entry points because a spec is not a URL, yet still must
-// never be mistaken for an option.
+// SearchEntries runs a yt-dlp search spec (ytsearch20:…, scsearch20:…).
 func SearchEntries(ctx context.Context, spec, cookiesFile string) ([]TrackInfo, error) {
 	if !searchSpecRe.MatchString(spec) {
 		return nil, fmt.Errorf("invalid search spec %q", spec)
@@ -461,9 +416,7 @@ func BuildResolvedTrack(info TrackInfo, source string) domain.ResolvedTrack {
 var timestampRe = regexp.MustCompile(`(\d+):(\d{2})(?::(\d{2}))?`)
 var leadingNumRe = regexp.MustCompile(`^\s*\d+(?:-\d+)?[.)]?\s+`)
 
-// ParseChapters derives chapters from free text (description/comment). Go's
-// RE2 has no lookbehind, so this is a line-based port (not the exact JS regex
-// set) that handles the common "Title TIMESTAMP" / "TIMESTAMP Title" formats.
+// ParseChapters derives chapters from free text (description/comment).
 func ParseChapters(text string, duration float64) []Chapter {
 	var chapters []Chapter
 	for _, raw := range strings.Split(text, "\n") {
@@ -481,9 +434,6 @@ func ParseChapters(text string, duration float64) []Chapter {
 			secs = atoi(m[1])*3600 + atoi(m[2])*60 + atoi(m[3])
 		}
 		title := strings.TrimSpace(line[:loc[0]] + line[loc[1]:])
-		// A bracketed timestamp leaves an empty pair behind; drop that rather
-		// than trimming brackets generally, which would eat the closing one of
-		// a title like "Opening [Episode One]".
 		title = strings.ReplaceAll(title, "[]", "")
 		title = strings.Trim(title, " -–::·")
 		title = leadingNumRe.ReplaceAllString(title, "")
@@ -527,9 +477,7 @@ func firstNonEmpty(vals ...string) string {
 
 func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
 
-// ChannelAvatar returns the channel's avatar URL. YouTube exposes it on the
-// channel, never on a video, so this costs one extra yt-dlp run, call it once
-// per import and only when the artist has no image yet.
+// ChannelAvatar returns the channel's avatar URL.
 func ChannelAvatar(ctx context.Context, channelURL, cookiesFile string) string {
 	if channelURL == "" || validateURL(channelURL) != nil {
 		return ""
@@ -555,8 +503,6 @@ func ChannelAvatar(ctx context.Context, channelURL, cookiesFile string) string {
 		return ""
 	}
 
-	// Channels expose an avatar and a banner; the avatar is square, the banner
-	// is not. Prefer the largest square.
 	best, bestSize := "", 0
 	for _, t := range payload.Thumbnails {
 		if t.URL == "" || t.Width == 0 || t.Width != t.Height {

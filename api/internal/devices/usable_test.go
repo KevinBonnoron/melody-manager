@@ -14,16 +14,12 @@ func (s speakerStoreStub) KnownSpeakers(string) []string { return nil }
 
 func (s speakerStoreStub) SpeakerUsable(_, address string) bool { return s.usable[address] }
 
-// playerStub speaks a kind and nothing else: refreshUsable only asks the
-// registry which devices it controls.
 type playerStub struct{ players.Player }
 
 func (playerStub) Kind() string { return "sonos" }
 
-// A speaker that stops answering M-SEARCH is not probed directly either once it
-// is disabled, so nothing would bring the registry back in line with the
-// decision: it kept saying usable, and the control routes went on letting
-// anybody play to it.
+// A speaker that stops answering M-SEARCH is not probed directly either once it is disabled, so
+// nothing would bring the registry back in line with the decision.
 func TestRefreshUsableReachesSpeakersDiscoveryNoLongerFinds(t *testing.T) {
 	svc := New(func() string { return "http://example.test" })
 	svc.devices["silent"] = Device{ID: "silent", Type: "sonos", IPAddress: "10.0.0.9", Usable: true}

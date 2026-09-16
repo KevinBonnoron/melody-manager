@@ -13,12 +13,9 @@ import { afterMenuCloses } from '@/lib/utils';
 interface Props {
   artistId: string;
   name: string;
-  // Admin only; an artist nobody can delete still has an opinion to give.
   onDelete?: () => void;
 }
 
-// The same control, in the same place, as the album page: what it holds differs,
-// where it sits does not.
 export function ArtistActionsMenu({ artistId, name, onDelete }: Props) {
   const { t } = useTranslation();
   const menuFocus = useMenuFocus();

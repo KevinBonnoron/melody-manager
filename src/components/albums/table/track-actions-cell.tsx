@@ -41,9 +41,6 @@ export function TrackActionsCell({ track }: Props) {
     }
   };
   const disliked = isDisliked(track.id);
-  // A share link streams the track through the same service as playback, which
-  // resolves the provider on demand when there is no file. Only a track that
-  // can be played from nowhere has nothing to share.
   const canShare = track.availability !== 'none';
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -60,9 +57,6 @@ export function TrackActionsCell({ track }: Props) {
 
   return (
     <>
-      {/* One opinion stays in reach, the rest folds into the menu: like and
-          dislike side by side made every row argue with itself, and the same
-          menu already existed for the phone. */}
       <div className="flex items-center gap-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -101,9 +95,6 @@ export function TrackActionsCell({ track }: Props) {
                 {t('CreatePlaylist.addTo')}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                {/* A playlist already holding the track takes it again without
-                    complaining and without changing: the list is a set. Saying
-                    so here beats letting the click succeed and do nothing. */}
                 {playlists.map((playlist) => {
                   const alreadyIn = playlist.tracks?.includes(track.id) ?? false;
                   return (

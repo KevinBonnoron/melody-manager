@@ -42,9 +42,6 @@ export function AlbumPage({ album, tracks, artists }: Props) {
 
   return (
     <>
-      {/* Title, one subtitle, one row of actions: the same three parts as the
-          artist header. Year, track count and duration join the artist on the
-          subtitle rather than taking a line of their own. */}
       <PageHeader
         media={<div className="h-full w-full rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">{coverUrl ? <img src={coverUrl} alt={album.name} className="w-full h-full object-cover" /> : <Disc3 className="h-1/2 w-1/2 text-primary/60" />}</div>}
         title={album.name}

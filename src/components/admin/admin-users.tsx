@@ -93,8 +93,6 @@ export function AdminUsers() {
 
   const table = useReactTable({ data: users, columns, getCoreRowModel: getCoreRowModel() });
 
-  // Only the very first load has nothing to show. Hiding the table on every
-  // refresh is what made it blink after each change.
   if (isLoading && users.length === 0) {
     return <p className="text-muted-foreground text-sm">{t('Admin.usersLoading')}</p>;
   }
@@ -107,8 +105,6 @@ export function AdminUsers() {
     const name = pending.name || pending.email;
     setPending(null);
     try {
-      // The server refuses to delete the last administrator, and that refusal
-      // only arrives once the deletion has been sent.
       await userCollection.delete(pending.id).isPersisted.promise;
       toast.success(t('Admin.userDeleted', { name }));
     } catch (error) {
@@ -125,8 +121,6 @@ export function AdminUsers() {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  // The account column takes what the others leave: sized ones
-                  // first, so a long address cannot push the rest off screen.
                   <TableHead key={header.id} style={header.column.columnDef.size ? { width: header.column.columnDef.size } : undefined} className={header.column.id === 'actions' ? 'text-right' : undefined}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>

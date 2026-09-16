@@ -2,12 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { tracksClient } from '@/clients/tracks.client';
 import { formatDuration } from '@/lib/utils';
 
-// Matches the waveform bar: 2px bars separated by 1px, so both sides resolve
-// the same amount of detail for a given width.
 const BAR_WIDTH = 2;
 const BAR_GAP = 1;
 
-// Low enough to read as "not known yet" rather than as a silent track.
 const PLACEHOLDER_BAR = 0.3;
 
 interface Props {
@@ -19,17 +16,11 @@ interface Props {
   onSeek: (time: number) => void;
 }
 
-// The waveform bar binds to the local audio element, which a remote device does
-// not have. Peaks come from the server all the same, so they are drawn here and
-// the progress is driven by the reported position instead.
 export function SimpleProgressBar({ trackId, currentTime, duration, playing = false, loading = false, onSeek }: Props) {
   const [peaks, setPeaks] = useState<number[]>([]);
   const [barCount, setBarCount] = useState(0);
   const observerRef = useRef<ResizeObserver | null>(null);
 
-  // Measured through the ref itself rather than in an effect: the track is not
-  // rendered until its duration is known, and an effect that ran once before
-  // the element existed would never measure it.
   const trackRef = useCallback((element: HTMLDivElement | null) => {
     observerRef.current?.disconnect();
     observerRef.current = null;
@@ -73,16 +64,10 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
       return [];
     }
 
-    // Peaks are computed on demand and can take a while on a track the server
-    // has to fetch first. A flat row of the same bars stands in meanwhile: it
-    // fills and seeks exactly like the real thing, where swapping in a thin
-    // line changed the shape of the control under the cursor.
     if (peaks.length === 0) {
       return Array.from({ length: barCount }, () => PLACEHOLDER_BAR);
     }
 
-    // Each bar is the loudest sample it covers, not one sample picked out of the
-    // window: sampling every Nth value drops the peaks and flattens the shape.
     const step = peaks.length / barCount;
     const loudest = Math.max(...peaks.map(Math.abs), 0.0001);
     return Array.from({ length: barCount }, (_, i) => {
@@ -97,16 +82,8 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
     });
   }, [peaks, barCount]);
 
-  // The reported position lands once a second, which is a visible step. Between
-  // two of them the bar runs on its own clock, and the next report corrects it:
-  // an ordinary second of playback lands where the bar already is, a seek moves
-  // it. The animation is written straight to the node, so a frame costs no
-  // render of the tree above.
   const fillRef = useRef<HTMLDivElement>(null);
   const baseRef = useRef({ time: currentTime, at: performance.now() });
-  // In the commit phase, not during render: the baseline is shared with the
-  // animation already running, and a render React discards would otherwise move
-  // it to a position that was never committed.
   useLayoutEffect(() => {
     baseRef.current = { time: currentTime, at: performance.now() };
   }, [currentTime]);
@@ -119,8 +96,6 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
       }
     };
 
-    // A track that is still loading is not playing yet: running the bar forward
-    // during the wait shows progress through something nobody can hear.
     if (!playing || loading) {
       paint(baseRef.current.time);
       return;
@@ -135,9 +110,6 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
     return () => cancelAnimationFrame(frame);
   }, [playing, loading, duration, currentTime]);
 
-  // Without a duration there is no proportion to draw and nowhere to seek to:
-  // a bar in that state can only be wrong, and reads as broken rather than as
-  // loading. The transport stays, which is what the bar was never for.
   if (duration <= 0) {
     return null;
   }
@@ -160,8 +132,6 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
         {bars.length > 0 ? (
           <>
             <Waveform bars={bars} className="bg-muted-foreground/40" pending={peaks.length === 0} />
-            {/* The played part is the same waveform clipped: one width to animate
-                rather than a colour to recompute on every bar. */}
             <div ref={fillRef} className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden" style={{ width: 0 }}>
               <Waveform bars={bars} className="bg-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={peaks.length === 0} />
             </div>
@@ -179,9 +149,6 @@ export function SimpleProgressBar({ trackId, currentTime, duration, playing = fa
   );
 }
 
-// `pending` is the flat stand-in drawn before the peaks arrive. It pulses so it
-// reads as something still coming rather than as a track that happens to be
-// uniformly quiet.
 function Waveform({ bars, className, width, pending }: { bars: number[]; className: string; width?: number; pending?: boolean }) {
   return (
     <div className={`flex h-full items-center ${pending ? 'animate-pulse' : ''}`} style={{ gap: `${BAR_GAP}px`, width: width ? `${width}px` : undefined }}>

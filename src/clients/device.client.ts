@@ -12,11 +12,6 @@ export const deviceClient = universalClient(
 
       reportState: (deviceId: string, body: { trackId: string; playing: boolean; position: number; volume: number }) => http.post(`/devices/${deviceId}/state`, body),
 
-      // One stream for everything the server pushes. Opening it is also what
-      // declares this client, so identity travels with the connection.
-      //
-      // Every event goes through one dispatch point, so what transits is visible
-      // in the console in development without instrumenting each subscriber.
       events: (identity: { type: DeviceType; session: string; name: string }, handlers: { [K in ServerEventName]: (payload: ServerEventPayloads[K]) => void }, onBroken?: () => void) => {
         const unsubscribes: Array<() => void> = Object.values(SERVER_EVENTS).map((name) =>
           sse.subscribe(name, (raw) => {
@@ -37,9 +32,6 @@ export const deviceClient = universalClient(
           }),
         );
 
-        // The stream is what declares this client, so a broken one is not just
-        // missed events: the server forgets the device, and every report after
-        // that answers 404.
         if (onBroken) {
           unsubscribes.push(sse.onError(onBroken));
         }

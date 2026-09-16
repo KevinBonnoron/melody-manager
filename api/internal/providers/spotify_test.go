@@ -7,8 +7,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 )
 
-// The Web API returns a differently shaped section per search type, and only
-// one of them is populated per response.
+// The Web API returns a differently shaped section per search type, and only one of them is
+// populated per response.
 func TestMapSpotifyResults(t *testing.T) {
 	const payload = `{
 	  "tracks":    {"items": [{"name": "Track A", "artists": [{"name": "Artist A"}], "duration_ms": 185000,
@@ -47,7 +47,6 @@ func TestMapSpotifyResults(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(string(tc.typ), func(t *testing.T) {
 			got := mapSpotifyResults(tc.typ, out)
-			// The null playlist entry must not become a result.
 			if len(got) != 1 {
 				t.Fatalf("got %d results, want 1: %+v", len(got), got)
 			}

@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// A track record carries an operator-supplied path, so anything outside the
-// configured music directory must not resolve to a servable file.
+// A track record carries an operator-supplied path, so anything outside the configured music
+// directory must not resolve to a servable file.
 func TestWithinRoot(t *testing.T) {
 	root := t.TempDir()
 	outside := t.TempDir()
@@ -39,15 +39,13 @@ func TestWithinRoot(t *testing.T) {
 		}
 	}
 
-	// With no configured directory nothing local is servable.
 	if _, ok := withinRoot("", inside); ok {
 		t.Error(`withinRoot("", inside) = true, want false`)
 	}
 }
 
-// Track records carry an operator-supplied absolute path, so the guard that
-// keeps playback inside the configured directories is the one worth pinning:
-// without it any readable file on the host could be streamed.
+// Track records carry an operator-supplied absolute path, so the guard that keeps playback
+// inside the configured directories is the one worth pinning.
 func TestWithinRootAcceptsAnyConfiguredRoot(t *testing.T) {
 	music := t.TempDir()
 	downloads := t.TempDir()
@@ -122,7 +120,6 @@ func TestMimeFor(t *testing.T) {
 		".mp3": "audio/mpeg",
 		"WAV":  "audio/wav",
 		"m4a":  "audio/mp4",
-		// An .ogg carries Vorbis or Opus and a speaker decodes only one of them.
 		"ogg":  "",
 		"opus": "",
 		"":     "",

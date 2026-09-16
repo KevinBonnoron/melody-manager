@@ -10,8 +10,6 @@ import type { ServerConfig } from '@/shared';
 
 const SAVE_DEBOUNCE_MS = 800;
 
-// A loopback address means "this machine" to whoever reads it, so anything
-// outside this process given one looks for the server on itself.
 function isLoopback(rawUrl: string): boolean {
   try {
     const host = new URL(rawUrl).hostname;
@@ -71,7 +69,6 @@ export function AdminSettings() {
         return;
       }
 
-      // One address is an answer; several is a choice only the operator can make.
       setPublicUrl(found[0]);
       setCandidates(found.length > 1 ? found : []);
     } catch (error) {
@@ -80,8 +77,6 @@ export function AdminSettings() {
     }
   };
 
-  // Typing is not a decision: the field saves once it settles, like the switch
-  // beside it, rather than behind a button only this one control would have.
   const savedUrl = config?.publicUrl;
   useEffect(() => {
     const trimmed = publicUrl.trim();

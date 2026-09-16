@@ -7,15 +7,9 @@ import { trackCollection } from '@/collections/track.collection';
 import type { RatingValue, Track } from '@/shared';
 import { useAuthUser } from './use-auth-user';
 
-// The four collections differ only by the name of the field pointing at what is
-// rated, so one of them stands for all four here and the field travels as a
-// string. The public hooks below are what the screens see.
 type RatingCollection = typeof trackRatingCollection;
 type Rating = { id: string; user: string; value: RatingValue } & Record<string, unknown>;
 
-// One implementation for the four entities. They used to be four copies of this
-// file differing by a field name, which is how one of them ended up not
-// filtering on the current user at all.
 function useRatings(collection: RatingCollection, field: string) {
   const user = useAuthUser();
   const { data = [], isReady } = useLiveQuery({ query: (q) => q.from({ ratings: collection }).where(({ ratings }) => eq(ratings.user, user.id)) });
@@ -25,8 +19,6 @@ function useRatings(collection: RatingCollection, field: string) {
   const isLiked = useCallback((id: string) => ratingOf(id)?.value === 'like', [ratingOf]);
   const isDisliked = useCallback((id: string) => ratingOf(id)?.value === 'dislike', [ratingOf]);
 
-  // Clicking the opinion you already hold takes it back; clicking the other one
-  // replaces it, because holding both was the state we just did away with.
   const rate = useCallback(
     (id: string, value: RatingValue) => {
       const current = ratingOf(id);
@@ -51,9 +43,6 @@ function useRatings(collection: RatingCollection, field: string) {
 
   const likedIds = useMemo(() => ratings.filter((rating) => rating.value === 'like').map((rating) => rating[field] as string), [ratings, field]);
 
-  // Until the collection has synced, every answer here is "not rated", which is
-  // a claim rather than an answer: the screens use this to hold their state back
-  // instead of showing the wrong one and correcting it a second later.
   return { ratings, ratingOf, isLiked, isDisliked, rate, toggleLike, toggleDislike, likedIds, isReady };
 }
 
@@ -62,8 +51,6 @@ export const useAlbumRatings = () => useRatings(albumRatingCollection as unknown
 export const useArtistRatings = () => useRatings(artistRatingCollection as unknown as RatingCollection, 'artist');
 export const usePlaylistRatings = () => useRatings(playlistRatingCollection as unknown as RatingCollection, 'playlist');
 
-// The library screens want the entities themselves, not the opinions about
-// them: an inner join drops a rating whose target has since been deleted.
 export function useLikedTracks() {
   const user = useAuthUser();
   const { data = [] } = useLiveQuery({

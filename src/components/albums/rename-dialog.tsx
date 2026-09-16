@@ -16,9 +16,6 @@ interface Props {
   onRename: (name: string) => Promise<void>;
 }
 
-// Renaming an album or an artist moves the folders on disk with it, so the
-// server can refuse: a name already taken comes back as the message to show,
-// and nothing has moved when it does.
 export function RenameDialog({ title, description, label, current, open, onOpenChange, onRename }: Props) {
   const { t } = useTranslation();
   const [name, setName] = useState(current);

@@ -4,9 +4,8 @@ import (
 	"testing"
 )
 
-// A speaker that answers discovery once has to survive the many passes where it
-// stays silent, and one the operator switched off must not come back on the
-// moment it answers again. So a pass only ever adds.
+// A speaker that answers discovery once has to survive the many passes where it stays silent,
+// and one the operator switched off must not come back on the moment it answers again.
 func TestValidSpeakerAddress(t *testing.T) {
 	valid := []string{"192.168.10.119", "  10.0.0.1  ", "0.0.0.0"}
 	for _, address := range valid {

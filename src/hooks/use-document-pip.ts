@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// What the content needs and no more. Chrome adds its own header above this, so
-// asking for more than the row of cover, title and transport plus the position
-// under it buys nothing but a band of empty background. The window is resizable
-// from there.
 const PIP_WIDTH = 420;
 const PIP_HEIGHT = 104;
 
@@ -19,17 +15,10 @@ interface PipApi {
   window: Window | null;
 }
 
-// Document Picture-in-Picture is Chromium-only and needs a secure context, so
-// the API is absent in Firefox and Safari, and over plain HTTP on a LAN address
-// too. Read through a cast rather than declared on Window: the DOM types have
-// their own plans for this name, and a conflicting augmentation would not
-// compile.
 function pipApi(): PipApi | null {
   return (window as unknown as { documentPictureInPicture?: PipApi }).documentPictureInPicture ?? null;
 }
 
-// The window gets a blank document of its own: without the page's stylesheets
-// the player lands there unstyled, and without the theme the wrong colours.
 function adoptPageStyles(target: Window): () => void {
   const root = document.documentElement;
   for (const sheet of Array.from(document.styleSheets)) {
@@ -40,8 +29,6 @@ function adoptPageStyles(target: Window): () => void {
         .join('\n');
       target.document.head.appendChild(style);
     } catch {
-      // A sheet from another origin refuses to be read, so it is linked instead
-      // and fetched again by the new document.
       if (sheet.href) {
         const link = target.document.createElement('link');
         link.rel = 'stylesheet';
@@ -54,8 +41,6 @@ function adoptPageStyles(target: Window): () => void {
   target.document.body.style.margin = '0';
   target.document.body.style.overflow = 'hidden';
 
-  // The theme is a class on <html> and the accent a data attribute on it, and
-  // either can change while the window is open.
   const syncTheme = () => {
     target.document.documentElement.className = root.className;
     target.document.documentElement.dataset.accent = root.dataset.accent ?? '';
@@ -67,22 +52,12 @@ function adoptPageStyles(target: Window): () => void {
   return () => observer.disconnect();
 }
 
-/**
- * A window of this document's own, outside the browser's and above everything
- * else, which the page fills by rendering into it. The audio element stays
- * where it is: only the controls move, so nothing about the playback is
- * interrupted by opening or closing the window.
- */
+/** A window of this document's own, outside the browser's and above everything else, which the page fills by rendering into it. */
 export function useDocumentPip() {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const windowRef = useRef<Window | null>(null);
   const disposeStylesRef = useRef<(() => void) | null>(null);
-  // A window asked for just before this went away still arrives, and by then
-  // the teardown that would have closed it has already run.
   const mountedRef = useRef(true);
-  // A request in flight is not a window yet, so closing has nothing to close.
-  // It marks the answer stale instead, or a window asked for and then given up
-  // on arrives all the same, with the page no longer expecting it.
   const requestRef = useRef(0);
 
   const forget = useCallback(() => {
@@ -99,8 +74,6 @@ export function useDocumentPip() {
       return;
     }
 
-    // There is at most one such window per document, and asking for a second
-    // one while it is up is an error rather than a new window.
     if (api.window) {
       api.window.focus();
       return;
@@ -110,8 +83,6 @@ export function useDocumentPip() {
     try {
       target = await api.requestWindow({ width: PIP_WIDTH, height: PIP_HEIGHT });
     } catch {
-      // Refused: the click was not close enough to be a user gesture any more,
-      // or the user has turned the feature off. The bar is still there.
       return;
     }
 
@@ -121,8 +92,6 @@ export function useDocumentPip() {
     }
 
     disposeStylesRef.current = adoptPageStyles(target);
-    // Closed from its own chrome, or by the tab going away. Either way the page
-    // has to stop rendering into a document that is gone.
     target.addEventListener('pagehide', forget, { once: true });
     windowRef.current = target;
     setPipWindow(target);
@@ -134,11 +103,7 @@ export function useDocumentPip() {
     forget();
   }, [forget]);
 
-  // Nothing renders into the window once the component holding it goes, so it
-  // would be left standing empty and above everything else.
   useEffect(() => {
-    // Set here as well as declared: StrictMode mounts twice, and a flag only
-    // ever cleared would leave the second mount unable to open anything.
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;

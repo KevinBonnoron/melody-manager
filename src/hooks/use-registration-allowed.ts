@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchRegistrationAllowed } from '@/lib/settings';
 
-// The login screen is unauthenticated, so it asks the filtered endpoint once.
-// Assume closed until proven otherwise.
 export function useRegistrationAllowed(): boolean {
   const [allowed, setAllowed] = useState(false);
 

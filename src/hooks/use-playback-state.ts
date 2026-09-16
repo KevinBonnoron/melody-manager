@@ -35,8 +35,6 @@ export function usePlaybackState() {
         return;
       }
 
-      // The row is unique per user, so a second insert would be rejected
-      // server-side; an unsynced collection is not proof there is none yet.
       if (insertingRef.current || isLoading) {
         return;
       }
@@ -54,8 +52,6 @@ export function usePlaybackState() {
     [isLoading, user.id],
   );
 
-  // A page being unloaded has no time for the normal write path, and losing it
-  // is exactly what makes a resume land seconds off.
   const flush = useCallback((trackId: string, position: number) => {
     const current = stateRef.current;
     if (!current) {

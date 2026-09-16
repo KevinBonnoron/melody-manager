@@ -54,9 +54,6 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="h-16 border-b p-0 flex items-center justify-center">
         <div className="flex w-full items-center gap-2 px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          {/* Collapsed there is no room for the name, so the mark stands in for
-              it. The control that opens the sidebar lives in the footer, where
-              it stays visible either way. */}
           <span className="truncate text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">Melody Manager</span>
           <img src="/icon.svg" alt="Melody Manager" className="hidden h-8 w-8 shrink-0 group-data-[collapsible=icon]:block" />
         </div>
@@ -133,8 +130,6 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Just above the rule that closes the navigation, aligned right: it
-            acts on the sidebar itself, so it is not one of its destinations. */}
         <div className="mt-auto hidden justify-end px-2 pb-1 group-data-[collapsible=icon]:justify-center md:flex">
           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={toggleSidebar} aria-label={t('AppSidebar.toggle')} title={t('AppSidebar.toggle')}>
             <PanelLeft className="h-4 w-4" />

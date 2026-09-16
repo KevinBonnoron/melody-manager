@@ -4,13 +4,6 @@ import { providerConfigCollection } from '@/collections/provider-config.collecti
 import type { ProviderConfig } from '@/shared';
 import { useDevices } from './use-devices';
 
-// One address and whether the server may use it.
-//
-// Two states rather than a bare list, because removing a speaker discovery can
-// see achieves nothing: the next pass puts it straight back. Forgetting one says
-// "I do not have this", and discovery may well disagree tomorrow. Disabling one
-// says "do not use this", which is the answer for a neighbour's speaker, and
-// discovery leaves it alone from then on.
 export interface ConfiguredSpeaker {
   address: string;
   enabled: boolean;
@@ -20,15 +13,6 @@ function speakersIn(config: ProviderConfig['config'] | undefined): ConfiguredSpe
   return ((config?.speakers as ConfiguredSpeaker[] | undefined) ?? []).filter((s) => typeof s?.address === 'string');
 }
 
-// One write at a time per source, each reading the list as it stands when its
-// turn comes rather than as it stood when a screen last rendered. Two decisions
-// taken between one render and the next each carried their own copy otherwise:
-// with a row already there the second put back what the first had changed, and
-// with no row yet both took the create path, where the unique index on type
-// refuses one of them and the change it carried is lost.
-//
-// Outside the hook on purpose. The banner and the page are different components
-// holding different instances of it, and they write the same list.
 const writing = new Map<string, Promise<unknown>>();
 
 function applySpeakers(type: string, change: (current: ConfiguredSpeaker[]) => ConfiguredSpeaker[]): Promise<void> {
@@ -51,9 +35,6 @@ function applySpeakers(type: string, change: (current: ConfiguredSpeaker[]) => C
   return next;
 }
 
-// The speakers a device source knows about, found or typed. Both the card that
-// configures the source and the screen that lists what it found read them from
-// here, so there is one list and one way of writing it.
 export function useSpeakers(type: string) {
   const { data: configs = [] } = useLiveQuery({ query: (q) => q.from({ configs: providerConfigCollection }) });
   const config = useMemo(() => (configs as ProviderConfig[]).find((c) => c.type === type), [configs, type]);
@@ -61,13 +42,8 @@ export function useSpeakers(type: string) {
 
   const apply = useCallback((change: (current: ConfiguredSpeaker[]) => ConfiguredSpeaker[]) => applySpeakers(type, change), [type]);
 
-  // Assigning the whole list, for the dialog, which is a form: what it shows is
-  // what it means to save, every row of it.
   const write = useCallback((next: ConfiguredSpeaker[]) => apply(() => next), [apply]);
 
-  // One speaker at a time, for the screens where a control acts on a row. Each
-  // is rebased on what is stored, so deciding about one says nothing about any
-  // other.
   const decide = useCallback((address: string, enabled: boolean) => apply((current) => (current.some((s) => s.address === address) ? current.map((s) => (s.address === address ? { ...s, enabled } : s)) : [...current, { address, enabled }])), [apply]);
 
   const forget = useCallback((address: string) => apply((current) => current.filter((s) => s.address !== address)), [apply]);
@@ -75,11 +51,6 @@ export function useSpeakers(type: string) {
   return { speakers, apply, write, decide, forget, configId: config?.id };
 }
 
-// The speakers answering on the network that nobody has decided about yet.
-// Discovery runs whatever the operator wants, so finding one is not agreeing to
-// play to it: until an admin says, it sits here and the screens ask them to
-// look. Reads provider_config, which only an admin may, so a regular user sees
-// an empty list rather than everything.
 export function useUndecidedSpeakers() {
   const { data: configs = [] } = useLiveQuery({ query: (q) => q.from({ configs: providerConfigCollection }) });
   const { speakers: live } = useDevices();

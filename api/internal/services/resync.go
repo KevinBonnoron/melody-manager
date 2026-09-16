@@ -13,9 +13,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
-// ResyncAlbum re-extracts chapter boundaries for an album's source video(s) and
-// updates each track's startTime/endTime/title. Used for YouTube albums whose
-// chapter timings drift or were wrong at import.
+// ResyncAlbum re-extracts chapter boundaries for an album's source video(s) and updates each
+// track's startTime/endTime/title.
 func ResyncAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audio *cache.Cache, taskID, albumID string) {
 	fail := func(err error) {
 		taskSvc.Update(taskID, func(t *tasks.Task) { t.Status = tasks.Failed; t.Error = err.Error() })
@@ -47,7 +46,6 @@ func ResyncAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audi
 		if err != nil || len(info.Chapters) == 0 {
 			continue
 		}
-		// align tracks to chapters in chronological order
 		sort.SliceStable(grp, func(i, j int) bool { return trackStart(grp[i]) < trackStart(grp[j]) })
 		n := len(grp)
 		if len(info.Chapters) < n {
@@ -57,7 +55,6 @@ func ResyncAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, audi
 			t, ch := grp[i], info.Chapters[i]
 			var meta domain.TrackMetadata
 			_ = t.UnmarshalJSONField("metadata", &meta)
-			// Moving the window orphans whatever was cached under the old one.
 			if audio != nil && meta.StartTime != nil && meta.EndTime != nil {
 				audio.Forget(segmentKey(t.GetString("origin"), *meta.StartTime, *meta.EndTime))
 			}

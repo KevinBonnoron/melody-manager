@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Long enough for a server waking up on a home network, short enough that a
-// wrong address is reported rather than waited on.
 const REACH_TIMEOUT_MS = 6000;
 
 export function SetupPage() {
@@ -22,10 +20,6 @@ export function SetupPage() {
     setError(null);
 
     const typed = serverUrl.trim();
-    // Without a scheme, both are tried rather than guessed at: https first,
-    // because a server reachable from outside should be, and http after,
-    // because a server on this machine or this network usually is not. Typing
-    // the scheme keeps that choice.
     const candidates = typed.startsWith('http://') || typed.startsWith('https://') ? [typed] : [`https://${typed}`, `http://${typed}`];
 
     let origin = '';
@@ -38,14 +32,6 @@ export function SetupPage() {
         continue;
       }
 
-      // Asked before it is kept: an address that parses but answers nothing
-      // used to be saved anyway, and every screen after this one failed with
-      // nothing pointing back here.
-      //
-      // This application's own endpoint, not PocketBase's health check: that
-      // one answers "API is healthy" for any PocketBase, which is not the same
-      // thing. A reverse proxy in front of a real server forwards this one just
-      // as it forwards the rest, so it stays a legitimate address.
       try {
         const response = await fetch(`${origin}/api/config`, { signal: AbortSignal.timeout(REACH_TIMEOUT_MS) });
         if (response.ok && typeof (await response.json())?.registrationAllowed === 'boolean') {
@@ -55,8 +41,7 @@ export function SetupPage() {
 
         wrongServer = true;
       } catch {
-        // Unreachable, or something that is not this application: try the next
-        // candidate, and report below if none answers.
+        // Unreachable, or not this application: try the next candidate.
       }
     }
 
@@ -73,8 +58,6 @@ export function SetupPage() {
     }
 
     await Preferences.set({ key: 'serverUrl', value: origin });
-    // A full reload, not a route change: the server address is read once when
-    // the app starts, so it only takes effect on the next start.
     window.location.replace('/');
   };
 

@@ -10,5 +10,4 @@ export const genreCollection = createCollection(
   }),
 );
 
-// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
 genreCollection.createIndex((row) => row.id, { indexType: BasicIndex });

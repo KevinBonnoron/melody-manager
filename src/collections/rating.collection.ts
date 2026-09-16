@@ -3,12 +3,8 @@ import { pocketbaseCollectionOptions } from 'pocketbase-db-collection';
 import { pb } from '@/lib/pocketbase';
 import type { AlbumRating, ArtistRating, PlaylistRating, TrackRating } from '@/shared';
 
-// One collection per entity, so the relation stays typed and a deleted album
-// still takes its ratings with it. Built from one place because the four are
-// otherwise the same collection four times over.
 function ratingCollection<T extends { id: string; user: string }>(name: string, target: (row: T) => string) {
   const collection = createCollection(pocketbaseCollectionOptions({ recordService: pb.collection<T>(name) }));
-  // Joins resolve on `id`; without an index TanStack DB scans the whole collection.
   collection.createIndex((row) => row.id, { indexType: BasicIndex });
   collection.createIndex((row) => target(row as unknown as T), { indexType: BasicIndex });
   collection.createIndex((row) => row.user, { indexType: BasicIndex });

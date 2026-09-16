@@ -17,10 +17,9 @@ import (
 
 var spotifyClient = &http.Client{Timeout: 15 * time.Second}
 
-// Spotify is catalog-only: it provides metadata via the Web API (app
-// client-credentials from provider_settings.config), and actual playback is
-// resolved through YouTube by the stream service. Per-user OAuth (for private
-// library import) is a follow-up.
+// Spotify is catalog-only: it provides metadata via the Web API (app client-credentials from
+// provider_settings.config), and actual playback is resolved through YouTube by the stream
+// service.
 type Spotify struct{}
 
 func (Spotify) ID() string { return "spotify" }
@@ -86,8 +85,6 @@ type spotifyArtistRef struct {
 	Name string `json:"name"`
 }
 
-// spotifySearchResponse covers the four sections the Web API can return; only
-// the one matching the requested type is populated.
 type spotifySearchResponse struct {
 	Tracks struct {
 		Items []struct {
@@ -116,7 +113,6 @@ type spotifySearchResponse struct {
 		} `json:"items"`
 	} `json:"artists"`
 	Playlists struct {
-		// Spotify occasionally returns null entries here.
 		Items []*struct {
 			Name        string          `json:"name"`
 			Images      []spotifyImage  `json:"images"`
@@ -181,8 +177,6 @@ func (Spotify) Search(ctx context.Context, query string, typ domain.SearchResult
 	return mapSpotifyResults(typ, out), nil
 }
 
-// mapSpotifyResults projects the section matching typ onto the unified result
-// shape.
 func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) []domain.SearchResult {
 	var results []domain.SearchResult
 	switch typ {
@@ -224,7 +218,6 @@ func mapSpotifyResults(typ domain.SearchResultType, out spotifySearchResponse) [
 
 var _ Searcher = Spotify{}
 
-// spotifyTrackID accepts both link shapes the API hands out.
 func spotifyTrackID(raw string) string {
 	if m := regexp.MustCompile(`spotify:track:([A-Za-z0-9]+)`).FindStringSubmatch(raw); m != nil {
 		return m[1]
@@ -235,9 +228,8 @@ func spotifyTrackID(raw string) string {
 	return ""
 }
 
-// ResolveCatalogTrack returns what Spotify knows about a track without any
-// audio: the stream is DRM-protected and cannot be fetched. The importer pairs
-// this metadata with a playable source.
+// ResolveCatalogTrack returns what Spotify knows about a track without any audio: the stream is
+// DRM-protected and cannot be fetched.
 func (Spotify) ResolveCatalogTrack(ctx context.Context, rawURL string, cfg Config) (domain.ResolvedTrack, error) {
 	id := spotifyTrackID(rawURL)
 	if id == "" {

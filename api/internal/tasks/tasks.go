@@ -1,6 +1,5 @@
-// Package tasks is the in-memory background-job tracker (import, download,
-// enrich, scan), surfaced over SSE. Not persisted, lost on restart, matching
-// the original server's behaviour.
+// Package tasks is the in-memory background-job tracker (import, download, enrich, scan),
+// surfaced over SSE.
 package tasks
 
 import (
@@ -19,17 +18,13 @@ const (
 	Failed    Status = "failed"
 )
 
-// Task is a tracked background job. JSON shape matches the shared TS Task type
-// consumed by the client (createdAt/updatedAt as RFC3339 strings).
+// Task is a tracked background job.
 type Task struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Name     string `json:"name"`
-	Status   Status `json:"status"`
-	Progress int    `json:"progress"`
-	// Count carries an outcome the client turns into a translated sentence.
-	// Names stay untranslatable subjects (an album, a URL), prose built here
-	// could only ever be in one language.
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Name      string `json:"name"`
+	Status    Status `json:"status"`
+	Progress  int    `json:"progress"`
 	Count     int    `json:"count,omitempty"`
 	Error     string `json:"error,omitempty"`
 	CreatedAt string `json:"createdAt"`

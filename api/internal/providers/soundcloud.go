@@ -7,8 +7,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
-// SoundCloud uses yt-dlp (scsearch). Stream URLs expire quickly, so streaming
-// goes through Download (cached) rather than a long-lived proxy URL.
+// SoundCloud uses yt-dlp (scsearch).
 type SoundCloud struct{}
 
 func (SoundCloud) ID() string { return "soundcloud" }

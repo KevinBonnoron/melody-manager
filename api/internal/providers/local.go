@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-// Local streams music files already on the server's disk. Importing/scanning is
-// handled by the local scanner (see local/ package); here it only resolves a
-// stored origin/localPath into a file stream.
+// Local streams music files already on the server's disk.
 type Local struct{}
 
 func (Local) ID() string { return "local" }

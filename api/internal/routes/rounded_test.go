@@ -5,9 +5,7 @@ import (
 	"testing"
 )
 
-// A seek target is a fraction of a second, because it comes from a click on a
-// progress bar. Anything that cannot be turned into one must land on zero
-// deliberately here rather than by a discarded error somewhere upstream.
+// A seek target is a fraction of a second, because it comes from a click on a progress bar.
 func TestRounded(t *testing.T) {
 	cases := []struct {
 		in   float64

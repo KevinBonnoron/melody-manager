@@ -18,9 +18,6 @@ import { pb } from '@/lib/pocketbase';
 import { formatListeningTime, formatMonth } from '@/lib/utils';
 import type { Album, Artist, Track } from '@/shared';
 
-// Read from the theme, which carries a light and a dark step for each slot.
-// Assigned in this order and never cycled: past the last slot the tail is
-// folded into one "other" share rather than repeating a hue already in use.
 const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)'];
 const OTHER_COLOR = 'var(--muted-foreground)';
 interface StatsData {
@@ -60,7 +57,6 @@ export function StatsPage() {
           setStats(await response.json());
         }
       } catch {
-        // silently fail
       } finally {
         setLoading(false);
       }
@@ -114,10 +110,7 @@ export function StatsPage() {
               <BarChart data={monthlyData}>
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={30} />
-                {/* The default hover cursor is an opaque light grey block, which
-                    on a dark surface reads as a hole in the chart. */}
                 <Tooltip cursor={{ fill: 'var(--color-muted-foreground)', fillOpacity: 0.12 }} contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)', fontSize: '13px' }} />
-                {/* Named, or the tooltip labels the series with the raw key. */}
                 <Bar dataKey="count" name={t('StatsPage.plays')} radius={[4, 4, 0, 0]} fill="var(--chart-1)" />
               </BarChart>
             </ResponsiveContainer>
@@ -322,8 +315,6 @@ function GenreChart({ data }: { data: { name: string; value: number }[] }) {
   const { t } = useTranslation();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
-  // Colour belongs to the genre, not to its rank: assigned once over the whole
-  // list, so hiding one does not repaint the others.
   const series = useMemo(() => {
     const head = data.slice(0, CHART_COLORS.length).map((d, i) => ({ ...d, fill: CHART_COLORS[i] }));
     const tail = data.slice(CHART_COLORS.length);
@@ -339,7 +330,6 @@ function GenreChart({ data }: { data: { name: string; value: number }[] }) {
   const toggle = (name: string) =>
     setHidden((previous) => {
       const next = new Set(previous);
-      // Hiding the last one would leave nothing to compare, so it stays.
       if (next.has(name)) {
         next.delete(name);
       } else if (visible.length > 1) {
@@ -352,10 +342,6 @@ function GenreChart({ data }: { data: { name: string; value: number }[] }) {
     <div className="flex flex-col gap-4">
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
-          {/* The arcs are not in the tab order: a focus ring follows a bounding
-              box, so on a slice it draws a rectangle across the chart. The
-              legend below carries every value and share and is made of real
-              buttons, so nothing is lost by keeping one keyboard path. */}
           <Pie data={visible} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={55} paddingAngle={2} strokeWidth={0} rootTabIndex={-1} />
           <Tooltip
             formatter={(value, name) => {
@@ -367,8 +353,6 @@ function GenreChart({ data }: { data: { name: string; value: number }[] }) {
         </PieChart>
       </ResponsiveContainer>
 
-      {/* The legend is also the filter: set a genre aside and the shares are
-          recomputed among those left, which is the whole point of looking. */}
       <div className="flex flex-wrap justify-center gap-1.5">
         {series.map((item) => {
           const isHidden = hidden.has(item.name);

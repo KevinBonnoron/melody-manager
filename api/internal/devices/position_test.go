@@ -7,9 +7,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/players"
 )
 
-// Drift is what a playing device accumulates on its own; a seek is what lands
-// away from where it was heading. Confusing the two either floods every client
-// with position messages or hides the one move they need to see.
+// Drift is what a playing device accumulates on its own; a seek is what lands away from where
+// it was heading.
 func TestPositionJumped(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -31,8 +30,7 @@ func TestPositionJumped(t *testing.T) {
 	}
 }
 
-// The last seconds of a track are the ones that decide when the queue moves on;
-// the rest are not worth a SOAP call every second.
+// The last seconds of a track are the ones that decide when the queue moves on.
 func TestPollDelay(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -53,18 +51,16 @@ func TestPollDelay(t *testing.T) {
 	}
 }
 
-// A speaker outlives the server that told it what to play, so the URL it still
-// holds is the only way back to which track that was.
+// A speaker outlives the server that told it what to play, so the URL it still holds is the
+// only way back to which track that was.
 func TestTrackFromStreamURL(t *testing.T) {
 	cases := map[string]string{
 		"http://192.168.1.2:8090/api/tracks/abc123/stream?token=x&transcode=mp3": "abc123",
 		"http://192.168.1.2:8090/api/tracks/abc123/stream":                       "abc123",
-		// Another thing about a track is not the track it is playing.
-		"http://192.168.1.2:8090/api/tracks/abc123/peaks": "",
-		// Anything the speaker plays on its own names no track of ours.
-		"x-sonos-htastream:RINCON_1234:spdif": "",
-		"http://radio.example.com/stream.mp3": "",
-		"":                                    "",
+		"http://192.168.1.2:8090/api/tracks/abc123/peaks":                        "",
+		"x-sonos-htastream:RINCON_1234:spdif":                                    "",
+		"http://radio.example.com/stream.mp3":                                    "",
+		"":                                                                       "",
 	}
 	for uri, want := range cases {
 		if got := trackFromStreamURL(uri); got != want {
@@ -73,9 +69,7 @@ func TestTrackFromStreamURL(t *testing.T) {
 	}
 }
 
-// Discovery runs every ten seconds and knows nothing about playback: folding it
-// in must leave alone what the speaker reported separately, or the registry
-// forgets what is playing between two rounds.
+// Discovery runs every ten seconds and knows nothing about playback.
 func TestRefreshSpeakerKeepsPlayback(t *testing.T) {
 	known := Device{
 		ID: "192-168-0-9", Name: "Salon", Type: "sonos", Status: "playing",

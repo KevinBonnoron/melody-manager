@@ -10,6 +10,5 @@ export const providerConfigCollection = createCollection(
   }),
 );
 
-// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
 providerConfigCollection.createIndex((row) => row.id, { indexType: BasicIndex });
 providerConfigCollection.createIndex((row) => row.type, { indexType: BasicIndex });

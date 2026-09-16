@@ -10,18 +10,12 @@ interface Props {
   title: string;
   configId: string;
   dropsLibrary?: boolean;
-  // Run inside the confirmation, before the row goes. Whatever else has to
-  // change with it happens first, and its failure cancels the deletion rather
-  // than leaving the two halves disagreeing.
   beforeDelete?: () => Promise<void>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRemoved?: () => void;
 }
 
-// A required field cannot be emptied, so without this the first value ever
-// saved is the last one: the row has to go for the source to be unconfigured
-// again.
 export function RemoveProviderConfigDialog({ title, configId, dropsLibrary = false, beforeDelete, open, onOpenChange, onRemoved }: Props) {
   const { t } = useTranslation();
   const [isDeleting, setIsDeleting] = useState(false);

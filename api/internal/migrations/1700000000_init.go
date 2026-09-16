@@ -14,18 +14,6 @@ import (
 //go:embed snapshot.json
 var snapshotJSON []byte
 
-// Initial schema for the Go backend. Consolidates the provider/connection
-// redesign (docs/guide/configuration.md), the custom users fields,
-// the legacy domain collections, and the provider_settings seed into a single
-// migration. Each step is idempotent so it applies cleanly to both a fresh DB
-// and one created during development.
-//
-//   - provider_settings: admin-only writes, authenticated reads. config may hold
-//     server-level settings incl. secrets (spotify clientSecret), masking those
-//     from non-admin reads is a follow-up.
-//   - connections: per-user linkage, owner-only.
-//   - tracks.provider (relation to the dropped providers collection) becomes a
-//     `source` text field holding the provider type.
 var domainCollections = map[string]bool{
 	"tracks": true, "artists": true, "albums": true, "genres": true,
 	"track_likes": true, "album_likes": true, "artist_likes": true,
@@ -39,7 +27,6 @@ func init() {
 		admin := "@request.auth.role = \"admin\""
 		owner := "user = @request.auth.id"
 
-		// provider_settings
 		if _, err := app.FindCollectionByNameOrId("provider_settings"); err != nil {
 			settings := core.NewBaseCollection("provider_settings")
 			settings.Fields.Add(
@@ -66,7 +53,6 @@ func init() {
 			return err
 		}
 
-		// connections
 		if existing, err := app.FindCollectionByNameOrId("connections"); err == nil {
 			if err := migrateLegacyConnections(app, existing); err != nil {
 				return err
@@ -92,7 +78,6 @@ func init() {
 			}
 		}
 
-		// users custom fields
 		usersChanged := false
 		if users.Fields.GetByName("name") == nil {
 			users.Fields.Add(&core.TextField{Name: "name", Max: 255})
@@ -110,9 +95,6 @@ func init() {
 			users.Fields.Add(&core.SelectField{Name: "role", Required: true, MaxSelect: 1, Values: []string{"user", "admin"}})
 			usersChanged = true
 		}
-		// users is excluded from domainCollections, so ImportCollections never
-		// touches it and the stock owner-only rules would stay in place: an
-		// admin listing /admin/users would silently see only themselves.
 		ownerOrAdmin := "id = @request.auth.id || " + admin
 		if users.ListRule == nil || *users.ListRule != ownerOrAdmin {
 			users.ListRule = types.Pointer(ownerOrAdmin)
@@ -128,7 +110,6 @@ func init() {
 			}
 		}
 
-		// domain collections (imported from the legacy snapshot, filtered)
 		var all []map[string]any
 		if err := json.Unmarshal(snapshotJSON, &all); err != nil {
 			return fmt.Errorf("parse snapshot: %w", err)
@@ -144,9 +125,6 @@ func init() {
 			}
 			toImport = append(toImport, c)
 		}
-		// ImportCollections diffs fields by id, so replaceProviderWithSource
-		// drops the provider relation and adds an empty source column. Capture
-		// the mapping first or every pre-existing track becomes unplayable.
 		legacySources, err := captureLegacySources(app)
 		if err != nil {
 			return err
@@ -158,8 +136,6 @@ func init() {
 			return err
 		}
 
-		// Hot lookup paths: importer/scan dedupe on sourceUrl, and every stats
-		// query filters track_plays by user.
 		for _, idx := range []struct{ collection, name, cols string }{
 			{"tracks", "idx_tracks_sourceUrl", "sourceUrl"},
 			{"track_plays", "idx_track_plays_user", "user"},
@@ -179,7 +155,6 @@ func init() {
 			}
 		}
 
-		// playlists smart-playlist fields (added by a later legacy migration)
 		if playlists, err := app.FindCollectionByNameOrId("playlists"); err == nil {
 			plChanged := false
 			if playlists.Fields.GetByName("type") == nil {
@@ -197,7 +172,6 @@ func init() {
 			}
 		}
 
-		// seed provider_settings (one row per known provider type)
 		settings, err := app.FindCollectionByNameOrId("provider_settings")
 		if err != nil {
 			return err
@@ -237,8 +211,6 @@ func init() {
 	})
 }
 
-// captureLegacySources reads the tracks.provider -> providers.type mapping that
-// ImportCollections is about to destroy. Returns nil on a fresh database.
 func captureLegacySources(app core.App) (map[string]string, error) {
 	tracks, err := app.FindCollectionByNameOrId("tracks")
 	if err != nil || tracks.Fields.GetByName("provider") == nil {
@@ -285,10 +257,6 @@ func backfillSources(app core.App, sources map[string]string) error {
 	return nil
 }
 
-// migrateLegacyConnections converts a pre-redesign connections collection
-// ({provider relation, user, config, enabled}) to the new {type, ...} shape.
-// Without it the collection is left untouched and every per-user provider
-// config is silently ignored, because pbx filters on a `type` column.
 func migrateLegacyConnections(app core.App, conn *core.Collection) error {
 	if conn.Fields.GetByName("type") != nil {
 		return nil

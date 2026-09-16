@@ -35,8 +35,6 @@ export function PlaylistPage({ playlist, tracks }: Props) {
 
   return (
     <>
-      {/* The same three parts as the album and artist headers: title, one
-          subtitle, one row of actions. */}
       <PageHeader
         media={<div className="h-full w-full rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-2xl">{coverUrl ? <img src={coverUrl} alt={displayName} className="w-full h-full object-cover" /> : <ListMusic className="h-1/2 w-1/2 text-primary/60" />}</div>}
         title={displayName}

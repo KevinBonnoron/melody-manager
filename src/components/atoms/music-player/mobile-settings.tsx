@@ -37,7 +37,6 @@ export function MobileSettings({ activeDevice, onDeviceChange, devices, audioFor
         </SheetHeader>
 
         <div className="space-y-6 pb-6 overflow-y-auto">
-          {/* Device Selection */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">Playback Device</Label>
             <div className="space-y-2.5">
@@ -64,7 +63,6 @@ export function MobileSettings({ activeDevice, onDeviceChange, devices, audioFor
 
           <Separator className="my-6" />
 
-          {/* Audio Format */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">Audio Format</Label>
             <div className="space-y-2.5">

@@ -20,8 +20,6 @@ import { formatDuration } from '@/lib/utils';
 import type { Album, Artist, Playlist, Track } from '@/shared';
 
 const RECENT_LIMIT = 6;
-// Sideways on phones, a grid from md up, the children carry their own width so
-// no wrapper element is needed and the cards keep their keys.
 const CAROUSEL = '-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:snap-start md:mx-0 md:grid md:overflow-visible md:px-0 md:[&>*]:w-auto';
 function sortByCreatedDesc<T extends { created: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
@@ -56,8 +54,6 @@ export function HomePage() {
   );
 }
 
-// Resume where playback stopped, on this device or another one: `currentTrack`
-// is empty after a reload, so fall back to the position persisted server-side.
 function ContinueListening() {
   const { t } = useTranslation();
   const { currentTrack, isPlaying, togglePlayPause, playTrack, setQueue } = useMusicPlayer();
@@ -68,8 +64,6 @@ function ContinueListening() {
   const artistsById = useArtistsById();
 
   const track = currentTrack ?? savedTrack;
-  // Another device holding the playback already has the player bar; offering to
-  // resume here on top of it would be two competing answers to the same thing.
   if (isPlaying || remoteActive || !track) {
     return null;
   }
@@ -83,7 +77,6 @@ function ContinueListening() {
       return;
     }
 
-    // A resumed track carries no queue, so nothing would follow it.
     const byId = new Map((allTracks as unknown as Track[]).map((t) => [t.id, t]));
     const restored = queueIds.map((id) => byId.get(id)).filter((t): t is Track => t !== undefined);
     if (restored.length > 0) {
@@ -152,8 +145,6 @@ function RecentSection<T>({ title, items, isLoading, renderItem, gridClassName, 
     return null;
   }
 
-  // On a phone the row is either scrolled sideways or short enough to read in
-  // full, so the toggle only takes up space where space is scarcest.
   const hasMore = !isMobile && items.length > RECENT_LIMIT;
   const displayItems = isMobile ? items.slice(0, MOBILE_LIMIT) : expanded ? items : items.slice(0, RECENT_LIMIT);
   return (

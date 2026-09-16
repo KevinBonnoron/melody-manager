@@ -13,8 +13,6 @@ import { usePlugins } from '@/hooks/use-plugins';
 import { useSpeakers } from '@/hooks/use-speakers';
 import { cn } from '@/lib/utils';
 
-// What one kind of device found, the way a source's page shows what that source
-// brought in. Configuring the kind itself is on its card, one screen up.
 export function DevicePage({ type }: { type: string }) {
   const { t } = useTranslation();
   const user = useAuthUser();
@@ -30,13 +28,6 @@ export function DevicePage({ type }: { type: string }) {
   const present = useMemo(() => live.filter((s) => s.type === type), [live, type]);
   const answering = useMemo(() => new Set(present.map((s) => s.ipAddress)), [present]);
 
-  // What the kind found, which is what the page is for, and only an admin may
-  // read what was decided about it. Listing the configuration alone left every
-  // regular user an empty page where the speakers on their network should be.
-  //
-  // A speaker nobody has answered for shows as off, because that is what it is:
-  // the server refuses to play to an address it has no entry for, and a switch
-  // saying otherwise would be the one thing on the page that is not true.
   const rows = useMemo(() => {
     const decided = new Map(speakers.map((s) => [s.address, s]));
     for (const device of present) {
@@ -50,9 +41,6 @@ export function DevicePage({ type }: { type: string }) {
 
   usePageHeader({ title, description: t('DevicesPage.foundBy', { title }) });
 
-  // One speaker at a time, so touching a switch says nothing about the rest of
-  // the list: writing what is on screen would turn every speaker merely
-  // discovered into a decision nobody made.
   const save = async (change: Promise<void>) => {
     try {
       await change;

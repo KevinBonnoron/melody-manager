@@ -37,17 +37,9 @@ const routeTitles: Record<string, { titleKey: string; descriptionKey: string }> 
 };
 
 export function AppLayout({ children }: AppLayoutProps) {
-  // The bar reserves room whether the playback is here or on another device.
   const { track: currentTrack, isRemote } = useNowPlaying();
-  // A floating player is not across the bottom any more, so the strip it used
-  // to need is a screenful of nothing under a short page. Mobile keeps it
-  // either way: its mini-player lives in the dock, which does not float.
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
-  // The index has to cover the player bar and the sidebar too, not just the
-  // page: the bar resolves its cover and its artist through it. It reads four
-  // collections at once and a collection that has not synced yet suspends, so
-  // the boundary sits above it; without one the whole tree rendered nothing.
   return (
     <Suspense fallback={null}>
       <LibraryIndexProvider>
@@ -56,10 +48,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <AppSidebar />
             <SidebarInset className="px-3 md:px-4">
               <AppHeader />
-              {/* The room the player bar needs, in one place: every page used to add
-              its own on top, which left a screenful of nothing under short
-              pages and a scrollbar that scrolled through it. */}
-              {/* A div, not a main: SidebarInset is already the page's main landmark. */}
               <div className={cn('flex-1 pt-3 md:pt-4', currentTrack || isRemote ? 'pb-36 md:pb-36' : 'pb-20 md:pb-8')}>{children}</div>
             </SidebarInset>
             <BottomNav onExpand={() => setNowPlayingOpen(true)} />
@@ -102,8 +90,6 @@ function AppHeader() {
   );
 }
 
-// Mobile has no sidebar on screen, so the profile would sit two taps away
-// behind the drawer. The design puts the avatar in the top bar instead.
 function ProfileAvatarLink() {
   const { t } = useTranslation();
   const user = useAuthUser();
