@@ -1,12 +1,15 @@
 import { Music2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useRemotePlayback } from '@/hooks/use-remote-playback';
+import { useVolumeControl } from '@/hooks/use-volume-control';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
+import { MuteButton } from './mute-button';
 import { NextButton } from './next-button';
 import { PlayButton } from './play-button';
 import { PreviousButton } from './previous-button';
@@ -29,7 +32,21 @@ export function PipPlayer() {
   const album = track ? albumsById.get(track.album) : undefined;
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artists = artistNames(track?.artists, artistsById);
+  const volume = useVolumeControl();
+  const hostRef = useRef<HTMLDivElement>(null);
   const [scrub, setScrub] = useState<number | null>(null);
+
+  // The window's own title, which the browser writes into a header the page
+  // cannot style or remove. Naming the track there is the only use anyone can
+  // make of that strip.
+  useEffect(() => {
+    const doc = hostRef.current?.ownerDocument;
+    if (!doc) {
+      return;
+    }
+
+    doc.title = track ? [track.title, artists].filter(Boolean).join(' — ') : t('NowPlaying.title');
+  }, [track, artists, t]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: what changes is what invalidates the scrub, and none of it is read here
   useEffect(() => {
     setScrub(null);
@@ -46,7 +63,7 @@ export function PipPlayer() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col justify-center gap-1.5 bg-background px-3 py-2 text-foreground">
+    <div ref={hostRef} className="flex h-screen w-full flex-col justify-center gap-1.5 bg-background px-3 py-2 text-foreground">
       <div className="flex min-w-0 items-center gap-2.5">
         <div className="h-11 w-11 shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-primary/20 to-accent/20">
           {coverUrl ? (
@@ -67,6 +84,11 @@ export function PipPlayer() {
           <PreviousButton disabled={!canGoPrevious} onPrevious={control.previous} />
           <PlayButton isPlaying={isPlaying} isLoading={control.loading} onToggle={control.toggle} />
           <NextButton disabled={!canGoNext} onNext={control.next} />
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 pl-1">
+          <MuteButton onClick={volume.toggle} isMuted={volume.isMuted} volume={volume.level} />
+          <Slider value={[volume.level * 100]} max={100} step={1} onValueChange={([value]) => volume.apply(value / 100)} className="w-16" />
         </div>
       </div>
 
