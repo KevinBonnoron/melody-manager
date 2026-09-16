@@ -14,7 +14,20 @@ This page takes you from nothing to listening.
 
 ## Run it
 
-Make a folder for the install and put this in `docker-compose.yml`:
+The installer asks four questions and writes the two files the answers belong
+in, and starts nothing by itself:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/KevinBonnoron/melody-manager/main/install.sh &&
+  bash install.sh
+```
+
+Where your music is, whether you want to play to speakers on your network, which
+port, and the address those speakers reach the server at. It takes the same
+answers as flags (`./install.sh --help`) for anyone scripting it.
+
+The rest of this page is what it writes, for anyone who would rather do it by
+hand. Make a folder for the install and put this in `docker-compose.yml`:
 
 ```yaml
 services:

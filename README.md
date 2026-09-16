@@ -48,8 +48,21 @@ NoCopyrightSounds.</sub>
 
 ## Install
 
-You need Docker. Create a folder for the install, put this in
-`docker-compose.yml`, and mount the directory your music is in:
+You need Docker. The installer asks four questions and writes the two files the
+answers belong in. It starts nothing by itself, so read it first if you like:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/KevinBonnoron/melody-manager/main/install.sh &&
+  bash install.sh
+```
+
+It asks where your music is, whether you want to play to speakers on your
+network, which port to use, and the address those speakers will reach the server
+at. That last one is the only setting people get wrong, and it is the reason a
+speaker can be found and still play nothing.
+
+Or write it yourself. Put this in `docker-compose.yml` and mount the directory
+your music is in:
 
 ```yaml
 services:
