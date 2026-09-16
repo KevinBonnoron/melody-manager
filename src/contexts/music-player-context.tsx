@@ -679,7 +679,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           // join the transport queue: a level waiting behind a play that takes
           // two seconds is the lag this was written to remove.
           volumeQueueRef.current = volumeQueueRef.current
-            .then(() => deviceClient.setVolume(target, Math.round(volume * 100)))
+            .then(() => {
+              // The wait is over, but the turn in the queue is not this one's
+              // yet: by the time it comes, the listener may have moved to
+              // another device, and the level would land on the one they left.
+              if (request !== volumeRequestRef.current) {
+                return;
+              }
+
+              return deviceClient.setVolume(target, Math.round(volume * 100));
+            })
             .catch((error) => {
               console.error('Setting the device volume failed:', error);
               // Only what this request said gets taken back: by the time it
@@ -725,7 +734,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     return () => clearTimeout(timer);
   }, [reportedVolume, pendingVolume]);
 
-  // A pending level belongs to the device it was meant for.
+  // A pending level belongs to the device it was meant for, and to a player
+  // that is still there: a level waiting out its delay when the provider goes
+  // would otherwise be sent to the device afterwards, with nobody left to show
+  // it or to take it back if it fails.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the device is what invalidates it, not the object
   useEffect(() => {
     setPendingVolume(null);
@@ -733,6 +745,16 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       clearTimeout(volumeCommandRef.current);
       volumeCommandRef.current = null;
     }
+
+    return () => {
+      // Past the delay it is out of the timer's reach and waiting its turn in
+      // the queue, where the only way to stop it is to make it stale.
+      volumeRequestRef.current++;
+      if (volumeCommandRef.current) {
+        clearTimeout(volumeCommandRef.current);
+        volumeCommandRef.current = null;
+      }
+    };
   }, [activeDevice?.id]);
 
   // Taking playback back from wherever it is, a speaker or another tab. The two
