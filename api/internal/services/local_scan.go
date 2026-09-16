@@ -89,6 +89,9 @@ func ScanLocal(ctx context.Context, app core.App) (ScanResult, error) {
 		// saying it here: a path can name more than one record, and that is the
 		// sort of thing two implementations disagree about.
 		if n, _ := app.CountRecords("tracks", dbx.NewExp("origin = {:u}", dbx.Params{"u": sourceURL})); n > 0 {
+			if merr := remeasureChanged(ctx, app, abs, sourceURL); merr != nil && firstErr == nil {
+				firstErr = merr
+			}
 			back, serr := SetLocalFilePresence(app, abs, true)
 			restored += back
 			if serr != nil && firstErr == nil {
@@ -122,6 +125,60 @@ func ScanLocal(ctx context.Context, app core.App) (ScanResult, error) {
 		err = firstErr
 	}
 	return ScanResult{Added: added, Restored: restored}, err
+}
+
+// remeasureChanged re-reads a duration when the file has changed since it was
+// measured, which is how a track imported mid-write is repaired: the walk
+// otherwise never looks at a file it already knows. Tags survive such an import,
+// sitting at the head of the file, so only the duration is read again.
+func remeasureChanged(ctx context.Context, app core.App, abs, sourceURL string) error {
+	info, err := os.Stat(abs)
+	if err != nil {
+		return nil
+	}
+	recs, err := app.FindRecordsByFilter("tracks", "origin = {:u}", "", 0, 0, dbx.Params{"u": sourceURL})
+	if err != nil {
+		return nil
+	}
+
+	mtime := info.ModTime().Unix()
+	var seconds float64
+	measured := false
+	var firstErr error
+	for _, rec := range recs {
+		var meta domain.TrackMetadata
+		_ = rec.UnmarshalJSONField("metadata", &meta)
+		if !fileMovedOn(rec, meta, info, mtime) {
+			continue
+		}
+
+		if !measured {
+			read, perr := ffmpeg.ProbeDuration(ctx, abs)
+			if perr != nil {
+				// Nothing written, the watermark included, so the next walk retries.
+				return firstErr
+			}
+			seconds, measured = read, true
+		}
+
+		meta.MeasuredFrom = &mtime
+		rec.Set("duration", int(seconds))
+		rec.Set("metadata", meta)
+		if err := app.Save(rec); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
+// fileMovedOn reports whether the file has changed since its duration was read.
+// A record written before there was a watermark falls back to its updated stamp,
+// which anything else saving the record advances, so it can only be approximate.
+func fileMovedOn(rec *core.Record, meta domain.TrackMetadata, info os.FileInfo, mtime int64) bool {
+	if meta.MeasuredFrom != nil {
+		return *meta.MeasuredFrom != mtime
+	}
+	return info.ModTime().After(rec.GetDateTime("updated").Time())
 }
 
 // downloadedDirs are the album folders another source downloaded into. A

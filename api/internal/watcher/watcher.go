@@ -108,9 +108,11 @@ func handle(app core.App, w *fsnotify.Watcher, ev fsnotify.Event) {
 			addTree(w, ev.Name)
 			return
 		}
-		// Defer slightly so the file is fully written before we probe it.
 		go func(path string) {
-			time.Sleep(time.Second)
+			if !settled(path) {
+				slog.Warn("a file that appeared never stopped changing", "path", path)
+				return
+			}
 			if err := services.ImportLocalPath(context.Background(), app, path); err != nil {
 				slog.Warn("importing a file that appeared failed", "path", path, "error", err)
 			}
@@ -120,6 +122,37 @@ func handle(app core.App, w *fsnotify.Watcher, ev fsnotify.Event) {
 			slog.Warn("marking a file gone failed", "path", ev.Name, "error", err)
 		}
 	}
+}
+
+const (
+	settleInterval = 500 * time.Millisecond
+	settleRounds   = 6
+	settleTimeout  = 30 * time.Minute
+)
+
+// settled waits for a file to stop growing. A create event fires when the file
+// appears, not when whatever is writing it has finished, and a file imported
+// mid-write keeps the duration of the fragment: the walk never reads it again.
+func settled(path string) bool {
+	deadline := time.Now().Add(settleTimeout)
+	var last int64 = -1
+	unchanged := 0
+	for time.Now().Before(deadline) {
+		time.Sleep(settleInterval)
+		info, err := os.Stat(path)
+		if err != nil {
+			return false
+		}
+
+		if size := info.Size(); size != last || size == 0 {
+			last, unchanged = size, 0
+			continue
+		}
+		if unchanged++; unchanged >= settleRounds {
+			return true
+		}
+	}
+	return false
 }
 
 func addTree(w *fsnotify.Watcher, root string) {
