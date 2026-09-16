@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const PIP_WIDTH = 520;
-// The height the player needs. What is asked for is the whole window and the
-// browser's header is inside it, so asking for this alone leaves the position
-// bar cut off the bottom.
-const PIP_CONTENT_HEIGHT = 104;
+const PIP_WIDTH = 560;
+// What is asked for is the whole window, the browser's header included. The
+// player itself needs ninety-two; the rest is the strip Chrome draws above it.
+// Firefox draws a title bar and an address bar instead and its window comes out
+// tighter, which a drag of the edge fixes and too much empty space does not.
+const PIP_HEIGHT = 124;
 
 interface PipOptions {
   width?: number;
@@ -56,28 +57,6 @@ function adoptPageStyles(target: Window): () => void {
 }
 
 /** A window of this document's own, outside the browser's and above everything else, which the page fills by rendering into it. */
-// How much of the window its header took is the browser's business and not a
-// number worth carrying: it differs between versions, and a window driven by
-// automation wears a banner a real one does not. So it is measured and given
-// back rather than guessed at.
-//
-// Not at once: the window answers with the height that was asked for until it
-// has laid its own header out, and a correction computed then corrects nothing.
-// Twice, a frame apart, and no further.
-function giveBackTheHeader(target: Window) {
-  const correct = () => {
-    const shortfall = PIP_CONTENT_HEIGHT - target.innerHeight;
-    if (shortfall > 0) {
-      target.resizeBy(0, shortfall);
-    }
-  };
-
-  target.requestAnimationFrame(() => {
-    correct();
-    target.requestAnimationFrame(correct);
-  });
-}
-
 export function useDocumentPip() {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const windowRef = useRef<Window | null>(null);
@@ -110,7 +89,7 @@ export function useDocumentPip() {
       // button back to the tab can go: the bar in the page says the player is
       // out here and brings it back, so the same thing twice costs height that
       // a window this short does not have.
-      target = await api.requestWindow({ width: PIP_WIDTH, height: PIP_CONTENT_HEIGHT, disallowReturnToOpener: true });
+      target = await api.requestWindow({ width: PIP_WIDTH, height: PIP_HEIGHT, disallowReturnToOpener: true });
     } catch {
       return;
     }
@@ -119,8 +98,6 @@ export function useDocumentPip() {
       target.close();
       return;
     }
-
-    giveBackTheHeader(target);
 
     disposeStylesRef.current = adoptPageStyles(target);
     target.addEventListener('pagehide', forget, { once: true });
