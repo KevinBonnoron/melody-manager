@@ -58,13 +58,13 @@ function ContinueListening() {
   const { t } = useTranslation();
   const { currentTrack, isPlaying, togglePlayPause, playTrack, setQueue } = useMusicPlayer();
   const { track: savedTrack, position, queueIds } = usePlaybackState();
-  const { remoteActive } = useDevices();
+  const { playingElsewhere } = useDevices();
   const { data: allTracks = [] } = useTracks();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
 
   const track = currentTrack ?? savedTrack;
-  if (isPlaying || remoteActive || !track) {
+  if (isPlaying || playingElsewhere || !track) {
     return null;
   }
 

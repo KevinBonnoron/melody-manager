@@ -1,12 +1,18 @@
 import { eq, useLiveQuery } from '@tanstack/react-db';
 import { deviceClient } from '@/clients/device.client';
 import { trackCollection } from '@/collections/track.collection';
+import { useMusicPlayer } from '@/contexts/music-player-context';
 import type { Track } from '@/shared';
+import { remoteTarget } from './remote-target';
 import { useDevices } from './use-devices';
 import { useReportedPosition } from './use-reported-position';
 
 export function useRemotePlayback() {
-  const { remoteActive } = useDevices();
+  const { activeDevice } = useMusicPlayer();
+  const { devices, playingElsewhere } = useDevices();
+
+  const remoteActive = remoteTarget(activeDevice, devices, playingElsewhere);
+
   const playing = remoteActive?.playing ?? false;
   const position = useReportedPosition(remoteActive);
   const trackId = remoteActive?.trackId ?? '';
