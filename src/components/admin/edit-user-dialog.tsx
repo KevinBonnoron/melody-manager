@@ -10,8 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { User } from '@/shared';
 
-// What PocketBase itself enforces. Saying so before the request is sent beats
-// letting a 400 come back and showing the listener a raw server message.
 const PASSWORD_MIN_LENGTH = 8;
 
 interface Props {
@@ -48,9 +46,6 @@ export function EditUserDialog({ user, isSelf, onOpenChange }: Props) {
 
     setIsSaving(true);
     try {
-      // Credentials first: they are the half that can be refused, and applying
-      // the optimistic half before knowing would show a save that did not
-      // happen.
       const nextEmail = email.trim();
       if (nextEmail !== user.email || password) {
         await usersClient.updateCredentials(user.id, {

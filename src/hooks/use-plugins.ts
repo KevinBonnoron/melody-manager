@@ -9,14 +9,9 @@ let latest = 0;
 
 function fetchManifests(): Promise<PluginManifest[]> {
   const ticket = ++latest;
-  // Through the shared client, which attaches the auth token: /api/plugins sits
-  // behind the same authentication as the rest of the API.
   const request = pluginsClient
     .list()
     .then((data: PluginManifest[]) => {
-      // An answer that was already on its way must not replace a newer one: a
-      // forced refresh exists precisely because the request in flight predates
-      // the write that asked for it.
       if (ticket === latest) {
         cachedManifests = data;
         for (const listener of listeners) {
@@ -43,17 +38,9 @@ function load(force = false): Promise<PluginManifest[]> {
     return inFlight ?? fetchManifests();
   }
 
-  // Joining the request in flight would answer with what the server knew before
-  // the write, so the new one starts once that one is out of the way.
   return (inFlight ?? Promise.resolve()).catch(() => undefined).then(() => fetchManifests());
 }
 
-// A manifest carries what the server-level config still lacks, so writing that
-// config changes it. Without this the screens keep the answer they were given
-// on the first render, and saving a path appears to do nothing.
-//
-// A refresh that fails leaves a stale answer on the screens; it does not undo
-// the write that asked for it, so it must not be reported as a failed save.
 export async function refreshPluginsAfterWrite(): Promise<void> {
   try {
     await load(true);

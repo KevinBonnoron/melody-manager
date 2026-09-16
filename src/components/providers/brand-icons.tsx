@@ -1,7 +1,3 @@
-// Brand marks, which Lucide does not carry: the four paths come from Simple
-// Icons (CC0). Four of them are not worth a 5 MB dependency parsed on every
-// build, so they live here.
-
 interface Props {
   className?: string;
 }

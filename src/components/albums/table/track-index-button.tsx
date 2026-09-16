@@ -23,8 +23,6 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
       return;
     }
 
-    // Toggling only makes sense for what this client holds; a track playing on
-    // another device is started here instead.
     if (currentTrack?.id === track.id) {
       togglePlayPause();
     } else {
@@ -33,9 +31,6 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
   }
 
   const defaultContent = () => {
-    // A track with no audio anywhere keeps its number and never turns into a
-    // play affordance on hover: inviting a click that cannot work is worse than
-    // showing nothing.
     if (unplayable) {
       return <span className="text-sm absolute inset-0 flex items-center justify-center text-muted-foreground">{index}</span>;
     }

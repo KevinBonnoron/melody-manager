@@ -9,14 +9,6 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-// Liking and disliking are one opinion, not two: a track could be held in
-// track_likes and track_dislikes at once, which is a state no screen can show.
-// Each entity now has a single ratings collection carrying which way it went,
-// and an album or an artist can be disliked like anything else.
-//
-// The relation stays typed, one collection per entity, so deleting an album
-// still takes its ratings with it. A single polymorphic table would have cost
-// that, for nothing but a shorter schema.
 func init() {
 	m.Register(func(app core.App) error {
 		users, err := app.FindCollectionByNameOrId("users")
@@ -49,7 +41,6 @@ func init() {
 				&core.AutodateField{Name: "created", OnCreate: true},
 				&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true},
 			)
-			// One opinion per user per entity, enforced where it cannot drift.
 			ratings.AddIndex(fmt.Sprintf("idx_%s_ratings_user_%s", spec.entity, spec.entity), true, "user, "+spec.entity, "")
 			ratings.AddIndex(fmt.Sprintf("idx_%s_ratings_user", spec.entity), false, "user", "")
 			ratings.ListRule = types.Pointer(owner)
@@ -83,9 +74,6 @@ func init() {
 	}, nil)
 }
 
-// carryOver copies an old like/dislike collection into its ratings collection.
-// A row whose target is already rated is skipped: the unique index is the point
-// of the change, and a track both liked and disliked keeps the like.
 func carryOver(app core.App, from, to, entity, value string) error {
 	if _, err := app.FindCollectionByNameOrId(from); err != nil {
 		return nil

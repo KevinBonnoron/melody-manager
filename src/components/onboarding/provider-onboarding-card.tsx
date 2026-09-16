@@ -54,10 +54,6 @@ export function ProviderOnboardingCard({ manifest }: Props) {
   const configInitial = useMemo(() => (serverConfig?.config ?? getDefaultConfigForType(manifests, manifest.id)) as ConfigFormData, [serverConfig?.config, manifests, manifest.id]);
   const connectInitial = useMemo(() => (userConnection?.config ?? getDefaultConfigForType(manifests, manifest.id, true)) as ConfigFormData, [userConnection?.config, manifests, manifest.id]);
   const handleConfigure = async (config: ConfigFormData) => {
-    // The provider and its configuration are two records and there is no
-    // transaction across them. An enabled provider with no configuration is the
-    // state the screens cannot make sense of, so the one written here is taken
-    // back when the other fails.
     let addedProviderId: string | null = null;
     try {
       if (!provider) {

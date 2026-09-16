@@ -1,5 +1,5 @@
-// Package ffmpeg wraps the ffmpeg/ffprobe binaries (provided by the nix dev
-// shell) for transcoding, probing and waveform-peak extraction.
+// Package ffmpeg wraps the ffmpeg/ffprobe binaries (provided by the nix dev shell) for
+// transcoding, probing and waveform-peak extraction.
 package ffmpeg
 
 import (
@@ -16,12 +16,8 @@ import (
 
 // Format describes a transcode target (mirrors shared/configs/transcode.config).
 type Format struct {
-	MimeType string
-	Args     []string
-	// Whether the container has somewhere to put a cover. A player that fetches
-	// a stream over HTTP often takes the artwork out of the file rather than out
-	// of whatever metadata came with the request, so dropping it leaves a
-	// speaker showing its own placeholder next to a track that has a cover.
+	MimeType       string
+	Args           []string
 	CarriesPicture bool
 }
 
@@ -32,10 +28,6 @@ var formats = map[string]Format{
 	"aac":  {MimeType: "audio/aac", Args: []string{"-f", "adts", "-c:a", "aac", "-b:a", "256k"}},
 }
 
-// pictureArgs carries the cover through, or drops it where the container has
-// nowhere to put one. The map is optional, so a file with no cover transcodes
-// the same either way; without the copy, ffmpeg would re-encode the artwork as
-// a video stream and refuse the container.
 func pictureArgs(format string, f Format) []string {
 	if !f.CarriesPicture {
 		return []string{"-vn"}
@@ -43,15 +35,11 @@ func pictureArgs(format string, f Format) []string {
 
 	args := []string{"-map", "0:a", "-map", "0:v?", "-c:v", "copy"}
 	if format == "mp3" {
-		// The frame a cover lives in. Version 3 is what players agree on; the
-		// default writes one many of them ignore.
 		args = append(args, "-id3v2_version", "3")
 	}
 	return args
 }
 
-// extensions name the container each format is written into, for callers that
-// need a file rather than a stream.
 var extensions = map[string]string{"mp3": ".mp3", "wav": ".wav", "flac": ".flac", "aac": ".aac"}
 
 // Extension returns the file extension a transcoded format is written with.
@@ -62,14 +50,10 @@ func Extension(format string) string {
 	return ".mp3"
 }
 
-// SaveTranscode writes the whole of input to outPath in the given format. A
-// player can only seek in a response that has a length, which a pipe has not.
+// SaveTranscode writes the whole of input to outPath in the given format.
 func SaveTranscode(ctx context.Context, input, format, outPath string) error {
 	f, ok := formats[format]
 	if !ok {
-		// Falling back means falling back entirely: the name has to travel with
-		// the arguments, or the cover goes into an mp3 without the tag version
-		// players agree on.
 		format, f = "mp3", formats["mp3"]
 	}
 
@@ -105,8 +89,6 @@ func ProbeDuration(ctx context.Context, input string) (float64, error) {
 // Peaks decodes mono s16le PCM and reduces it to num normalised peaks [0,1].
 func Peaks(ctx context.Context, input string, num int) ([]float64, error) {
 	cmd := exec.CommandContext(ctx, "ffmpeg", "-v", "error", "-i", input, "-ac", "1", "-f", "s16le", "-ar", "8000", "pipe:1")
-	// Keep ffmpeg's own diagnostics: without them a failure surfaces as a bare
-	// "exit status 8" and says nothing about why.
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -143,10 +125,7 @@ func Peaks(ctx context.Context, input string, num int) ([]float64, error) {
 	return peaks, nil
 }
 
-// SaveSegment writes input (a local file or URL) to outPath as MP3. When
-// end > start it extracts only that [start, end] window (seconds), used to cut
-// chapter tracks out of a single downloaded source. end <= start downloads the
-// whole file.
+// SaveSegment writes input (a local file or URL) to outPath as MP3.
 func SaveSegment(ctx context.Context, input string, start, end float64, outPath string) error {
 	args := []string{"-y"}
 	if start > 0 {
@@ -166,17 +145,13 @@ func SaveSegment(ctx context.Context, input string, start, end float64, outPath 
 	return nil
 }
 
-// Tag is one metadata field written into the output container. A downloaded
-// file is read back by the scanner and by whatever music player the operator
-// points at the same folder, and both of them read tags, not file names.
+// Tag is one metadata field written into the output container.
 type Tag struct {
 	Name  string
 	Value string
 }
 
 // SaveSegmentCopy writes [start, end] of input to outPath without re-encoding.
-// The container is taken from outPath's extension, so callers keep the source
-// extension: copying preserves quality and is far faster than an encode.
 func SaveSegmentCopy(ctx context.Context, input string, start, end float64, outPath string, tags ...Tag) error {
 	args := []string{"-y"}
 	if start > 0 {
@@ -209,16 +184,13 @@ func trimSpace(s string) string {
 	return s
 }
 
-// Audio describes what a file actually holds, as opposed to what its extension
-// claims. A container a device accepts says nothing about the rate and depth
-// inside it, and that is the half that makes a player give up.
+// Audio describes what a file actually holds, as opposed to what its extension claims.
 type Audio struct {
 	SampleRate int
 	BitDepth   int
 }
 
-// ProbeAudio reads the first audio stream's rate and depth. Depth comes back
-// zero for a lossy codec, which has none to report.
+// ProbeAudio reads the first audio stream's rate and depth.
 func ProbeAudio(ctx context.Context, input string) (Audio, error) {
 	out, err := exec.CommandContext(ctx, "ffprobe",
 		"-v", "error", "-select_streams", "a:0",
@@ -239,7 +211,6 @@ func ProbeAudio(ctx context.Context, input string) (Audio, error) {
 		return Audio{}, err
 	}
 	if len(fields) > 1 {
-		// "N/A" for a codec with no fixed depth, which is not an error.
 		audio.BitDepth, _ = strconv.Atoi(fields[1])
 	}
 

@@ -20,14 +20,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-// Configuring the source means saying how to reach it. Discovery is multicast
-// and does not cross a bridged network, so a server in a container finds nothing
-// and has to be told; what it does find lands in the same list.
-//
-// Not the manifest-driven form the other sources use: that renders a text field
-// per setting, and this is a list, with a row to remove and a row to add. What
-// it does share with them is that nothing is written until the button at the
-// bottom is pressed.
 export function SpeakerAddressesDialog({ provider, title, open, onOpenChange }: Props) {
   const { t } = useTranslation();
 
@@ -38,9 +30,6 @@ export function SpeakerAddressesDialog({ provider, title, open, onOpenChange }: 
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{t('DevicesPage.addressesDescription')}</DialogDescription>
         </DialogHeader>
-        {/* Its own component so that closing the dialog unmounts it: what was
-            typed and not saved goes with it, and opening again starts from what
-            the server holds. */}
         {open && <SpeakerAddressesForm provider={provider} title={title} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
@@ -54,9 +43,6 @@ function SpeakerAddressesForm({ provider, title, onDone }: { provider: Provider;
   const discovered = live.filter((d) => d.type === provider.type).map((d) => d.ipAddress);
   const answering = new Set(discovered);
 
-  // Seeded with what is answering as well as what is saved, so configuring a
-  // kind for the first time starts from the speakers already on the network
-  // rather than from an empty list and a manual address.
   const [rows, setRows] = useState<ConfiguredSpeaker[]>(() => withDiscovered(speakers, discovered));
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -77,10 +63,6 @@ function SpeakerAddressesForm({ provider, title, onDone }: { provider: Provider;
   const submit = async () => {
     setSaving(true);
     try {
-      // The speakers first, the switch after. Saying which speakers is what puts
-      // the kind in service, and doing it the other way round leaves a kind in
-      // service with nothing to play to if the write that mattered is the one
-      // that fails.
       await write(rows);
       if (!provider.enabled) {
         await providerCollection.update(provider.id, (draft) => {
@@ -107,9 +89,6 @@ function SpeakerAddressesForm({ provider, title, onDone }: { provider: Provider;
               <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', found ? 'bg-success shadow-[0_0_6px_var(--success)]' : 'bg-muted-foreground/50')} title={found ? t('DevicesPage.answering') : t('DevicesPage.silent')} />
               <span className={cn('min-w-0 flex-1 truncate font-mono text-[13px]', !speaker.enabled && 'text-muted-foreground line-through')}>{speaker.address}</span>
               <Switch checked={speaker.enabled} aria-label={t('DevicesPage.useSpeaker', { address: speaker.address })} onCheckedChange={(next) => setRows(rows.map((s) => (s.address === speaker.address ? { ...s, enabled: next } : s)))} />
-              {/* Forgetting a speaker the server can see achieves nothing: the
-                  next discovery pass puts it straight back. Saying not to use it
-                  is what sticks, so that is the control left available. */}
               <span title={found ? t('DevicesPage.cannotForget') : undefined}>
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" disabled={found} aria-label={t('DevicesPage.forget', { address: speaker.address })} onClick={() => setRows(rows.filter((s) => s.address !== speaker.address))}>
                   <Trash2 className="h-4 w-4" />

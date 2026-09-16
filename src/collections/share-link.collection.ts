@@ -10,6 +10,5 @@ export const shareLinkCollection = createCollection(
   }),
 );
 
-// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
 shareLinkCollection.createIndex((row) => row.id, { indexType: BasicIndex });
 shareLinkCollection.createIndex((row) => row.track, { indexType: BasicIndex });

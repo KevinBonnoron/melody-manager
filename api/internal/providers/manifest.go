@@ -1,13 +1,10 @@
 package providers
 
-// Category of a provider.
 const (
 	CategoryTrack  = "track"
 	CategoryDevice = "device"
 )
 
-// AuthKind describes how a provider authenticates (see
-// docs/guide/configuration.md).
 const (
 	AuthNone             = "none"               // anonymous (soundcloud, bandcamp, local)
 	AuthServerCredential = "server-credentials" // admin app credentials (spotify clientId/secret)
@@ -15,8 +12,8 @@ const (
 	AuthUserCredential   = "user-credentials"   // per-user secret
 )
 
-// SchemaField is one configurable field, tagged server- or user-level by the
-// schema it lives in (ConfigSchema vs ConnectionSchema).
+// SchemaField is one configurable field, tagged server- or user-level by the schema it lives in
+// (ConfigSchema vs ConnectionSchema).
 type SchemaField struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"` // string|secret|textarea|bool|number|string-list
@@ -26,9 +23,7 @@ type SchemaField struct {
 	Required    bool   `json:"required,omitempty"`
 }
 
-// Manifest is the static description of a provider type. It keeps the legacy
-// JSON shape (so the existing client keeps working) and adds the new-model
-// fields: AuthKind, UserConnectable, CatalogOnly, Category.
+// Manifest is the static description of a provider type.
 type Manifest struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -41,19 +36,10 @@ type Manifest struct {
 	ImportTypes []string `json:"importTypes,omitempty"`
 	URLPatterns []string `json:"urlPatterns,omitempty"`
 
-	// ConfigSchema = server/admin-level (stored in provider_config.config).
-	ConfigSchema []SchemaField `json:"configSchema,omitempty"`
-	// Requires names, per capability, the server-level config fields it cannot
-	// work without. "Required" and "required for X" are not the same:
-	// youtube.downloadPath is mandatory to download and irrelevant to searching,
-	// while spotify cannot answer a single query without its app credentials.
-	Requires map[string][]string `json:"requires,omitempty"`
-	// Unavailable is filled per request by the API: capability -> the config
-	// fields still missing. The client cannot compute it, provider_config being
-	// admin-only, and it needs the field names to say *why* an action is off.
-	Unavailable map[string][]string `json:"unavailable,omitempty"`
-	// ConnectionSchema = per-user (stored in connections.config).
-	ConnectionSchema []SchemaField `json:"connectionSchema,omitempty"`
+	ConfigSchema     []SchemaField       `json:"configSchema,omitempty"`
+	Requires         map[string][]string `json:"requires,omitempty"`
+	Unavailable      map[string][]string `json:"unavailable,omitempty"`
+	ConnectionSchema []SchemaField       `json:"connectionSchema,omitempty"`
 
 	Category        string `json:"category"`
 	AuthKind        string `json:"authKind"`

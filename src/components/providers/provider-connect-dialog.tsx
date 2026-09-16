@@ -42,8 +42,6 @@ export function ProviderConnectDialog({ providerId, open, onOpenChange }: Props)
     }
 
     try {
-      // The insert applies locally and persists after; without waiting for it,
-      // a refused connection still closes the dialog and says it worked.
       await connectionCollection.insert({
         id: connectionCollection.utils.newId(),
         type,

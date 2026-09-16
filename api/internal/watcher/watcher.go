@@ -1,5 +1,5 @@
-// Package watcher syncs the local provider directory into the library in real
-// time (the Go counterpart of the old chokidar-based watcher).
+// Package watcher syncs the local provider directory into the library in real time (the Go
+// counterpart of the old chokidar-based watcher).
 package watcher
 
 import (
@@ -18,13 +18,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
 
-// Start watches the local provider's configured directory (recursively) and
-// imports/removes tracks as files appear/disappear.
-//
-// The path is polled rather than read once: a fresh install seeds the local
-// provider with an empty config, so reading it at boot would leave the watcher
-// permanently off until someone restarted the server after setting the
-// directory. Re-reading also picks up a changed path.
+// Start watches the local provider's configured directory (recursively) and imports/removes
+// tracks as files appear/disappear.
 func Start(app core.App, taskSvc *tasks.Service) {
 	var (
 		current string
@@ -48,10 +43,6 @@ func Start(app core.App, taskSvc *tasks.Service) {
 					go run(app, w, stop)
 				}
 
-				// fsnotify only reports what happens next, so the files already
-				// there would stay invisible: a directory just taken up is
-				// walked once. That also covers a server restarted after music
-				// was dropped in while it was down.
 				services.ScanLocalTask(context.Background(), app, taskSvc)
 			}
 		}
@@ -61,9 +52,6 @@ func Start(app core.App, taskSvc *tasks.Service) {
 
 const configPollInterval = 30 * time.Second
 
-// A saved configuration should be acted on now, not on the next poll, but the
-// poll stays: it is what notices a path changed straight in the database, and
-// what makes a missed notification cost half a minute rather than a restart.
 var configChanged = make(chan struct{}, 1)
 
 // Nudge tells the watcher to re-read the local provider's configuration at once.
@@ -130,9 +118,6 @@ const (
 	settleTimeout  = 30 * time.Minute
 )
 
-// settled waits for a file to stop growing. A create event fires when the file
-// appears, not when whatever is writing it has finished, and a file imported
-// mid-write keeps the duration of the fragment: the walk never reads it again.
 func settled(path string) bool {
 	deadline := time.Now().Add(settleTimeout)
 	var last int64 = -1

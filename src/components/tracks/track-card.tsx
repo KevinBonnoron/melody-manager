@@ -15,9 +15,6 @@ interface Props {
   isLoading?: boolean;
 }
 
-// The ring is drawn inside the card rather than around it: the grid skips the
-// rendering of what is off screen, and that containment clips anything painted
-// outside a card's own box, which left the marker showing only at the sides.
 export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
   const { t } = useTranslation();
   const album = useAlbumsById().get(track.album);
@@ -51,17 +48,10 @@ export function TrackCard({ track, onPlay, isPlaying, isLoading }: Props) {
           </div>
         )}
 
-        {/* Bottom right like the album card, so the two read the same. Clicking
-            anywhere on this card still plays it: the mark says what is about to
-            happen, it is not the only place that does it. */}
         <div className="absolute bottom-2 right-2 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 ml-0.5" fill="currentColor" />}</div>
         </div>
       </div>
-      {/* `line-clamp` needs display:-webkit-box, which a `sm:block` on the same
-          element overrides: the line then wrapped, the card grew taller than its
-          neighbours, and the virtualised rows landed on top of each other.
-          `truncate` does not care what the display is. */}
       <CardContent className="px-1.5 py-1 sm:px-2 sm:py-1.5">
         <div className="flex flex-col gap-0 sm:gap-0.5">
           <h3 className="font-semibold text-[11px] sm:text-xs line-clamp-1">{track.title}</h3>

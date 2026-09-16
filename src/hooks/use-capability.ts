@@ -3,13 +3,9 @@ import { usePlugins } from './use-plugins';
 
 export interface CapabilityState {
   available: boolean;
-  // Config fields the admin still has to fill, by name. Empty when available.
   missing: string[];
 }
 
-// Whether a source can do something, and what is missing when it cannot. The
-// answer comes from the API: the manifest declares the requirements, but only
-// the server can see whether they are satisfied.
 export function useCapability() {
   const { manifests } = usePlugins();
 
@@ -22,7 +18,6 @@ export function useCapability() {
   );
 }
 
-// Human-readable label of a missing field, from the manifest's own schema.
 export function useMissingFieldLabels() {
   const { manifests } = usePlugins();
 

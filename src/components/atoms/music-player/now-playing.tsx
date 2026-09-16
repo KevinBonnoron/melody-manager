@@ -35,9 +35,6 @@ export function NowPlaying({ open, onClose }: Props) {
       return;
     }
 
-    // The page keeps its own height behind a fixed overlay, so its scrollbar
-    // stays visible and scrollable. Locking the root element rather than the
-    // body leaves the sheet's own scroll lock alone.
     const root = document.documentElement;
     const previousOverflow = root.style.overflow;
     root.style.overflow = 'hidden';
@@ -79,8 +76,6 @@ export function NowPlaying({ open, onClose }: Props) {
         <div className="h-9 w-9" />
       </header>
 
-      {/* The cover takes whatever room is left; the controls stay within reach at
-          the bottom, as the mockup has them. */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-4">
         <div className="aspect-square w-full max-w-[min(340px,100%)] overflow-hidden rounded-2xl bg-muted shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
           {coverUrl ? (
@@ -110,8 +105,6 @@ export function NowPlaying({ open, onClose }: Props) {
 
           <SimpleProgressBar trackId={track.id} currentTime={control.currentTime} duration={control.duration || track.duration} playing={isPlaying} loading={isLoadingHere} onSeek={control.seek} />
 
-          {/* Sized from the mockup: 18px for the toggles, 22px for the skips and
-              28px for play, the bar's atoms are fixed at their smaller size. */}
           <div className="flex items-center justify-center gap-3">
             <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} aria-label={t('NowPlaying.shuffle')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${shuffle ? 'text-primary' : 'text-muted-foreground'}`}>
               <Shuffle className="h-[18px] w-[18px]" />
@@ -134,10 +127,6 @@ export function NowPlaying({ open, onClose }: Props) {
             <DeviceSelector
               activeDevice={activeDevice}
               onDeviceChange={(device) => {
-                // Playing somewhere else is somebody else's playback to move,
-                // not this tab's to re-point: switchDevice would leave the
-                // music where it was and only change what this tab would play
-                // next.
                 if (device && isRemote && remote?.track) {
                   transferPlayback(device);
                   return;

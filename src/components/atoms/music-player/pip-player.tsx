@@ -12,13 +12,7 @@ import { PlayButton } from './play-button';
 import { PreviousButton } from './previous-button';
 import { queueBounds } from './queue-bounds';
 
-/**
- * What the picture-in-picture window shows. Deliberately not the bar: that one
- * opens dropdowns and sheets through Radix portals, which mount into this
- * document's body rather than the window's, and its links would navigate the
- * tab behind it. A cover, a title, the transport and the position are what a
- * window of this size is for.
- */
+/** What the picture-in-picture window shows. */
 export function PipPlayer() {
   const { t } = useTranslation();
   const player = useMusicPlayer();
@@ -26,8 +20,6 @@ export function PipPlayer() {
   const remote = useRemotePlayback();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
-  // The window drives whatever holds the playback, as the mobile dock does: a
-  // speaker or another tab is playing just as much as this browser is.
   const control =
     isRemote && remote
       ? { toggle: remote.togglePlayPause, next: remote.playNext, previous: remote.playPrevious, seek: remote.seek, time: remote.currentTime, duration: remote.duration, loading: false }
@@ -37,18 +29,11 @@ export function PipPlayer() {
   const album = track ? albumsById.get(track.album) : undefined;
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artists = artistNames(track?.artists, artistsById);
-  // The control reports every step it passes through, and on a speaker each one
-  // is a request over the network, so the thumb follows the hand and the seek
-  // is sent once, on release.
   const [scrub, setScrub] = useState<number | null>(null);
-  // A position belongs to the track and the device it was read from. Held
-  // across a change, it would be committed to whatever is playing now, which is
-  // not where the hand was.
   // biome-ignore lint/correctness/useExhaustiveDependencies: what changes is what invalidates the scrub, and none of it is read here
   useEffect(() => {
     setScrub(null);
   }, [track?.id, isRemote, player.activeDevice?.id, remote?.device.id]);
-  // A range needs a span even before a duration is known, and a value inside it.
   const seekMax = Math.max(control.duration, 1);
   const position = Math.min(Math.max(scrub ?? control.time, 0), seekMax);
   const progress = control.duration > 0 ? (position / control.duration) * 100 : 0;
@@ -60,10 +45,6 @@ export function PipPlayer() {
     }
   };
 
-  // One row of cover, title and transport, with the position spanning the whole
-  // width under it. A square cover as tall as the window took a third of its
-  // width and left the rest crushed: in a strip this size the artwork is a
-  // marker, not the subject.
   return (
     <div className="flex h-screen w-full flex-col justify-center gap-1.5 bg-background px-3 py-2 text-foreground">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -91,8 +72,6 @@ export function PipPlayer() {
 
       <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
         <span>{formatDuration(position)}</span>
-        {/* A range, not a styled div: the arrow keys, Home and End come with
-            it, and so does the position read out to a screen reader. */}
         <input
           type="range"
           min={0}

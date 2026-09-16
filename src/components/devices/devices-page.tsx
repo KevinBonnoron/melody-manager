@@ -14,9 +14,6 @@ import { DiscoveredSpeakersBanner } from './discovered-speakers-banner';
 import { OffDeviceCard } from './off-device-card';
 import { SpeakerAddressesDialog } from './speaker-addresses-dialog';
 
-// The shape the sources screen has: a summary, the ones in service as cards, and
-// the ones that are not below. A device kind is not connected but switched on,
-// so that is what the second section offers.
 export function DevicesPage() {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
@@ -29,14 +26,9 @@ export function DevicesPage() {
   const on = useMemo(() => deviceProviders.filter((p) => p.enabled), [deviceProviders]);
   const off = useMemo(() => deviceProviders.filter((p) => !p.enabled), [deviceProviders]);
 
-  // Held here rather than in the cards: the switch inside the dialog moves the
-  // card from one section to the other, which unmounts it. A dialog owned by the
-  // card would go with it, in the middle of being used.
   const [configuring, setConfiguring] = useState<string | null>(null);
   const configured = deviceProviders.find((p) => p.type === configuring);
 
-  // Admin only, and not because of the buttons: only an admin can read what has
-  // already been decided, so for anyone else every speaker would look new.
   const toReview = useMemo(() => {
     if (user.role !== 'admin') {
       return [];

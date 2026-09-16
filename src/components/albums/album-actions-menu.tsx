@@ -18,10 +18,7 @@ import { ResyncAlbumMenuItem } from './resync-album-menu-item';
 
 interface Props {
   album: Album;
-  // The artist the album currently hangs from, so the picker opens on it.
   currentArtistId?: string;
-  // Where the album came from, when it came from somewhere: a rare action, so
-  // it sits here rather than spending a labelled button in the header.
   origin?: string;
 }
 

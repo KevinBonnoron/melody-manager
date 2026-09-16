@@ -35,8 +35,6 @@ func New() *Deps {
 	cfg := store.Get()
 	audio, err := cache.New(cfg.CacheDir, cfg.CacheMaxFiles, cfg.CacheMaxSize)
 	if err != nil {
-		// A configured directory that cannot be created is worth reporting, but
-		// not worth refusing to start over: fall back to the system temp dir.
 		slog.Warn("audio cache unavailable, falling back to the temp dir", "dir", cfg.CacheDir, "error", err)
 		audio, err = cache.New(filepath.Join(os.TempDir(), "melody-manager-cache"), cfg.CacheMaxFiles, cfg.CacheMaxSize)
 		if err != nil {

@@ -113,7 +113,6 @@ export function LibraryPage() {
   );
 }
 
-// The heading counts the whole library while the grid shows a preview of it.
 function SeeAllButton({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
   return (

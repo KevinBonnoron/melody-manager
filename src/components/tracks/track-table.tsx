@@ -135,9 +135,6 @@ export function TrackTable({ tracks }: Props) {
 
   const { rows } = table.getRowModel();
 
-  // Not virtualised: this table holds one album or one playlist, which is tens
-  // of rows. Virtualising the window for that bought nothing and cost the rows
-  // being placed against an offset measured before the page had settled.
   return (
     <div className="border rounded-lg overflow-hidden">
       <table className="grid w-full text-sm">

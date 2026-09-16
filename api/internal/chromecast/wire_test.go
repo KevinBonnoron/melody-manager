@@ -28,9 +28,7 @@ func TestFrameRoundTrip(t *testing.T) {
 	}
 }
 
-// The length prefix is four bytes big-endian, and everything after it is the
-// message. A reader that takes the length from the wrong end asks for gigabytes
-// and never returns.
+// The length prefix is four bytes big-endian, and everything after it is the message.
 func TestFrameIsLengthPrefixedBigEndian(t *testing.T) {
 	var buf bytes.Buffer
 	if err := writeFrame(&buf, message{source: "a", destination: "b", namespace: "c", payload: "d"}); err != nil {
@@ -55,9 +53,8 @@ func TestReadFrameRefusesAnAbsurdLength(t *testing.T) {
 	}
 }
 
-// Fields this sender never writes still arrive: a device answers with the
-// binary payload field present and empty, and with fields added since. Skipping
-// them is what keeps a decoder working against a device newer than itself.
+// Fields this sender never writes still arrive: a device answers with the binary payload field
+// present and empty, and with fields added since.
 func TestDecodeSkipsFieldsItDoesNotKnow(t *testing.T) {
 	body := message{source: "sender-0", destination: "receiver-0", namespace: nsMedia, payload: "{}"}.encode()
 	body = appendVarintField(body, 15, 42)

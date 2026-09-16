@@ -7,27 +7,13 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// knownArtist reports whether the library can already point at this name.
 type knownArtist func(name string) bool
 
-// A tag holds one artist string, so a collaboration arrives as a single name.
 var (
-	// These never occur inside an artist's own name.
-	plainSeparators = []string{";", " feat. ", " feat ", " ft. ", " ft ", " featuring "}
-	// These do: AC/DC, Simon & Garfunkel, Earth, Wind & Fire.
+	plainSeparators     = []string{";", " feat. ", " feat ", " ft. ", " ft ", " featuring "}
 	ambiguousSeparators = []string{" & ", " / ", "/", " + "}
 )
 
-// splitArtistName turns a tag's artist field into the artists it names.
-//
-// The unambiguous separators always split. "&" and "/" only split when one of
-// the parts is someone the library can already point at: the album's artist,
-// the folder the file sits in, or an artist already on record. Without that
-// guard "AC/DC" becomes two bands.
-//
-// A name already on record whole comes first: what the guard can point at grows
-// with every import, so without it the same tag read twice comes apart
-// differently and the second reading files its track under a second album.
 func splitArtistName(known knownArtist, raw string, anchors ...string) []string {
 	if whole := strings.TrimSpace(raw); whole != "" && known != nil && known(whole) {
 		return []string{whole}
@@ -40,7 +26,6 @@ func splitArtistName(known knownArtist, raw string, anchors ...string) []string 
 	return dedupeNames(out)
 }
 
-// artistOnRecord answers the same question against the library itself.
 func artistOnRecord(app core.App) knownArtist {
 	return func(name string) bool {
 		_, err := app.FindFirstRecordByFilter("artists", "name = {:n}", dbx.Params{"n": name})

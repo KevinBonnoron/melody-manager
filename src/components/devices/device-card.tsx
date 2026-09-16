@@ -12,9 +12,6 @@ import { getSourceColor } from '@/lib/source-colors';
 import { cn } from '@/lib/utils';
 import type { Provider } from '@/shared';
 
-// One kind of device, and everything that configures it. The devices it found
-// are behind the card, on its own page, the way a source's tracks are behind the
-// source's card.
 export function DeviceCard({ provider, title, icon: Icon, found, onConfigure }: { provider: Provider; title: string; icon: ProviderIcon; found: number; onConfigure: () => void }) {
   const { t } = useTranslation();
   const user = useAuthUser();
@@ -23,11 +20,6 @@ export function DeviceCard({ provider, title, icon: Icon, found, onConfigure }: 
   const [removeOpen, setRemoveOpen] = useState(false);
   const color = getSourceColor(provider.type);
 
-  // Dropping the speakers takes the kind out of service with them: left on, it
-  // would sit in the active section with nothing to play to. Before the deletion
-  // rather than after it, and refusing to delete if it fails: the half that can
-  // be left behind is then a kind switched off with its speakers, not one in
-  // service without them.
   const turnOff = async () => {
     await providerCollection.update(provider.id, (draft) => {
       draft.enabled = false;
@@ -54,9 +46,6 @@ export function DeviceCard({ provider, title, icon: Icon, found, onConfigure }: 
         <Metric value={speakers.length} label={t('DevicesPage.known')} />
       </div>
 
-      {/* The row a source card has, with the controls a device kind has: its
-          settings, and the way out of service. Nothing acts before its dialog is
-          open. */}
       <div className="relative flex items-center justify-end gap-1">
         {isAdmin && <CardAction icon={SlidersHorizontal} label={t('DevicesPage.settings', { title })} onClick={onConfigure} />}
         {isAdmin && configId && <CardAction icon={Trash2} label={t('ProviderCardActions.removeServerSettings')} destructive onClick={() => setRemoveOpen(true)} />}

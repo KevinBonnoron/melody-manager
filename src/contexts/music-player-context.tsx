@@ -54,17 +54,10 @@ interface MusicPlayerContextValue {
   audioElement: HTMLAudioElement | null;
 }
 
-// How long the speaker's reported position is distrusted after a seek.
 const SEEK_SETTLE_MS = 2000;
 
-// How long a drag is allowed to settle before the device is told, and how long
-// the level asked for is believed over the one reported.
 const VOLUME_SETTLE_MS = 150;
 
-// This browser's own level, kept where the rest of its preferences are. A
-// device's volume belongs to the device and is read back from it; this one has
-// nowhere else to live, and starting every reload at full blast is its own kind
-// of bug.
 const VOLUME_KEY = 'melody-manager-volume';
 
 function storedVolume(): number {
@@ -77,8 +70,6 @@ function storedVolume(): number {
 }
 const VOLUME_REPORT_GRACE_MS = 3000;
 
-// How close to the end counts as having reached it, given the speaker is asked
-// where it is once a second over those last seconds.
 const SPEAKER_END_TOLERANCE = 3;
 
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
@@ -98,13 +89,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const currentTrackIdRef = useRef<string | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
   const isPlayingRef = useRef(false);
-  // Taken over at most once, and never again after this tab has chosen for
-  // itself: asking to play here would otherwise hand the speaker straight back.
   const deviceDecidedRef = useRef(false);
   const positionRef = useRef(0);
-  // Where the speaker had got to while it was still playing. A speaker that
-  // reaches the end of a track reports itself stopped at nought, so its own
-  // final position says nothing about whether it finished or was paused.
   const speakerReachedRef = useRef(0);
   const seekOnLoadRef = useRef<(() => void) | null>(null);
   const endedHandledForTrackIdRef = useRef<string | null>(null);
@@ -114,16 +100,9 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const listenedTimeRef = useRef(0);
   const lastTimeUpdateRef = useRef(0);
   const playRequestRef = useRef(0);
-  // Speaker commands from this tab leave one at a time. Two of them in flight
-  // race at the speaker, and the loser decides: a stop issued while a play is
-  // still on its way can land first, and the speaker starts anyway, in the room
-  // the listener has just left. Ordering between tabs is the server's to give,
-  // per speaker; this is the half a single listener can create.
   const speakerQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const seekRequestRef = useRef(0);
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
-  // The speaker as the server last saw it. It plays on its own, so what it
-  // reports wins over anything this tab believes.
   const devices = useSyncExternalStore(subscribeDevices, getDevices);
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
@@ -152,16 +131,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     endedHandledForTrackIdRef.current = null;
   }, []);
 
-  // Retires whatever this tab is still waiting on from a speaker. Picking a
-  // device, asking for a track, or losing the device does it: from then on, the
-  // answers to the commands already in flight concern a session nobody is in.
   const retireSpeakerWork = useCallback(() => ++playRequestRef.current, []);
 
-  // Picking the track up here, on the tick after the device change rather than
-  // during it: playTrack sends to whichever device it was built against, so it
-  // has to be built after the switch has landed. That tick is also long enough
-  // for the listener to ask for something else, and a resume that fires anyway
-  // would start the track they left behind.
   const resumeHere = useCallback((generation: number, track: Track, at: number) => {
     setTimeout(() => {
       if (generation === playRequestRef.current) {
@@ -170,18 +141,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }, 0);
   }, []);
 
-  // Everything this tab asks of a speaker goes through here, because these
-  // commands all need two things and no caller should have to remember either.
-  //
-  // They leave one at a time. Two in flight race at the speaker and the loser
-  // decides: a stop issued during a handover could land before the play it was
-  // meant to undo, and the speaker would start in the room just left.
-  //
-  // And their answer is dropped once the listener has moved on. A command that
-  // waits its turn answers late, for a device, a track or a position that may no
-  // longer be the one on screen. That is why `done` and `failed` are handed in
-  // rather than written after an await: there is no spelling of this that
-  // forgets the check.
   const speakerOp = useCallback(async <T,>(run: () => Promise<T>, handlers: { done?: (value: T) => void; failed?: (error: unknown) => void } = {}) => {
     const playAt = playRequestRef.current;
     const seekAt = seekRequestRef.current;
@@ -204,35 +163,18 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const playTrack = useCallback(
     async (track: Track, startAt = 0) => {
-      // Asking for a track is itself a decision about where it plays: whatever
-      // is selected now, including this tab, is the target. Without this the
-      // adoption below could still fire in the gap before the audio starts and
-      // hand the session to a speaker the listener did not pick.
       deviceDecidedRef.current = true;
-      // Which request this is. Starting a track waits on a stream token and on
-      // the speaker, and a listener skipping through a queue outruns both: the
-      // older call would come back afterwards and set the source, or report a
-      // failure, for a track that is no longer the one playing.
       const request = retireSpeakerWork();
       endedHandledForTrackIdRef.current = null;
       playCompletedForTrackIdRef.current = null;
       listenedTimeRef.current = 0;
       lastTimeUpdateRef.current = 0;
 
-      // Insert play record immediately (completed: false) for history
-      // Guard against double calls (React strict mode / setState double-invoke)
       const userId = userIdRef.current;
       const now = Date.now();
-      // The same track starting twice within a second is one play: StrictMode
-      // double-invokes this, and so does an impatient second click. What is
-      // being guarded against is tracked on its own rather than read back out
-      // of the record's key.
       const last = lastPlayRef.current;
       const isDuplicate = last?.trackId === track.id && now - last.at < 1000;
       if (userId && !isDuplicate) {
-        // A PocketBase id is fifteen characters and anything longer is refused,
-        // which rolled the optimistic row back with only a console error to show
-        // for it. The collection mints ids the server will accept.
         const playId = trackPlayCollection.utils.newId();
         currentPlayIdRef.current = playId;
         lastPlayRef.current = { trackId: track.id, at: now };
@@ -248,9 +190,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       if (activeDevice && isNetworkDevice(activeDevice)) {
         setIsLoading(true);
-        // The position travels with the play request: asking separately meant a
-        // seek the speaker refused reported the whole playback as failed, where
-        // the server treats it as a speaker that simply started at nought.
         await speakerOp(() => deviceClient.play(activeDevice.id, track.id, Math.round(startAt)), {
           done: () => setIsLoading(false),
           failed: (error) => {
@@ -290,9 +229,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         return;
       }
       const audio = audioRef.current;
-      // The listener waits for metadata that may never come: a second playTrack
-      // replacing the source before it fires would otherwise leave it armed, and
-      // the next track would start at the previous one's offset.
       if (seekOnLoadRef.current) {
         audio.removeEventListener('loadedmetadata', seekOnLoadRef.current);
         seekOnLoadRef.current = null;
@@ -314,9 +250,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         }
 
         console.error('Playback failed:', error);
-        // The promise outlives the request that made it, and a track replaced
-        // before it settles fails by definition. Reporting that would put the
-        // track now playing on screen as stopped.
         if (request !== playRequestRef.current) {
           return;
         }
@@ -332,7 +265,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const playTrackRef = useRef(playTrack);
   playTrackRef.current = playTrack;
 
-  // Sync volume to audio element
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = playerState.localVolume;
@@ -345,7 +277,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [playerState.localVolume]);
 
-  // Initialize audio element, intentionally runs once, initial volume read at mount only
   // biome-ignore lint/correctness/useExhaustiveDependencies: audio element must only be created once
   useEffect(() => {
     audioRef.current = new Audio();
@@ -362,7 +293,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
           currentTime,
         }));
 
-        // Accumulate actual listened time (only small forward deltas from normal playback)
         const delta = currentTime - lastTimeUpdateRef.current;
         if (delta > 0 && delta < 2) {
           listenedTimeRef.current += delta;
@@ -373,7 +303,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         const trackId = currentTrackIdRef.current;
         const playId = currentPlayIdRef.current;
         if (trackId && playId && trackId !== playCompletedForTrackIdRef.current && audio.duration > 0 && listenedTimeRef.current >= audio.duration * 0.9) {
-          // The tmp- key may have been replaced by a real server ID after sync
           const play = trackPlaysRef.current.find((p) => p.id === playId) ?? trackPlaysRef.current.find((p) => p.track === trackId && p.user === userIdRef.current && !p.completed);
           if (play) {
             trackPlayCollection.update(play.id, (draft) => {
@@ -490,10 +419,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const pause = useCallback(async () => {
     if (activeDevice && isNetworkDevice(activeDevice)) {
-      // Recorded before the command goes out, not after it comes back. The
-      // command waits its turn behind the others, and a listener who pauses and
-      // switches device in that gap would otherwise be resumed here on the
-      // strength of a transport state they had already changed.
       setPlayerState((prev) => ({ ...prev, isPlaying: false }));
       await speakerOp(() => deviceClient.pause(activeDevice.id), {
         failed: (error) => {
@@ -523,8 +448,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       await speakerOp(() => deviceClient.play(activeDevice.id), {
         done: playing,
-        // A speaker with nothing loaded has nothing to resume: hand it the
-        // current track rather than reporting a failure the user cannot act on.
         failed: (error) => {
           const track = currentTrackRef.current;
           if (!track) {
@@ -563,9 +486,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [playerState.isPlaying, pause, play]);
 
-  // A speaker is handed one track at a time and holds no queue of its own, so
-  // moving through the queue is the same work wherever the sound comes out:
-  // pick the next track here, and let playTrack send it where it belongs.
   const playNext = useCallback(async () => {
     if (playerState.shuffle && playerState.queue.length > 1) {
       const otherTracks = playerState.queue.filter((t) => t.id !== playerState.currentTrack?.id);
@@ -618,13 +538,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   const seek = useCallback(
     async (time: number) => {
       if (activeDevice && isNetworkDevice(activeDevice)) {
-        // A poll in flight when the seek lands answers the position before it,
-        // which drags the bar back to where the listener just left. Said before
-        // the command rather than after it, for the same reason as pause: the
-        // handover reads this position to decide where to pick the track up.
-        // Bumped before the command is queued, so a newer seek retires this one
-        // the way picking a device retires a play: what it said is taken back
-        // only while it is still the last thing said.
         seekRequestRef.current++;
         const settledAt = seekedAtRef.current;
         const reached = speakerReachedRef.current;
@@ -656,14 +569,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
   const setVolume = useCallback(
     (volume: number) => {
-      // A device's level belongs to the device: told, not recorded here, and
-      // read back from what it reports.
-      //
-      // Told once, though. A slider emits a change per pixel and each one is a
-      // round trip over the network, so a drag across the bar used to queue
-      // dozens of them and the level crawled after the hand. Only where the drag
-      // settles is sent, and until the device answers the slider follows the
-      // hand rather than the round trip.
       if (activeDevice && isNetworkDevice(activeDevice)) {
         const target = activeDevice.id;
         const request = ++volumeRequestRef.current;
@@ -673,16 +578,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         }
 
         volumeCommandRef.current = setTimeout(() => {
-          // One at a time, and only among themselves. Two settled levels in
-          // flight at once race at the device and the loser decides, so a drag
-          // back down could be overtaken by the drag up before it. They do not
-          // join the transport queue: a level waiting behind a play that takes
-          // two seconds is the lag this was written to remove.
           volumeQueueRef.current = volumeQueueRef.current
             .then(() => {
-              // The wait is over, but the turn in the queue is not this one's
-              // yet: by the time it comes, the listener may have moved to
-              // another device, and the level would land on the one they left.
               if (request !== volumeRequestRef.current) {
                 return;
               }
@@ -691,9 +588,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
             })
             .catch((error) => {
               console.error('Setting the device volume failed:', error);
-              // Only what this request said gets taken back: by the time it
-              // fails, the listener may have asked for another level, and
-              // clearing theirs would snap the slider away from their hand.
               if (request !== volumeRequestRef.current) {
                 return;
               }
@@ -716,9 +610,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     [activeDevice],
   );
 
-  // The level asked for stands until the device reports it back, which is a poll
-  // away, or until it has had long enough that something went wrong and what the
-  // device says is the better answer.
   const reportedVolume = speaker?.volume;
   useEffect(() => {
     if (pendingVolume === null || reportedVolume === undefined) {
@@ -734,10 +625,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     return () => clearTimeout(timer);
   }, [reportedVolume, pendingVolume]);
 
-  // A pending level belongs to the device it was meant for, and to a player
-  // that is still there: a level waiting out its delay when the provider goes
-  // would otherwise be sent to the device afterwards, with nobody left to show
-  // it or to take it back if it fails.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the device is what invalidates it, not the object
   useEffect(() => {
     setPendingVolume(null);
@@ -747,8 +634,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
 
     return () => {
-      // Past the delay it is out of the timer's reach and waiting its turn in
-      // the queue, where the only way to stop it is to make it stale.
       volumeRequestRef.current++;
       if (volumeCommandRef.current) {
         clearTimeout(volumeCommandRef.current);
@@ -757,20 +642,12 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     };
   }, [activeDevice?.id]);
 
-  // Taking playback back from wherever it is, a speaker or another tab. The two
-  // halves have to happen in this order: this browser becomes the target first,
-  // and only then does the track start. playTrack sends to whichever device it
-  // was built against, so starting first sends the track straight back to the
-  // device it was being taken from, which is what a listener sees as the button
-  // doing nothing the first time and working the second.
   const playHere = useCallback(
     async (track: Track, at: number, from: Device) => {
       deviceDecidedRef.current = true;
       const generation = retireSpeakerWork();
       setActiveDevice(null);
 
-      // A device that refuses to stop is still left behind: losing the track as
-      // well as the room would be the worse of the two.
       const resume = () => resumeHere(generation, track, at);
       await speakerOp(() => deviceClient.stop(from.id), {
         done: resume,
@@ -846,13 +723,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
       const wasPlaying = playerState.isPlaying;
       const previous = activeDevice;
       deviceDecidedRef.current = true;
-      // Picking a device retires whatever the last one was still waiting for. A
-      // play still holding a stream token would otherwise come back and start
-      // the browser on the track that was just handed to a speaker, and the two
-      // would play it in two rooms. The spinner it put up goes with it: the
-      // request it belonged to now returns at the guard without reaching the
-      // line that would have taken it down, and every command still queued for
-      // the speaker answers into the void from here on.
       const generation = retireSpeakerWork();
       setIsLoading(false);
       setActiveDevice(device);
@@ -863,18 +733,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
 
       const track = currentTrackRef.current;
 
-      // Coming back from a speaker is the same move in reverse, and it has two
-      // halves: silence the speaker, and pick the track up here where it left
-      // off. Doing only the first leaves it playing on in the other room.
-      // Where playback actually is. positionRef mirrors the local player's clock,
-      // which stands still for as long as a speaker is the one playing, so when a
-      // speaker was playing its own reported position is the only one that moved.
       const playbackPosition = previous && isNetworkDevice(previous) ? speakerReachedRef.current : positionRef.current;
 
       if (!device && previous && isNetworkDevice(previous) && wasPlaying && track) {
         const resumeAt = playbackPosition;
-        // A speaker that refuses to stop is still left behind: losing the track
-        // as well as the room would be the worse of the two.
         const resume = () => resumeHere(generation, track, resumeAt);
         await speakerOp(() => deviceClient.stop(previous.id), {
           done: resume,
@@ -887,12 +749,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         return;
       }
 
-      // Choosing a speaker moves the playback there rather than ending it: the
-      // track carries on from where it was, which is what picking a device means.
       if (device && isNetworkDevice(device) && wasPlaying && track) {
-        // The server tells the chosen speaker to play; nothing tells the one
-        // being left to stop, and two speakers playing the same track in two
-        // rooms is not what picking a device means.
         if (previous && isNetworkDevice(previous) && previous.id !== device.id) {
           await speakerOp(() => deviceClient.stop(previous.id), {
             failed: (error) => console.error('Stopping the device failed:', error),
@@ -914,7 +771,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     [playerState.isPlaying, activeDevice, resumeHere, retireSpeakerWork, speakerOp],
   );
 
-  // Media Session API for background playback
   useEffect(() => {
     if (!playerState.currentTrack) {
       return;
@@ -989,7 +845,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     };
   }, [isNativePlatform, playerState.currentTrack, albumsById, artistsById, play, pause, playNext, playPrevious, seek]);
 
-  // Update Media Session playback state
   useEffect(() => {
     if (isNativePlatform) {
       nativeAudioService.setPlaybackState(playerState.isPlaying ? 'playing' : 'paused');
@@ -1003,7 +858,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     navigator.mediaSession.playbackState = playerState.isPlaying ? 'playing' : 'paused';
   }, [isNativePlatform, playerState.isPlaying]);
 
-  // Update position state
   useEffect(() => {
     if (!playerState.currentTrack) {
       return;
@@ -1014,21 +868,11 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [isNativePlatform, playerState.currentTrack, playerState.currentTime, playerState.isPlaying]);
 
-  // A speaker that is playing owns the session: a tab opening or reloading
-  // mid-playback takes it over as its own target, so its transport buttons move
-  // the queue held here rather than asking the speaker to find a next track it
-  // was never given.
   useEffect(() => {
     if (deviceDecidedRef.current || activeDevice || isPlayingRef.current) {
       return;
     }
 
-    // Playing, not merely known: a speaker that was paused from its own app
-    // still answers with its last track, and adopting it there left this tab
-    // sending every later play to a room nobody was listening in.
-    // Usable as well as playing: a device nobody has approved is discovered all
-    // the same, and adopting one would make it this tab's target while the
-    // server refuses every command sent to it.
     const speaker = devices.find((d) => isNetworkDevice(d) && d.playing && d.usable);
     if (!speaker) {
       return;
@@ -1038,27 +882,17 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     setActiveDevice(speaker);
   }, [devices, activeDevice]);
 
-  // A device that is no longer in the list cannot be played on, and keeping it
-  // selected sends every later play into silence while the transport keeps
-  // saying it worked. An empty list is a stream reconnecting, not a speaker
-  // going away, so it is left alone.
   useEffect(() => {
     if (!activeDevice || devices.length === 0) {
       return;
     }
 
     if (!devices.some((device) => device.id === activeDevice.id)) {
-      // Losing the device retires what was asked of it, the same as picking
-      // another one would: a command still queued for a speaker that has gone
-      // answers for a session nobody is in.
       retireSpeakerWork();
       setActiveDevice(null);
     }
   }, [devices, activeDevice, retireSpeakerWork]);
 
-  // The speaker knows which track it is playing; a tab that has just taken it
-  // over does not, and without it there is nothing to show and nowhere in the
-  // queue to move on from.
   const speakerTrackId = speaker?.trackId ?? '';
   const { data: speakerTrackRows = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }).where(({ tracks }) => eq(tracks.id, speakerTrackId)) });
   useEffect(() => {
@@ -1070,16 +904,10 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     setPlayerState((prev) => (prev.currentTrack ? prev : { ...prev, currentTrack: track }));
   }, [speakerTrackRows]);
 
-  // Not while a seek is settling: the speaker keeps answering with the position
-  // from before it for a poll or two, and taking that back would undo what the
-  // listener just asked for, on screen and in a handover.
   if (speaker?.playing && Date.now() - seekedAtRef.current >= SEEK_SETTLE_MS) {
     speakerReachedRef.current = speakerPosition;
   }
 
-  // A speaker reports over the same stream as every other device, polled once by
-  // the server rather than once per second by each tab. Its transport state is
-  // authoritative; the position between two reports is counted locally.
   useEffect(() => {
     if (!speaker) {
       return;
@@ -1088,9 +916,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     setPlayerState((prev) => (prev.isPlaying === speaker.playing ? prev : { ...prev, isPlaying: speaker.playing }));
   }, [speaker]);
 
-  // A speaker that stops where the track ran out has finished it; stopping
-  // anywhere else is a pause. Only the queue lives here, so only this side can
-  // move it on.
   useEffect(() => {
     if (!speaker || speaker.playing || !currentTrackRef.current) {
       return;
@@ -1100,9 +925,6 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     if (duration > 0 && speakerReachedRef.current >= duration - SPEAKER_END_TOLERANCE) {
       const finished = currentTrackRef.current;
       speakerReachedRef.current = 0;
-      // The local player rewinds its own element for repeat-one; a speaker has
-      // to be told to play the same track again, or the setting would only work
-      // in the room the browser is in.
       if (playerState.repeatMode === 'one') {
         playTrackRef.current(finished, 0);
         return;
@@ -1112,14 +934,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     }
   }, [speaker, playNext, playerState.repeatMode]);
 
-  // A seek is shown where it was asked for until the speaker confirms it: the
-  // server nudges its watch on every command, but the answer still has to come
-  // back from the speaker.
   const speakerCurrentTime = speaker && Date.now() - seekedAtRef.current >= SEEK_SETTLE_MS ? speakerPosition : playerState.currentTime;
 
-  // Whose level the controls are showing and setting. The speaker's while one is
-  // the active device, this browser's otherwise, and neither ever written over
-  // the other.
   const volume = pendingVolume ?? (speaker ? speaker.volume / 100 : playerState.localVolume);
 
   const value: MusicPlayerContextValue = {

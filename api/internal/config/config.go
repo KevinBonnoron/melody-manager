@@ -1,6 +1,4 @@
-// Package config holds the operator settings, in a JSON file rather than in the
-// database: it has to stay readable and editable when the server will not start,
-// and none of it justifies a reactive collection.
+// Package config holds the operator settings, in a JSON file rather than in the database.
 package config
 
 import (
@@ -10,27 +8,18 @@ import (
 	"sync"
 )
 
-// Config is the whole operator-facing configuration. Anything a deployment
-// needs to set lives here, including the one application setting an
-// unauthenticated screen has to read.
+// Config is the whole operator-facing configuration.
 type Config struct {
-	// PublicURL is the address of this server as reachable from outside the
-	// browser: speakers fetching a stream, share links, future integrations.
-	// ListenAddr is the address the server binds to. Loopback keeps it to this
-	// machine; 0.0.0.0 lets the network in, which anything fetching from the
-	// server, a speaker, a phone, needs.
-	ListenAddr    string `json:"listenAddr"`
-	PublicURL     string `json:"publicUrl"`
-	CacheDir      string `json:"cacheDir"`
-	CacheMaxFiles int    `json:"cacheMaxFiles"`
-	CacheMaxSize  int64  `json:"cacheMaxSize"`
-	// Absent means closed: the zero value is the safe one, so a hand-written or
-	// truncated file never opens registration by accident.
-	RegistrationAllowed bool `json:"registrationAllowed"`
+	ListenAddr          string `json:"listenAddr"`
+	PublicURL           string `json:"publicUrl"`
+	CacheDir            string `json:"cacheDir"`
+	CacheMaxFiles       int    `json:"cacheMaxFiles"`
+	CacheMaxSize        int64  `json:"cacheMaxSize"`
+	RegistrationAllowed bool   `json:"registrationAllowed"`
 }
 
-// Store reads and writes the configuration file, and hands out copies so no
-// caller can mutate the shared value.
+// Store reads and writes the configuration file, and hands out copies so no caller can mutate
+// the shared value.
 type Store struct {
 	path string
 
@@ -38,8 +27,7 @@ type Store struct {
 	current Config
 }
 
-// DefaultPath is where the file lives unless CONFIG_FILE says otherwise. The
-// container mounts /config; a checkout gets a local directory.
+// DefaultPath is where the file lives unless CONFIG_FILE says otherwise.
 func DefaultPath() string {
 	if path := os.Getenv("CONFIG_FILE"); path != "" {
 		return path
@@ -47,9 +35,7 @@ func DefaultPath() string {
 	return filepath.Join("config", "config.json")
 }
 
-// Load opens the configuration file, creating it with the defaults when it is
-// missing. The file is the only source of truth: nothing is read from the
-// environment except where the file itself lives.
+// Load opens the configuration file, creating it with the defaults when it is missing.
 func Load(path string) (*Store, bool, error) {
 	store := &Store{path: path}
 
@@ -71,16 +57,13 @@ func Load(path string) (*Store, bool, error) {
 	return store, true, store.write(store.current)
 }
 
-// Fallback is the store used when the file cannot be read: the server still
-// starts, on defaults, and says so. It keeps the path it failed to read, so an
-// administrator correcting the configuration from the admin screen writes to
-// the file the server will read next time rather than nowhere.
+// Fallback is the store used when the file cannot be read: the server still starts, on
+// defaults, and says so.
 func Fallback(path string) *Store {
 	return &Store{path: path, current: defaults()}
 }
 
-// Reload re-reads the file. Migrations run after the store is first loaded and
-// may write to it, so the serving process has to pick their changes up.
+// Reload re-reads the file.
 func (s *Store) Reload() error {
 	if s.path == "" {
 		return nil
@@ -124,8 +107,6 @@ func (s *Store) Save(next Config) error {
 	return nil
 }
 
-// write lands the file in one step: a half-written configuration is worse than
-// an old one, and this file is what a stuck server is recovered with.
 func (s *Store) write(cfg Config) error {
 	if s.path == "" {
 		return nil
@@ -159,9 +140,6 @@ func (s *Store) write(cfg Config) error {
 	return os.Rename(tmp.Name(), s.path)
 }
 
-// heal replaces values a file can hold but nothing can use. An empty string is
-// what a hand-edited or half-written file leaves behind, and taking it at face
-// value silently changes where the server listens or what address it hands out.
 func heal(cfg Config) Config {
 	fallback := defaults()
 	if cfg.ListenAddr == "" {

@@ -7,9 +7,6 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
-// A reply the way a Chromecast actually sends one: the PTR in the answer
-// section, everything that says where and what it is in the additional section,
-// and a name only the TXT record carries.
 func replyPacket(t *testing.T) []byte {
 	t.Helper()
 
@@ -72,8 +69,7 @@ func TestReadAssemblesADeviceFromItsRecords(t *testing.T) {
 	}
 }
 
-// Devices answer across several packets, and the records arrive in no
-// particular order. A device is only listed once it has said where it is.
+// Devices answer across several packets, and the records arrive in no particular order.
 func TestReadWaitsForAnAddress(t *testing.T) {
 	instances := map[string]*instance{}
 	hosts := map[string]string{}
@@ -123,9 +119,7 @@ func TestMulticastGroupIsTheMDNSOne(t *testing.T) {
 	}
 }
 
-// DNS names are case insensitive and a device answers in whatever case it
-// likes. Compared as they arrive, a PTR naming _GoogleCast and an SRV naming
-// _googlecast are two different services, and the device assembles into nothing.
+// DNS names are case insensitive and a device answers in whatever case it likes.
 func TestCaseDoesNotSplitADeviceInTwo(t *testing.T) {
 	name := func(s string) dnsmessage.Name {
 		n, err := dnsmessage.NewName(s)

@@ -10,8 +10,6 @@ export function TaskNotifications() {
   const { t } = useTranslation();
   const { tasks, activeTasks, hasActiveTasks, clearCompleted } = useTasks();
   const recentTasks = tasks.slice(0, 10);
-  // Radix hands focus back to the trigger on close, which leaves a focus ring on
-  // a button the mouse just dismissed. Keyboard dismissals still get it back.
   const closedByKeyboard = useRef(false);
   const hasCompletedTasks = tasks.length > activeTasks.length;
   return (

@@ -49,12 +49,6 @@ type playlistMeta struct {
 	Limit    int    `json:"limit"`
 }
 
-// RefreshSmartPlaylists auto-creates the default smart playlists for a user
-// (when play/like thresholds are met) and refreshes stale ones. Safe to call in
-// a goroutine on every play/like.
-// refreshLocks serialises refreshes per user. The play/like hook spawns one
-// goroutine per event, and two concurrent runs would each miss the other's
-// freshly created playlist and create a duplicate.
 var refreshLocks sync.Map
 
 func RefreshSmartPlaylists(app core.App, userID string) {

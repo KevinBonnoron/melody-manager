@@ -12,8 +12,6 @@ import (
 
 const userAgent = "MelodyManager/0.0.1 (https://github.com/melody-manager)"
 
-// MusicBrainz asks for one request per second per client; going faster earns a
-// 503 for the whole application, so every call funnels through this gate.
 var (
 	rateMu   sync.Mutex
 	rateLast time.Time
@@ -68,8 +66,6 @@ func releaseID(ctx context.Context, album, artist string) (string, error) {
 	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
 		return "", err
 	}
-	// A weak match returns an unrelated release rather than nothing, which
-	// would staple a stranger's artwork onto the album.
 	if len(data.Releases) == 0 || data.Releases[0].Score < 90 {
 		return "", nil
 	}

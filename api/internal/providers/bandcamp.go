@@ -8,13 +8,12 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
-// Bandcamp resolves albums/tracks via yt-dlp. No search API.
+// Bandcamp resolves albums/tracks via yt-dlp.
 type Bandcamp struct{}
 
 func (Bandcamp) ID() string { return "bandcamp" }
 
 func (Bandcamp) ResolveTracks(ctx context.Context, url string, _ Config) ([]domain.ResolvedTrack, error) {
-	// Album/artist pages expose multiple entries; single tracks one.
 	if entries, err := ytdlp.ExtractPlaylistTracks(ctx, url, ""); err == nil && len(entries) > 1 {
 		out := make([]domain.ResolvedTrack, 0, len(entries))
 		for _, e := range entries {

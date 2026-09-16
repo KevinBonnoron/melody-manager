@@ -25,9 +25,7 @@ func TestAcceptsWhatAChromecastPlays(t *testing.T) {
 	}
 }
 
-// One number for every model, and it is the one every model takes. High
-// resolution is the Chromecast Audio's alone, and a video dongle handed a 96 kHz
-// file stops partway through without saying why.
+// One number for every model, and it is the one every model takes.
 func TestDecodesWhatEveryModelTakes(t *testing.T) {
 	d := &Devices{}
 	ok := [][2]int{{44100, 16}, {48000, 24}, {44100, 0}}
@@ -45,10 +43,8 @@ func TestDecodesWhatEveryModelTakes(t *testing.T) {
 	}
 }
 
-// The rest of the server speaks UPnP's words because Sonos got here first, so a
-// Chromecast's own vocabulary has to be translated rather than passed through.
-// pollSpeaker reads PAUSED_PLAYBACK and STOPPED as not playing, and adopt reads
-// PLAYING and TRANSITIONING as playing.
+// The rest of the server speaks UPnP's words because Sonos got here first, so a Chromecast's
+// own vocabulary has to be translated rather than passed through.
 func TestTransportWordsMatchWhatTheServiceReads(t *testing.T) {
 	for cast, want := range map[string]string{
 		"PLAYING":   "PLAYING",
@@ -63,9 +59,8 @@ func TestTransportWordsMatchWhatTheServiceReads(t *testing.T) {
 	}
 }
 
-// A real device gives its id two ways: mDNS hands it over as bare hex, the setup
-// endpoint as a hyphenated UUID of the same bytes. Discovered and typed in by
-// hand have to name the same device.
+// A real device gives its id two ways: mDNS hands it over as bare hex, the setup endpoint as a
+// hyphenated UUID of the same bytes.
 func TestTheTwoWaysToLearnAnIDAgree(t *testing.T) {
 	fromMDNS := "c3cc7e6d14454a172c3b9a2970bc0963"
 	fromSetup := "c3cc7e6d-1445-4a17-2c3b-9a2970bc0963"

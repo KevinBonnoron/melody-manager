@@ -5,17 +5,11 @@ import type { RatingValue } from '@/shared';
 
 interface Props {
   value?: RatingValue;
-  // False while the ratings are still loading: the button holds still rather
-  // than saying "not added" and flipping a second later.
   ready?: boolean;
   onLike: () => void;
   onUndislike: () => void;
 }
 
-// The same gesture as the heart on a track row, for an album, an artist or a
-// playlist: they all write the same rating, so they say the same thing. All
-// three states show here, a disliked album included, which otherwise only
-// admitted it from inside the menu.
 export function LibraryButton({ value, ready = true, onLike, onUndislike }: Props) {
   const { t } = useTranslation();
 
@@ -28,9 +22,6 @@ export function LibraryButton({ value, ready = true, onLike, onUndislike }: Prop
     );
   }
 
-  // A button showing a state undoes that state. Jumping straight from ignored
-  // to liked skips the neutral one, which is where someone taking back an
-  // "ignore" means to land.
   if (value === 'dislike') {
     return (
       <Button variant="outline" size="icon" className="group/library h-9 w-9 border-destructive/40 hover:border-input sm:w-auto sm:px-3" onClick={onUndislike} aria-label={t('Library.unignore')}>
@@ -53,8 +44,6 @@ export function LibraryButton({ value, ready = true, onLike, onUndislike }: Prop
     );
   }
 
-  // The active state keeps its border and tells on hover what pressing again
-  // undoes, with both labels sharing one grid cell so nothing beside it moves.
   return (
     <Button variant="outline" size="icon" className="group/library h-9 w-9 text-primary hover:border-destructive hover:text-destructive sm:w-auto sm:px-3" onClick={onLike} aria-label={t('Library.remove')}>
       <Heart className="h-4 w-4 fill-current group-hover/library:hidden sm:mr-2" />

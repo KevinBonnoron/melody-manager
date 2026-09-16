@@ -27,14 +27,9 @@ import { cn, formatDuration, getProviderColor } from '@/lib/utils';
 import type { Album, Artist, SearchResult, SearchType, Track } from '@/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
 
-// A display filter, not a mode: 'all' shows the library and every provider at
-// once, the others narrow that same result set.
 type Scope = string;
 const ALL: Scope = 'all';
 
-// Artists are matched through the index rather than through a copy carried on
-// the row: fuse reads each key with getFn, so the names it searches are the
-// current ones and not a snapshot taken when the row was fetched.
 const trackFuseOptions = (artistsById: Map<string, Artist>): IFuseOptions<Track> => ({
   keys: [
     { name: 'title', weight: 2 },
@@ -56,10 +51,6 @@ const artistFuseOptions: IFuseOptions<Artist> = {
   threshold: 0.3,
 };
 
-// Every source the server can import from, not only the ones it can also search:
-// pasting a Bandcamp link used to fall through to an external search that has no
-// extractor to answer it, so the one thing the link was good for was never
-// offered.
 const IMPORT_URL_PATTERNS: [RegExp, string][] = [
   [/^https?:\/\/((www\.|m\.|music\.)?youtube\.com|youtu\.be)(\/|$)/i, 'youtube'],
   [/^https?:\/\/(www\.)?soundcloud\.com(\/|$)/i, 'soundcloud'],
@@ -76,8 +67,6 @@ const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 const INDEX_SETTLE_MS = 400;
 
 interface Props {
-  // The overlay is a floating panel with its own chrome; the page sits in the
-  // flow. Everything else, content, state, behaviour, is shared.
   variant?: 'overlay' | 'page';
   initialQuery?: string;
   onNavigate?: () => void;
@@ -88,40 +77,24 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const navigate = useNavigate();
   const { playTrackWithContext } = useMusicPlayer();
   const [query, setQuery] = useState(initialQuery);
-  // The router keeps this component mounted across a change of `q`, so without
-  // this the address bar and the results disagree after a search opened from
-  // somewhere else.
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
   const [scope, setScope] = useState<Scope>(ALL);
   const { history, addEntry } = useSearchHistory();
 
-  // Library data for local search
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
   const { data: artists = [] } = useArtists();
   const { trackProviders } = useActiveSources();
   const { manifests } = usePlugins();
   const capability = useCapability();
-  // A connection unlocks *your* private content; searching a public catalogue
-  // needs none, SoundCloud can be searched and imported from without one. What
-  // does disqualify a source is missing the server config its manifest declares
-  // search requires, like Spotify's app credentials.
-  // Every source that can take a URL, whether or not it can be searched:
-  // Bandcamp imports fine but has no search extractor, so it would otherwise be
-  // invisible here despite being connected and usable.
   const importableNames = useMemo(() => trackProviders.filter((p) => p.type !== 'local' && manifests.find((m) => m.id === p.type)?.features.includes('import')).map((p) => manifests.find((m) => m.id === p.type)?.name ?? p.type), [trackProviders, manifests]);
 
   const searchableProviders = useMemo(() => trackProviders.filter((p) => p.type !== 'local' && manifests.find((m) => m.id === p.type)?.features.includes('search') && capability(p.type, 'search').available), [trackProviders, manifests, capability]);
 
-  // The set, not its size: one provider replacing another leaves the count equal
-  // and would keep the results the old one returned.
   const searchableTypes = useMemo(() => searchableProviders.map((p) => p.type).join(','), [searchableProviders]);
 
-  // A scope names a provider, and a provider can stop being searchable while the
-  // panel is open. Left alone, the chips would show nothing selected and every
-  // list would be empty, with no way to tell what was filtering them.
   useEffect(() => {
     if (scope !== ALL && scope !== 'library' && !searchableProviders.some((p) => p.type === scope)) {
       setScope(ALL);
@@ -129,9 +102,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   }, [scope, searchableProviders]);
 
   const artistsById = useArtistsById();
-  // Indexing the whole library is the most expensive thing this screen does,
-  // and every record an import writes arrives as its own realtime event. Held
-  // still for a moment, the burst costs one rebuild instead of one per record.
   const indexed = useDebouncedValue(
     useMemo(() => ({ tracks, albums, artists, artistsById }), [tracks, albums, artists, artistsById]),
     INDEX_SETTLE_MS,
@@ -140,7 +110,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const albumFuse = useMemo(() => new Fuse(indexed.albums, albumFuseOptions(indexed.artistsById)), [indexed]);
   const artistFuse = useMemo(() => new Fuse(indexed.artists, artistFuseOptions), [indexed]);
 
-  // External search state
   const [externalResults, setExternalResults] = useState<SearchResult[]>([]);
   const [isSearchingExternal, setIsSearchingExternal] = useState(false);
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
@@ -150,7 +119,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const urlMatch = useMemo(() => detectUrlSource(trimmedQuery), [trimmedQuery]);
   useRecordSearch(query, !urlMatch);
 
-  // Library search results
   const libraryResults = useMemo(() => {
     if (!trimmedQuery || urlMatch || (scope !== ALL && scope !== 'library')) {
       return { tracks: [] as Track[], albums: [] as Album[], artists: [] as Artist[] };
@@ -165,10 +133,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
   const libraryCount = libraryResults.tracks.length + libraryResults.albums.length + libraryResults.artists.length;
 
-  // External search
   useEffect(() => {
-    // Four requests to providers that will all be skipped server-side is four
-    // requests to find out what is already known here.
     if (!trimmedQuery || scope === 'library' || urlMatch || searchableTypes === '') {
       setExternalResults([]);
       setIsSearchingExternal(false);
@@ -178,20 +143,15 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
     let cancelled = false;
     const controller = new AbortController();
     setIsSearchingExternal(true);
-    // A request that fails for any reason other than being cancelled would
-    // otherwise leave the previous query's results under the new query.
     setExternalResults([]);
 
     const timeoutId = setTimeout(async () => {
       try {
-        // Settled rather than all: the four requests are one per result type, and
-        // a type that fails should cost its own results, not everybody else's.
         const responses = await Promise.allSettled(SEARCH_TYPES.map((type) => searchClient.search(trimmedQuery, type, { signal: controller.signal })));
         if (!cancelled) {
           setExternalResults(responses.flatMap((r) => (r.status === 'fulfilled' ? r.value.results : [])));
         }
       } catch {
-        // Ignore abort errors
       } finally {
         if (!cancelled) {
           setIsSearchingExternal(false);
@@ -249,9 +209,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
     }
   };
 
-  // Adding is the one action that leaves the search where it is: the palette
-  // closes when it has taken you somewhere, and adding a track takes you
-  // nowhere. Doing it with the mouse already behaved this way.
   const handleSelect = (action: () => void, keepOpen = false) => {
     if (trimmedQuery) {
       addEntry(trimmedQuery);
@@ -268,22 +225,16 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const suggestedAlbums = useMemo(() => albums.slice(0, 4), [albums]);
   const visibleExternal = useMemo(() => (scope === ALL ? externalResults : externalResults.filter((r) => r.provider === scope)), [externalResults, scope]);
 
-  // Selection is tracked by key, not index: a new query drops the old key and
-  // the highlight falls back to the first row on its own.
   const items = useMemo<Array<{ key: string; run: () => void; keepOpen?: boolean }>>(
     () => [
       ...libraryResults.artists.map((artist) => ({ key: `artist-${artist.id}`, run: () => navigate({ to: '/artists/$artistId', params: { artistId: artist.id } }) })),
       ...libraryResults.albums.map((album) => ({ key: `album-${album.id}`, run: () => navigate({ to: '/albums/$albumId', params: { albumId: album.id } }) })),
       ...libraryResults.tracks.map((track) => ({ key: `track-${track.id}`, run: () => playTrackWithContext(track, libraryResults.tracks) })),
-      // External results are part of the list the arrows walk. Enter does what
-      // the row's own button does, which is to add it.
       ...visibleExternal.map((result) => ({ key: `external-${result.origin}`, run: () => handleAdd(result), keepOpen: true })),
     ],
     [libraryResults, visibleExternal, navigate, playTrackWithContext, handleAdd],
   );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  // The whole surface, not one of the two lists: arrow navigation runs through
-  // the library results and the external ones alike.
   const surfaceRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cursor = Math.max(
@@ -299,9 +250,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   }, [activeKey]);
 
   return (
-    // Arrows drive the selection wherever focus sits inside the search surface,
-    // not only in the input. Scoped to the container rather than the document:
-    // the page is not modal, and its own scrolling must keep working elsewhere.
     // biome-ignore lint/a11y/noStaticElementInteractions: keyboard-only container handler
     <div
       ref={surfaceRef}
@@ -314,9 +262,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
-          // Keep the caret, and the focus ring, in the field: leaving focus on
-          // a clicked chip made two indicators compete, one marking focus and
-          // the other the selection.
           inputRef.current?.focus();
           if (items.length > 0) {
             const next = e.key === 'ArrowDown' ? cursor + 1 : cursor - 1;
@@ -325,8 +270,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
           return;
         }
 
-        // A result row is a link, and Enter on a focused link is the link's own
-        // gesture: intercepting it here would navigate somewhere else entirely.
         const focusedTag = document.activeElement?.tagName;
         if (e.key === 'Enter' && items[cursor] && focusedTag !== 'BUTTON' && focusedTag !== 'A') {
           e.preventDefault();
@@ -334,13 +277,10 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         }
       }}
     >
-      {/* Search input */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-primary-border bg-card">
         <Search className="h-[18px] w-[18px] text-muted-foreground shrink-0" />
         <input
           ref={inputRef}
-          // 16px at the smallest width: iOS Safari zooms the viewport when a
-          // smaller input takes focus, and this one takes focus on arrival.
           className="flex-1 bg-transparent outline-none text-base sm:text-[15px] min-w-0 placeholder:text-muted-foreground"
           placeholder={t('SearchPage.placeholder')}
           value={query}
@@ -355,7 +295,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         )}
       </div>
 
-      {/* Scope tabs */}
       {!urlMatch && (
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
@@ -401,8 +340,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
             })}
           </div>
 
-          {/* The palette is for finding one thing quickly; the page is where a
-              search is worth spreading out. The query travels with it. */}
           {variant === 'overlay' && trimmedQuery && (
             <Link to="/search" search={{ q: trimmedQuery }} onClick={() => onNavigate?.()} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground">
               {t('GlobalSearch.openPage')}
@@ -412,7 +349,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         </div>
       )}
 
-      {/* URL detected, import card */}
       {urlMatch && (
         <div className="rounded-xl border border-primary-border bg-card p-4 space-y-3.5">
           <div className="flex items-center justify-between">
@@ -436,10 +372,8 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         </div>
       )}
 
-      {/* Empty state, no query */}
       {!trimmedQuery && !urlMatch && (
         <div className="space-y-6 pt-2">
-          {/* Recent searches */}
           {history.length > 0 && (
             <div className="space-y-2.5">
               <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.recentSearches')}</div>
@@ -454,7 +388,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
             </div>
           )}
 
-          {/* Suggestions */}
           {suggestedAlbums.length > 0 && (
             <div className="space-y-2.5">
               <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.suggestions')}</div>
@@ -480,7 +413,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
             </div>
           )}
 
-          {/* URL hint */}
           <div className="flex items-center gap-2 px-3 py-2 text-[11.5px] text-muted-foreground italic">
             <LinkIcon className="h-3.5 w-3.5 shrink-0" />
             {t('SearchPage.urlHint', { sources: importableNames.join(', ') })}
@@ -488,7 +420,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         </div>
       )}
 
-      {/* Library results */}
       {trimmedQuery && !urlMatch && (scope === ALL || scope === 'library') && (
         <div className="space-y-4">
           {libraryResults.artists.length > 0 && (
@@ -583,7 +514,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         </div>
       )}
 
-      {/* External results */}
       {trimmedQuery && !urlMatch && scope !== 'library' && (
         <div className="space-y-2">
           <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.externalResults')}</div>
@@ -596,9 +526,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
           {!isSearchingExternal && visibleExternal.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">{t('GlobalSearch.noResults')}</div>}
 
-          {/* Around 250px of a row is taken before the title starts: thumbnail,
-              provider, link and button. A column narrower than this leaves
-              nothing but an ellipsis, so it is better to have one fewer. */}
           <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(520px,1fr))]">
             {!isSearchingExternal &&
               visibleExternal.map((result) => {
@@ -621,8 +548,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                       </div>
                     </div>
                     <span className={`w-[76px] shrink-0 rounded border px-1.5 py-0.5 text-center text-[10px] ${getProviderColor(result.provider)}`}>{result.provider}</span>
-                    {/* The result names where it came from; being able to go and
-                        look before adding it is the point of a search. */}
                     <a
                       href={result.origin}
                       target="_blank"
@@ -634,8 +559,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
-                    {/* One width whether it invites or reports: an "Added" that
-                        takes less room than "Add" pulls every row out of line. */}
                     <Button size="sm" variant={isAdded ? 'ghost' : 'default'} className="h-8 w-[104px] shrink-0 px-2.5" disabled={isAdding || !!isAdded} onClick={() => handleAdd(result)}>
                       {isAdding ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

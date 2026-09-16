@@ -7,8 +7,6 @@ import type { Artist } from '@/shared';
 
 interface Props {
   artist: Artist;
-  // Restricts the count to a set of albums, so a source-scoped screen does not
-  // advertise albums that screen does not contain.
   albumIds?: Set<string> | null;
 }
 

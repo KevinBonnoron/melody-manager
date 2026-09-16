@@ -3,8 +3,6 @@ import { useMemo } from 'react';
 import { trackCollection } from '@/collections/track.collection';
 import type { Track } from '@/shared';
 
-// Albums and artists carry no source of their own, so a source is resolved
-// through the tracks that reference them. Null sets mean "every source".
 export function useSourceScope(source?: string) {
   const { data: tracks = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
 

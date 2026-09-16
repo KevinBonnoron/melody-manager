@@ -1,8 +1,6 @@
 import type { Device, DeviceCommand } from './device.type';
 import type { Task } from './task.type';
 
-// Everything the server pushes travels on one stream, so what it can carry is
-// declared once here rather than inferred from scattered subscribe() calls.
 export const SERVER_EVENTS = {
   /** This client's own device, once, when the stream opens. */
   registered: 'registered',

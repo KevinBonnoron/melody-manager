@@ -16,8 +16,6 @@ export function BottomNav({ onExpand }: { onExpand: () => void }) {
   const remote = useRemotePlayback();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
-  // The dock is the mobile player bar, so it drives whatever holds the
-  // playback, this client or another of the user's devices.
   const control = isRemote && remote ? { toggle: remote.togglePlayPause, next: remote.playNext, time: remote.currentTime } : { toggle: togglePlayPause, next: playNext, time: currentTime };
 
   const isActive = (href: string) => {
@@ -42,19 +40,12 @@ export function BottomNav({ onExpand }: { onExpand: () => void }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/[0.96] backdrop-blur-[24px] backdrop-saturate-[1.2] border-t border-primary-border shadow-[0_-8px_24px_rgba(0,0,0,0.3)] md:hidden">
-      {/* Mini-player strip */}
       {currentTrack && (
         <div className="border-b border-border/50">
-          {/* Above the strip, where a progress bar reads as belonging to what is
-              playing rather than to the tabs below. Its colours come from the
-              theme's classes: written as a gradient over hsl(var(--primary)) it
-              produced no colour at all, the palette being in oklch. */}
           <div className="h-[2px] w-full bg-muted">
             <div className={cn('h-full bg-primary', isPlaying && 'transition-[width] duration-1000 ease-linear')} style={{ width: `${progress}%` }} />
           </div>
 
-          {/* Siblings rather than nesting: the strip used to be a link wrapping
-              buttons, which is invalid and swallowed their clicks. */}
           <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 px-2 py-2">
             <button type="button" onClick={onExpand} className="col-span-2 grid grid-cols-[auto_1fr] items-center gap-2.5 text-left" aria-label={t('NowPlaying.title')}>
               <div className="h-10 w-10 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 shrink-0">
@@ -87,7 +78,6 @@ export function BottomNav({ onExpand }: { onExpand: () => void }) {
         </div>
       )}
 
-      {/* Tab bar */}
       <div className="grid grid-cols-4 h-14">
         {tabs.map((tab) => {
           const Icon = tab.icon;

@@ -39,8 +39,6 @@ export interface Track extends PocketBaseRecord {
   artists: Artist['id'][];
   album: Album['id'];
   source: string;
-  // Where this track's audio can be read from. The same three answers whatever
-  // the source, so nothing has to be interpreted per provider.
   availability: TrackAvailability;
   genres: Genre['id'][];
   created: string;

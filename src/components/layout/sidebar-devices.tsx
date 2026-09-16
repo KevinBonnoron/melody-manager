@@ -13,9 +13,6 @@ import type { Provider } from '@/shared';
 import { SpeakerAddressesDialog } from '../devices/speaker-addresses-dialog';
 import { getProviderInfoFromManifests, type ProviderIcon } from '../providers/provider-info';
 
-// Where sound comes out, in a section of its own. Devices and platforms share a
-// table and a settings screen, and nothing else: listed together they would only
-// invite the question of why a speaker holds no tracks.
 export function SidebarDevices() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -43,10 +40,6 @@ export function SidebarDevices() {
       </SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>
-          {/* A speaker nobody has decided about is only visible on the devices
-              screen, and nothing would take an admin there. The dot is what
-              does: it says there is something to look at, and it is on the row
-              that leads to it. */}
           <SidebarMenuButton asChild tooltip={waiting > 0 ? t('DevicesPage.undecided', { count: waiting }) : t('AppSidebar.allDevices')} isActive={pathname === '/devices'}>
             <Link to="/devices">
               <Speaker className="h-[18px] w-[18px] shrink-0" />
@@ -61,12 +54,6 @@ export function SidebarDevices() {
           <DeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} icon={providerInfo[provider.type]?.icon ?? Speaker} found={speakers.filter((s) => s.type === provider.type).length} active={pathname === `/devices/${provider.type}`} />
         ))}
 
-        {/* Divider and dimmed below it, the shape Platforms uses for a source
-            that is not in service. A kind that is off keeps its row, though, and
-            keeps leading somewhere: that row is the only way back to the settings
-            that put it in service. Admin only, because those settings are: a
-            regular user cannot read provider_config, let alone write it, so the
-            row would open a form that refuses every change they make. */}
         {isAdmin && off.length > 0 && <div className="mx-2 my-1 h-px bg-border" />}
         {isAdmin && off.map((provider) => <OffDeviceItem key={provider.id} provider={provider} title={providerInfo[provider.type]?.title ?? provider.type} icon={providerInfo[provider.type]?.icon ?? Speaker} />)}
       </SidebarMenu>
@@ -90,9 +77,6 @@ function DeviceItem({ provider, title, icon: Icon, found, active, muted = false 
   );
 }
 
-// A kind that is switched off has nothing to list, so its row opens what puts it
-// back in service rather than a page that would only say it is off. The same
-// move a source that is not connected makes.
 function OffDeviceItem({ provider, title, icon: Icon }: { provider: Provider; title: string; icon: ProviderIcon }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);

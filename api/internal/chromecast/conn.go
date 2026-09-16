@@ -11,27 +11,17 @@ import (
 	"time"
 )
 
-// controlPort is a var, not a const, only so a test can point the client at a
-// receiver of its own on a port the operating system picked. Nothing else moves
-// it: every Chromecast listens on 8009.
 var controlPort = "8009"
 
 const (
-	dialTimeout  = 5 * time.Second
-	replyTimeout = 5 * time.Second
-	// A device drops a sender that stops pinging. Five seconds is what Google's
-	// own senders use.
+	dialTimeout    = 5 * time.Second
+	replyTimeout   = 5 * time.Second
 	heartbeatEvery = 5 * time.Second
 
 	senderID   = "sender-0"
 	receiverID = "receiver-0"
 )
 
-// conn is one open session with one device. A Sonos is asked a question over a
-// fresh HTTP request every time; a Chromecast expects a connection that is
-// opened, greeted, kept alive, and remembered, because the app it launches and
-// the media session inside that app are both identified by ids it hands back
-// only once.
 type conn struct {
 	address string
 	tls     *tls.Conn
@@ -60,17 +50,9 @@ type mediaStatus struct {
 }
 
 func dial(ctx context.Context, address string) (*conn, error) {
-	// Bounded, and cancellable: a request the listener gave up on should not go
-	// on holding a handshake open, and DialWithDialer answers only to its own
-	// timeout.
 	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
 	defer cancel()
 
-	// A Chromecast presents a certificate signed by Google's device authority,
-	// for a name that is not its address. There is nothing here to verify it
-	// against, and the link carries a URL to a track, not a secret: the check
-	// that matters is whether an admin agreed to this address at all, and that
-	// one happens before we get here.
 	dialer := &tls.Dialer{Config: &tls.Config{InsecureSkipVerify: true}}
 	dialed, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(address, controlPort))
 	if err != nil {
@@ -127,9 +109,6 @@ func (c *conn) send(namespace, destination string, payload any) error {
 	return writeFrame(c.tls, message{source: senderID, destination: destination, namespace: namespace, payload: string(body)})
 }
 
-// ask sends a request and waits for the answer carrying the same requestId. A
-// device answers out of order and also volunteers status nobody asked for, so
-// the id is the only thing tying a reply to its question.
 func (c *conn) ask(ctx context.Context, namespace, destination string, payload map[string]any) (json.RawMessage, error) {
 	c.mu.Lock()
 	c.nextRequest++
@@ -161,10 +140,6 @@ func (c *conn) ask(ctx context.Context, namespace, destination string, payload m
 	}
 }
 
-// castError reads a refusal out of a reply. A device answers a request it will
-// not carry out with the same requestId as one it will, so without this a
-// pause, a seek or a load that the receiver rejected came back as success and
-// nothing upstream ever learned otherwise.
 func castError(payload json.RawMessage) error {
 	var answer struct {
 		Type   string `json:"type"`
@@ -187,8 +162,6 @@ func castError(payload json.RawMessage) error {
 func (c *conn) read() {
 	defer c.Close()
 	for {
-		// No read deadline: between two commands a device says nothing for
-		// minutes at a time, and the heartbeat is what notices a dead link.
 		_ = c.tls.SetReadDeadline(time.Time{})
 		m, err := readFrame(c.tls)
 		if err != nil {
@@ -222,9 +195,6 @@ func (c *conn) dispatch(m message) {
 	}
 	_ = json.Unmarshal([]byte(m.payload), &head)
 
-	// Status arrives both as an answer and unprompted, whenever somebody else
-	// touches the device. Both are worth keeping: it is where the position, the
-	// transport state and the volume come from.
 	switch m.namespace {
 	case nsMedia:
 		c.rememberMedia(m.payload)
@@ -293,18 +263,10 @@ func (c *conn) rememberReceiver(payload string) {
 			return
 		}
 	}
-	// The receiver we launched is gone, so the media session inside it is too.
-	// Holding the ids would have the next command addressed to an app that has
-	// closed, which a device answers by saying nothing at all.
 	c.transport = ""
 	c.mediaSession = 0
 }
 
-// beatOnce sends one heartbeat, and answers whether the session is still worth
-// holding. A socket can stay writable long after the device behind it stopped
-// listening, so a write that succeeds says nothing; what says something is the
-// answer to the last one. Without this the session sat in the pool and every
-// command after it waited out the reply timeout.
 func (c *conn) beatOnce() bool {
 	c.mu.Lock()
 	unanswered := c.awaitingPong

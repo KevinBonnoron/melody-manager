@@ -4,7 +4,6 @@ import type { ComponentType } from 'react';
 import type { ConfigSchemaItem, PluginManifest } from '@/shared';
 import { BandcampIcon, SoundCloudIcon, SpotifyIcon, YoutubeIcon } from './brand-icons';
 
-// Lucide icons and brand marks both fit: the screens only ever size them.
 export type ProviderIcon = ComponentType<{ className?: string }>;
 
 export interface FieldConfig {

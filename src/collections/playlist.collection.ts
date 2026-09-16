@@ -10,5 +10,4 @@ export const playlistCollection = createCollection(
   }),
 );
 
-// Joins resolve on `id`; without an index TanStack DB scans the whole collection.
 playlistCollection.createIndex((row) => row.id, { indexType: BasicIndex });

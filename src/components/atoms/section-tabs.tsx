@@ -12,8 +12,6 @@ interface Props<T extends string> {
   onChange: (id: T) => void;
 }
 
-// Design: .lib-tabs / .lib-tab, 13px, 2px bottom border taking the accent when
-// active, overlapping the container border.
 export function SectionTabs<T extends string>({ tabs, active, onChange }: Props<T>) {
   return (
     <div className="mb-3.5 flex gap-1 border-b">

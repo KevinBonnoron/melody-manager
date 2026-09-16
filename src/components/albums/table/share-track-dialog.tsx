@@ -25,8 +25,6 @@ export function ShareTrackDialog({ track, children }: Props) {
   const [isCreating, setIsCreating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  // A link that never expires is what people mean by "share": the date is the
-  // exception, so it stays out of the way until asked for.
   const [expires, setExpires] = useState(false);
   const [expiresAt, setExpiresAt] = useState('');
   const handleCreate = async () => {
