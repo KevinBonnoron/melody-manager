@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
@@ -91,7 +93,7 @@ func main() {
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
 		Func: func(se *core.ServeEvent) error {
 			if !se.Router.HasRoute(http.MethodGet, "/{path...}") {
-				static := apis.Static(os.DirFS(publicDir()), true)
+				static := apis.Static(clientFS(), true)
 				se.Router.GET("/{path...}", func(e *core.RequestEvent) error {
 					if strings.HasPrefix(e.Request.URL.Path, "/api/") {
 						return e.NotFoundError("", nil)
@@ -107,6 +109,34 @@ func main() {
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+//go:embed all:client
+var embeddedClient embed.FS
+
+// useEmbeddedClient decides where the client is read from.
+//
+// The compiled-in copy is what makes the binary the whole application, but it
+// loses to anything more specific: a directory named outright, and go run,
+// where a bundle compiled in by an earlier build would be served long after it
+// stopped matching the source.
+func useEmbeddedClient(publicDirNamed, goRun, compiledIn bool) bool {
+	return compiledIn && !publicDirNamed && !goRun
+}
+
+// clientFS is the built client the server hands to a browser.
+func clientFS() fs.FS {
+	bundle, err := fs.Sub(embeddedClient, "client/dist")
+	compiledIn := false
+	if err == nil {
+		_, err = fs.Stat(bundle, "index.html")
+		compiledIn = err == nil
+	}
+
+	if useEmbeddedClient(os.Getenv("PUBLIC_DIR") != "", osutils.IsProbablyGoRun(), compiledIn) {
+		return bundle
+	}
+	return os.DirFS(publicDir())
 }
 
 func publicDir() string {

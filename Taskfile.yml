@@ -43,13 +43,16 @@ tasks:
         go run . superuser upsert {{.CLI_ARGS}}
 
   build:
-    desc: Build the Go binary and the client bundle
-    deps: [build:api, build:client]
+    desc: Build the Go binary, with the client compiled into it
+    deps: [build:api]
 
   build:api:
-    desc: Build the Go API binary into bin/melody-api
+    desc: Build the Go API binary into bin/melody-api, client compiled in
+    deps: [build:client]
     dir: api
     cmds:
+      # The client is embedded, and go:embed only reaches under the module.
+      - rm -rf client/dist && cp -r ../dist client/dist
       - go build -o ../bin/melody-api .
 
   build:client:
