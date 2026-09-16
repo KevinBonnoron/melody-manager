@@ -24,7 +24,15 @@ var (
 // the parts is someone the library can already point at: the album's artist,
 // the folder the file sits in, or an artist already on record. Without that
 // guard "AC/DC" becomes two bands.
+//
+// A name already on record whole comes first: what the guard can point at grows
+// with every import, so without it the same tag read twice comes apart
+// differently and the second reading files its track under a second album.
 func splitArtistName(known knownArtist, raw string, anchors ...string) []string {
+	if whole := strings.TrimSpace(raw); whole != "" && known != nil && known(whole) {
+		return []string{whole}
+	}
+
 	var out []string
 	for _, part := range splitOnAny(raw, plainSeparators) {
 		out = append(out, splitAmbiguous(known, part, anchors)...)
