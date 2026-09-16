@@ -15,6 +15,9 @@ WORKDIR /src
 COPY api/go.mod api/go.sum ./
 RUN go mod download
 COPY api/ ./
+# The client is compiled into the binary, and go:embed only reaches under the
+# module, so it is copied in rather than mounted beside it at the end.
+COPY --from=client /app/dist ./client/dist
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /melody-api .
 
@@ -39,7 +42,6 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=api /melody-api /app/melody-api
-COPY --from=client /app/dist /app/pb_public
 COPY --from=ytdlp /yt-dlp /usr/local/bin/yt-dlp
 # yt-dlp needs a JavaScript runtime to solve YouTube's signature challenges.
 COPY --from=bunruntime /usr/local/bin/bun /usr/local/bin/bun

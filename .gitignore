@@ -86,6 +86,7 @@ bin/
 # Desktop client: the embedded bundle is a build artefact. Its parent folder is
 # kept so `go:embed` resolves on a fresh clone, before anything has been built.
 desktop/frontend/dist/
+api/client/dist/
 
 # `go build ./...` inside desktop/ drops the binary beside its source.
 desktop/desktop

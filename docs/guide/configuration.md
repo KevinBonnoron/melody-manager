@@ -47,7 +47,7 @@ Five, and no more. Everything else is in the file above.
 | `CONFIG_FILE` | Where `config.json` lives. The image sets it to `/config/config.json`. |
 | `PB_SUPERUSER_EMAIL` | Creates or updates a PocketBase superuser at startup. |
 | `PB_SUPERUSER_PASSWORD` | That superuser's password. |
-| `PUBLIC_DIR` | Where the built client is served from. The image sets it to `/app/pb_public`. |
+| `PUBLIC_DIR` | A built client to serve instead of the one compiled into the binary. Rarely wanted. |
 | `MELODY_AUTOMIGRATE` | `true` writes new migration files as collections change. For development only. |
 
 ::: warning

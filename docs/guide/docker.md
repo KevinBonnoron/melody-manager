@@ -1,9 +1,11 @@
 # Docker
 
-The image is one Go binary in one container. It embeds PocketBase, which brings
-the database, the authentication, the realtime channel and an admin UI; it
-serves the melody-specific `/api` endpoints; and it ships the built client as
-static files. No reverse proxy, no process manager, no separate database.
+The image is one Go binary in one container, and the binary is the whole
+application: PocketBase for the database, the authentication, the realtime
+channel and an admin UI, the melody-specific `/api` endpoints, and the built
+client compiled in. No reverse proxy, no process manager, no separate database
+and no client bundle to keep beside it. What else the image carries is what that
+binary shells out to: ffmpeg, yt-dlp and a JavaScript runtime for it.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -14,8 +16,8 @@ static files. No reverse proxy, no process manager, no separate database.
 │   │                              │       │
 │   │   /api/*   melody endpoints  │       │
 │   │   /_/*     PocketBase admin  │       │
-│   │   /*       client from       │       │
-│   │            /app/pb_public    │       │
+│   │   /*       the client, built │       │
+│   │            into the binary   │       │
 │   └──────────────────────────────┘       │
 │                                          │
 │   ffmpeg · yt-dlp on PATH                │
@@ -122,6 +124,6 @@ docker compose up -d
 ```
 
 The build runs in stages: the client with Bun, the Go binary with
-`CGO_ENABLED=0` so it needs no libc, and a standalone yt-dlp for the target
-architecture. The final image is `debian:bookworm-slim` with ffmpeg,
-ca-certificates and curl.
+`CGO_ENABLED=0` so it needs no libc and with the client compiled into it, and a
+standalone yt-dlp for the target architecture. The final image is
+`debian:bookworm-slim` with ffmpeg, ca-certificates and curl.
