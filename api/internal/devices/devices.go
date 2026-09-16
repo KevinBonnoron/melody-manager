@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -616,6 +617,19 @@ func (s *Service) listLocked() []Device {
 		}
 		out = append(out, d)
 	}
+
+	// Go randomises map iteration, so without an order of its own the list
+	// arrives differently on every push and the menu reshuffles under whoever is
+	// reading it. Kind, then name, then id, which never changes.
+	slices.SortFunc(out, func(a, b Device) int {
+		if a.Type != b.Type {
+			return strings.Compare(a.Type, b.Type)
+		}
+		if a.Name != b.Name {
+			return strings.Compare(a.Name, b.Name)
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
 	return out
 }
 

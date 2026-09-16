@@ -101,3 +101,36 @@ func TestDiscoveryRecordsWhatTheSpeakerAnswered(t *testing.T) {
 		t.Errorf("unexpected device: %+v", list[0])
 	}
 }
+
+// A list that comes back in a different order on every push reshuffles the menu
+// under whoever is reading it, and Go randomises map iteration, so the registry
+// has to impose one.
+func TestListIsAlwaysInTheSameOrder(t *testing.T) {
+	service := New(func() string { return "http://127.0.0.1:8090" })
+	service.mu.Lock()
+	for _, device := range []Device{
+		{ID: "c", Name: "Bureau", Type: "chromecast"},
+		{ID: "a", Name: "Salle TV", Type: "sonos"},
+		{ID: "b", Name: "Cuisine", Type: "sonos"},
+		{ID: "d", Name: "Bureau", Type: "browser"},
+	} {
+		service.devices[device.ID] = device
+	}
+	service.mu.Unlock()
+
+	want := []string{"d", "c", "b", "a"}
+	for round := range 50 {
+		got := make([]string, 0, len(want))
+		for _, device := range service.List("") {
+			got = append(got, device.ID)
+		}
+		if len(got) != len(want) {
+			t.Fatalf("round %d: %d devices, want %d", round, len(got), len(want))
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("round %d: order %v, want %v", round, got, want)
+			}
+		}
+	}
+}
