@@ -177,11 +177,15 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 
 const stderrExcerpt = 400
 
+// yt-dlp labels its errors "ERROR: [youtube] <id>: ", which the command and the URL beside
+// the reason already say.
+var errorLabelRe = regexp.MustCompile(`^(?:ERROR|WARNING):\s*(?:\[[^\]]+\]\s*)?(?:[^\s:]{4,}:\s+)?`)
+
 // lastError is the last thing yt-dlp said on stderr, which is where it puts the reason.
 func lastError(stderr []byte) string {
 	lines := strings.Split(strings.TrimSpace(string(stderr)), "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
+		line := strings.TrimSpace(errorLabelRe.ReplaceAllString(strings.TrimSpace(lines[i]), ""))
 		if line == "" {
 			continue
 		}

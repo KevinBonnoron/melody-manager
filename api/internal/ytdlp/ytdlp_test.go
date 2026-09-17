@@ -294,7 +294,11 @@ func TestLastError(t *testing.T) {
 	}{
 		{"nothing said", "", ""},
 		{"only blank lines", "\n  \n", ""},
-		{"the reason under a warning", "WARNING: [youtube] Falling back\nERROR: [youtube] 3JtDLDmvSZY: Sign in to confirm you are not a bot\n", "ERROR: [youtube] 3JtDLDmvSZY: Sign in to confirm you are not a bot"},
+		{"the reason under a warning", "WARNING: [youtube] Falling back\nERROR: [youtube] 3JtDLDmvSZY: Sign in to confirm you are not a bot\n", "Sign in to confirm you are not a bot"},
+		{"a video youtube will not serve", "ERROR: [youtube] 3JtDLDmvSZY: This video is not available\n", "This video is not available"},
+		{"an extractor with a colon in its name", "ERROR: [youtube:tab] ABC12345678: Playlist is private", "Playlist is private"},
+		{"a reason that names no video", "ERROR: unable to open for writing: no space left", "unable to open for writing: no space left"},
+		{"a label with nothing after it", "ERROR: [youtube]", ""},
 	}
 	for _, c := range cases {
 		if got := lastError([]byte(c.stderr)); got != c.want {
