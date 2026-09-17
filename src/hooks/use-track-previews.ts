@@ -1,86 +1,78 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { tracksClient } from '@/clients/tracks.client';
 import type { ResolvedTrack } from '@/shared';
 
 export type TrackPreviewState = { status: 'loading' } | { status: 'ready'; tracks: ResolvedTrack[] } | { status: 'error' };
 
+interface PreviewStore {
+  previews: ReadonlyMap<string, TrackPreviewState>;
+  expanded: ReadonlySet<string>;
+  lastChanged: string | null;
+}
+
+let store: PreviewStore = { previews: new Map(), expanded: new Set(), lastChanged: null };
+const listeners = new Set<() => void>();
+const inFlight = new Set<string>();
+
+function publish(next: PreviewStore) {
+  store = next;
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): PreviewStore {
+  return store;
+}
+
+function record(url: string, state: TrackPreviewState) {
+  const previews = new Map(store.previews);
+  previews.set(url, state);
+  publish({ ...store, previews, lastChanged: url });
+}
+
+async function load(url: string) {
+  if (inFlight.has(url)) {
+    return;
+  }
+
+  inFlight.add(url);
+  record(url, { status: 'loading' });
+  try {
+    const { tracks } = await tracksClient.previewFromUrl(url);
+    record(url, { status: 'ready', tracks: tracks ?? [] });
+  } catch {
+    record(url, { status: 'error' });
+  } finally {
+    inFlight.delete(url);
+  }
+}
+
+function toggle(url: string) {
+  const expanded = new Set(store.expanded);
+  const collapsing = expanded.delete(url);
+  if (!collapsing) {
+    expanded.add(url);
+  }
+
+  publish({ ...store, expanded, lastChanged: collapsing ? store.lastChanged : url });
+  if (!collapsing && store.previews.get(url)?.status !== 'ready') {
+    void load(url);
+  }
+}
+
+function retry(url: string) {
+  void load(url);
+}
+
 export function useTrackPreviews() {
-  const [previews, setPreviews] = useState<ReadonlyMap<string, TrackPreviewState>>(() => new Map());
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
-  const [lastChanged, setLastChanged] = useState<string | null>(null);
-  const previewsRef = useRef<ReadonlyMap<string, TrackPreviewState>>(new Map());
-  const expandedRef = useRef<ReadonlySet<string>>(new Set());
-  const requestsRef = useRef(new Map<string, AbortController>());
-
-  useEffect(() => {
-    const requests = requestsRef.current;
-    return () => {
-      for (const request of requests.values()) {
-        request.abort();
-      }
-
-      requests.clear();
-    };
-  }, []);
-
-  const store = useCallback((url: string, state: TrackPreviewState) => {
-    const next = new Map(previewsRef.current);
-    next.set(url, state);
-    previewsRef.current = next;
-    setPreviews(next);
-    setLastChanged(url);
-  }, []);
-
-  const load = useCallback(
-    async (url: string) => {
-      if (requestsRef.current.has(url)) {
-        return;
-      }
-
-      const request = new AbortController();
-      requestsRef.current.set(url, request);
-      store(url, { status: 'loading' });
-      try {
-        const { tracks } = await tracksClient.previewFromUrl(url, { signal: request.signal });
-        if (!request.signal.aborted) {
-          store(url, { status: 'ready', tracks: tracks ?? [] });
-        }
-      } catch {
-        if (!request.signal.aborted) {
-          store(url, { status: 'error' });
-        }
-      } finally {
-        if (requestsRef.current.get(url) === request) {
-          requestsRef.current.delete(url);
-        }
-      }
-    },
-    [store],
-  );
-
-  const toggle = useCallback(
-    (url: string) => {
-      const next = new Set(expandedRef.current);
-      const collapsing = next.delete(url);
-      if (!collapsing) {
-        next.add(url);
-      }
-
-      expandedRef.current = next;
-      setExpanded(next);
-      if (!collapsing && previewsRef.current.get(url)?.status !== 'ready') {
-        void load(url);
-      }
-    },
-    [load],
-  );
-
-  const retry = useCallback(
-    (url: string) => {
-      void load(url);
-    },
-    [load],
-  );
-
+  const { previews, expanded, lastChanged } = useSyncExternalStore(subscribe, getSnapshot);
   return { previews, expanded, lastChanged, toggle, retry };
 }
