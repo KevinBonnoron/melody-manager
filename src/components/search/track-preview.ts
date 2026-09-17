@@ -31,6 +31,10 @@ export function toPreviewSegments(tracks: ResolvedTrack[]): PreviewSegment[] {
   });
 }
 
+export function totalDuration(segments: PreviewSegment[]): number {
+  return segments.reduce((total, segment) => total + segment.duration, 0);
+}
+
 // A preview that has been folded away keeps loading, and its result must not reach the live
 // region: what is announced is only ever a preview the reader still has open.
 export function announcedPreview(previews: ReadonlyMap<string, TrackPreviewState>, expanded: ReadonlySet<string>, lastChanged: string | null): TrackPreviewState | undefined {

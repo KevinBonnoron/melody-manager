@@ -590,7 +590,11 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                 const isPreviewOpen = canPreview && openPreviews.has(result.origin);
 
                 return (
-                  <div key={result.origin} data-key={`external-${result.origin}`} className={cn('flex flex-wrap items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted/30', activeKey === `external-${result.origin}` && 'bg-muted/40 ring-1 ring-inset ring-primary/50')}>
+                  <div
+                    key={result.origin}
+                    data-key={`external-${result.origin}`}
+                    className={cn('flex flex-wrap items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted/30', isPreviewOpen && 'col-span-full bg-muted/20', activeKey === `external-${result.origin}` && 'bg-muted/40 ring-1 ring-inset ring-primary/50')}
+                  >
                     <div className="w-11 h-11 rounded-md overflow-hidden bg-muted shrink-0 grid place-items-center" style={{ background: image ? undefined : `linear-gradient(135deg, ${getSourceColor(result.provider)}44, ${getSourceColor(result.provider)}18)` }}>
                       {image ? <img src={image} alt={title} className="w-full h-full object-cover" /> : <Music2 className="h-4 w-4 text-foreground/70" />}
                     </div>
