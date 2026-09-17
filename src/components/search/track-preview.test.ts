@@ -1,5 +1,5 @@
 import type { ResolvedTrack } from '@/shared';
-import { announcedPreview, shownPreviews, supportsTrackPreview, toPreviewSegments } from './track-preview';
+import { announcedPreview, shownPreviews, supportsTrackPreview, toPreviewSegments, totalDuration } from './track-preview';
 import { describe, expect, it } from 'bun:test';
 
 const track = (over: Partial<ResolvedTrack>): ResolvedTrack => ({ title: 'Untitled', duration: 0, origin: 'https://youtu.be/x', artistName: 'Artist', albumName: 'Album', ...over });
@@ -32,6 +32,13 @@ describe('track preview', () => {
     const [segment] = toPreviewSegments([track({ title: 'Mangled', duration: 10, metadata: { startTime: 200, endTime: 100 } })]);
 
     expect(segment.duration).toBe(0);
+  });
+
+  it('adds up what the whole import would last', () => {
+    const segments = toPreviewSegments([track({ title: 'Intro', duration: 90, metadata: { startTime: 0, endTime: 90 } }), track({ title: 'Second', duration: 120, metadata: { startTime: 90, endTime: 210 } })]);
+
+    expect(totalDuration(segments)).toBe(210);
+    expect(totalDuration([])).toBe(0);
   });
 
   it('announces the preview the reader still has open', () => {

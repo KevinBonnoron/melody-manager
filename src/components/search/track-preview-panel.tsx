@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { TrackPreviewState } from '@/hooks/use-track-previews';
 import { cn, formatDuration } from '@/lib/utils';
-import { type PreviewSegment, toPreviewSegments } from './track-preview';
+import { type PreviewSegment, toPreviewSegments, totalDuration } from './track-preview';
 
 interface Props {
   id: string;
@@ -34,6 +34,8 @@ function spokenTiming(segment: PreviewSegment, t: Translate) {
 export function TrackPreviewPanel({ id, label, state, className, onRetry }: Props) {
   const { t } = useTranslation();
   const segments = state?.status === 'ready' ? toPreviewSegments(state.tracks) : [];
+  const total = formatDuration(totalDuration(segments));
+  const spokenTotal = t('SearchPage.previewSegmentDuration', { duration: formatDuration(totalDuration(segments), 'long') });
 
   return (
     <div id={id} className={cn('rounded-lg border border-border bg-muted/20 p-2.5', className)}>
@@ -58,11 +60,17 @@ export function TrackPreviewPanel({ id, label, state, className, onRetry }: Prop
 
       {segments.length > 0 && (
         <>
-          <p className="mb-1.5 text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.previewCount', { count: segments.length })}</p>
-          <ol aria-label={label} className="space-y-0.5">
+          <div className="mb-1.5 flex items-baseline justify-between gap-3 border-b border-border/60 pb-1.5">
+            <p className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.previewCount', { count: segments.length })}</p>
+            <p className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+              <span aria-hidden="true">{total}</span>
+              <span className="sr-only">{spokenTotal}</span>
+            </p>
+          </div>
+          <ol aria-label={label} className="columns-[260px] gap-x-6">
             {segments.map((segment) => (
-              <li key={segment.key} className="flex items-baseline gap-2 text-[12px]">
-                <span className="w-5 shrink-0 text-right tabular-nums text-muted-foreground" aria-hidden="true">
+              <li key={segment.key} className="flex items-baseline gap-2 break-inside-avoid rounded px-1 py-[3px] text-[12px] hover:bg-muted/40">
+                <span className="w-5 shrink-0 text-right tabular-nums text-[11px] text-muted-foreground" aria-hidden="true">
                   {segment.position}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{segment.title}</span>
