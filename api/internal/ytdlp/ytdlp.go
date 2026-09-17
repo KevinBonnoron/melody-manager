@@ -5,6 +5,7 @@ package ytdlp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
@@ -48,6 +49,9 @@ type TrackInfo struct {
 	Description string    `json:"description"`
 	Chapters    []Chapter `json:"chapters"`
 	Comments    []Comment `json:"comments"`
+
+	// CommentCount is nil when yt-dlp does not know, and 0 when the video has none.
+	CommentCount *int `json:"comment_count"`
 }
 
 // Comment is the subset of a yt-dlp comment we use.
@@ -83,10 +87,37 @@ func validateURL(raw string) error {
 
 func run(ctx context.Context, args ...string) ([]byte, error) {
 	out, err := exec.CommandContext(ctx, "yt-dlp", args...).Output()
-	if err != nil {
-		return nil, fmt.Errorf("yt-dlp %s: %w", strings.Join(args, " "), err)
+	if err == nil {
+		return out, nil
 	}
-	return out, nil
+
+	// "exit status 1" says nothing about what yt-dlp refused to do; its last line does.
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		if said := lastError(exit.Stderr); said != "" {
+			return nil, fmt.Errorf("yt-dlp %s: %w: %s", strings.Join(args, " "), err, said)
+		}
+	}
+	return nil, fmt.Errorf("yt-dlp %s: %w", strings.Join(args, " "), err)
+}
+
+const stderrExcerpt = 400
+
+// lastError is the last thing yt-dlp said on stderr, which is where it puts the reason.
+func lastError(stderr []byte) string {
+	lines := strings.Split(strings.TrimSpace(string(stderr)), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+
+		if runes := []rune(line); len(runes) > stderrExcerpt {
+			return string(runes[:stderrExcerpt])
+		}
+		return line
+	}
+	return ""
 }
 
 const streamURLTTL = 4 * time.Hour
@@ -147,7 +178,11 @@ func ExtractTrackInfo(ctx context.Context, url, cookiesFile string) (*TrackInfo,
 			fromDescription = nil
 		}
 
-		fromComments := chaptersFromComments(ctx, url, cookiesFile, info.Duration)
+		var fromComments []Chapter
+		if worthAskingComments(*info) {
+			fromComments = chaptersFromComments(ctx, url, cookiesFile, info.Duration)
+		}
+
 		if best := pickChapters(fromDescription, fromComments, info.Duration); len(best) > 1 {
 			info.Chapters = best
 		}
@@ -184,7 +219,21 @@ func commentArgs() []string {
 	}
 }
 
+// worthAskingComments says whether the slow comment pass could still find a track list: a
+// video that reports no comments has none to read, and asking anyway only costs a yt-dlp run
+// that comes back empty, or hangs on a video whose comments are turned off.
+func worthAskingComments(info TrackInfo) bool {
+	return info.CommentCount == nil || *info.CommentCount > 0
+}
+
+// commentsTimeout keeps a video whose comments will not come to an end of its own: reading
+// them is worth a wait, but never the whole request.
+const commentsTimeout = 60 * time.Second
+
 func chaptersFromComments(ctx context.Context, url, cookiesFile string, duration float64) []Chapter {
+	ctx, cancel := context.WithTimeout(ctx, commentsTimeout)
+	defer cancel()
+
 	info, err := extractInfo(ctx, url, cookiesFile, commentArgs()...)
 	if err != nil {
 		return nil

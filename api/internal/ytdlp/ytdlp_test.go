@@ -265,3 +265,44 @@ func TestCommentArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestWorthAskingComments(t *testing.T) {
+	none := 0
+	some := 12
+	cases := []struct {
+		name string
+		info TrackInfo
+		want bool
+	}{
+		{"a video whose comment count is unknown", TrackInfo{}, true},
+		{"a video with its comments turned off", TrackInfo{CommentCount: &none}, false},
+		{"a video people commented on", TrackInfo{CommentCount: &some}, true},
+	}
+	for _, c := range cases {
+		if got := worthAskingComments(c.info); got != c.want {
+			t.Errorf("%s: worthAskingComments = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestLastError(t *testing.T) {
+	cases := []struct {
+		name   string
+		stderr string
+		want   string
+	}{
+		{"nothing said", "", ""},
+		{"only blank lines", "\n  \n", ""},
+		{"the reason under a warning", "WARNING: [youtube] Falling back\nERROR: [youtube] 3JtDLDmvSZY: Sign in to confirm you are not a bot\n", "ERROR: [youtube] 3JtDLDmvSZY: Sign in to confirm you are not a bot"},
+	}
+	for _, c := range cases {
+		if got := lastError([]byte(c.stderr)); got != c.want {
+			t.Errorf("%s: lastError = %q, want %q", c.name, got, c.want)
+		}
+	}
+
+	long := lastError([]byte("ERROR: " + strings.Repeat("é", 1000)))
+	if len([]rune(long)) != stderrExcerpt {
+		t.Errorf("a long line came back with %d runes, want %d", len([]rune(long)), stderrExcerpt)
+	}
+}
