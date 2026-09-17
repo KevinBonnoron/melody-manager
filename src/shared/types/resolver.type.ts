@@ -8,8 +8,13 @@ export interface ResolvedTrack {
   artistName: string;
   albumName: string;
   coverUrl?: string;
+  source?: string;
   metadata?: TrackMetadata;
   genreNames?: string[];
+}
+
+export interface TrackPreview {
+  tracks: ResolvedTrack[];
 }
 
 export interface ResolvedAlbum {

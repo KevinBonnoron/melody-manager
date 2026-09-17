@@ -113,6 +113,14 @@ Import a search result into the library, by the kind of thing it is. The body is
 source it belongs to follows from it. Returns a task, watched through
 `/api/tasks`.
 
+### `POST /api/tracks/preview`
+
+Resolve a URL the way an import would, and return what it would add without
+adding anything. The body is `{"url": "..."}` and the answer is
+`{"tracks": [...]}`. A video cut on its chapters comes back as one entry per
+chapter, each carrying the `startTime` and `endTime` it would be cut on, so the
+caller can show the track list before importing it.
+
 ### `POST /api/local/scan`
 
 Walk the local music directory again. Returns a task; watch it through

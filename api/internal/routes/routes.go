@@ -312,6 +312,26 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		g.POST("/"+string(kind)+"/add", importHandler(deps, kind))
 	}
 
+	g.POST("/tracks/preview", func(e *core.RequestEvent) error {
+		var body struct {
+			URL string `json:"url"`
+		}
+		if err := e.BindBody(&body); err != nil || body.URL == "" {
+			return e.BadRequestError("missing url", err)
+		}
+
+		ctx, cancel := context.WithTimeout(e.Request.Context(), previewTimeout)
+		defer cancel()
+		tracks, err := services.PreviewTracks(ctx, e.App, deps.Registry, body.URL, userID(e))
+		if err != nil {
+			if errors.Is(err, services.ErrNoProvider) {
+				return e.BadRequestError("unsupported url", err)
+			}
+			return e.InternalServerError("preview failed", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"tracks": tracks})
+	})
+
 	g.POST("/local/scan", func(e *core.RequestEvent) error {
 		if e.Auth.GetString("role") != "admin" {
 			return e.ForbiddenError("admin only", nil)
@@ -603,6 +623,10 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.NoContent(http.StatusNoContent)
 	})
 }
+
+// previewTimeout bounds a preview: reading a video's chapters can mean asking yt-dlp for its
+// comments too, which is slow, but a request the caller is waiting on cannot hang for ever.
+const previewTimeout = 2 * time.Minute
 
 func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
