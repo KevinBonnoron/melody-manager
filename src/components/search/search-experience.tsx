@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
 import { artistsClient } from '@/clients/artists.client';
 import { playlistsClient } from '@/clients/playlists.client';
-import { searchClient } from '@/clients/search.client';
 import { tracksClient } from '@/clients/tracks.client';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
@@ -17,6 +16,7 @@ import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
 import { useCapability } from '@/hooks/use-capability';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useExternalSearch } from '@/hooks/use-external-search';
 import { artistNames, resolveAll, useArtistsById } from '@/hooks/use-library-index';
 import { usePlugins } from '@/hooks/use-plugins';
 import { useRecordSearch, useSearchHistory } from '@/hooks/use-search-history';
@@ -25,7 +25,7 @@ import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { getSourceColor } from '@/lib/source-colors';
 import { cn, formatDuration, getProviderColor } from '@/lib/utils';
-import type { Album, Artist, SearchResult, SearchType, Track } from '@/shared';
+import type { Album, Artist, SearchResult, Track } from '@/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
 import { announcedPreview, shownPreviews, supportsTrackPreview } from './track-preview';
 import { TrackPreviewPanel } from './track-preview-panel';
@@ -64,8 +64,6 @@ function detectUrlSource(url: string): string | null {
   const t = url.trim();
   return IMPORT_URL_PATTERNS.find(([pattern]) => pattern.test(t))?.[1] ?? null;
 }
-
-const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 
 const INDEX_SETTLE_MS = 400;
 
@@ -113,8 +111,6 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const albumFuse = useMemo(() => new Fuse(indexed.albums, albumFuseOptions(indexed.artistsById)), [indexed]);
   const artistFuse = useMemo(() => new Fuse(indexed.artists, artistFuseOptions), [indexed]);
 
-  const [externalResults, setExternalResults] = useState<SearchResult[]>([]);
-  const [isSearchingExternal, setIsSearchingExternal] = useState(false);
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
   const { previews, expanded: openPreviews, lastChanged: lastPreview, toggle: togglePreview, retry: retryPreview } = useTrackPreviews();
@@ -140,38 +136,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
   const libraryCount = libraryResults.tracks.length + libraryResults.albums.length + libraryResults.artists.length;
 
-  useEffect(() => {
-    if (!trimmedQuery || scope === 'library' || urlMatch || searchableTypes === '') {
-      setExternalResults([]);
-      setIsSearchingExternal(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-    setIsSearchingExternal(true);
-    setExternalResults([]);
-
-    const timeoutId = setTimeout(async () => {
-      try {
-        const responses = await Promise.allSettled(SEARCH_TYPES.map((type) => searchClient.search(trimmedQuery, type, { signal: controller.signal })));
-        if (!cancelled) {
-          setExternalResults(responses.flatMap((r) => (r.status === 'fulfilled' ? r.value.results : [])));
-        }
-      } catch {
-      } finally {
-        if (!cancelled) {
-          setIsSearchingExternal(false);
-        }
-      }
-    }, 500);
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
-  }, [trimmedQuery, scope, urlMatch, searchableTypes]);
+  const { results: externalResults, isSearching: isSearchingExternal } = useExternalSearch(trimmedQuery, searchableTypes, !urlMatch && scope !== 'library');
 
   const handleAdd = useCallback(
     async (result: SearchResult) => {
