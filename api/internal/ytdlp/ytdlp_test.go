@@ -312,6 +312,16 @@ func TestLastError(t *testing.T) {
 	}
 }
 
+func TestExtraArgs(t *testing.T) {
+	args := strings.Join(extraArgs, " ")
+
+	for _, want := range []string{"--js-runtimes bun", "--remote-components ejs:github"} {
+		if !strings.Contains(args, want) {
+			t.Errorf("every yt-dlp run should carry %q, got %q", want, args)
+		}
+	}
+}
+
 // The wordings YouTube puts in playabilityStatus, as yt-dlp relays them. They are YouTube's to
 // change, which is why an unknown one has to have somewhere to land.
 func TestCauseNamesWhatYouTubeSaid(t *testing.T) {
