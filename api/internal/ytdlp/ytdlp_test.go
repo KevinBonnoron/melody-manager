@@ -1,6 +1,7 @@
 package ytdlp
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -304,5 +305,71 @@ func TestLastError(t *testing.T) {
 	long := lastError([]byte("ERROR: " + strings.Repeat("é", 1000)))
 	if len([]rune(long)) != stderrExcerpt {
 		t.Errorf("a long line came back with %d runes, want %d", len([]rune(long)), stderrExcerpt)
+	}
+}
+
+// The wordings YouTube puts in playabilityStatus, as yt-dlp relays them. They are YouTube's to
+// change, which is why an unknown one has to have somewhere to land.
+func TestCauseNamesWhatYouTubeSaid(t *testing.T) {
+	cases := []struct {
+		reason string
+		want   string
+	}{
+		{"Private video. Sign in if you've been granted access to this video", "private"},
+		{"Video unavailable. This video is private", "private"},
+		{"Video unavailable", "unavailable"},
+		{"This video has been removed by the uploader", "unavailable"},
+		{"Sign in to confirm you're not a bot. Use --cookies for the authentication.", "signIn"},
+		{"Sign in to confirm your age. This video may be inappropriate for some users.", "signIn"},
+		{"Join this channel to get access to members-only content", "membersOnly"},
+		{"This video is available to Music Premium members only", "membersOnly"},
+		{"The uploader has not made this video available in your country", "geoBlocked"},
+		{"Unsupported URL: https://example.com/watch?v=x", "unsupportedUrl"},
+		{"unable to download video data: HTTP Error 403: Forbidden", ""},
+		// macOS keeps its temporary files under /private, and a path is not a verdict
+		// about the video.
+		{"Unable to load cookies from /private/var/folders/t3/cookies.txt", ""},
+		{"something YouTube has not written yet", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.reason, func(t *testing.T) {
+			if got := Cause(&RunError{Reason: tc.reason, err: errors.New("exit status 1")}); got != tc.want {
+				t.Fatalf("Cause(%q) = %q, want %q", tc.reason, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCauseOfSomethingElseIsEmpty(t *testing.T) {
+	if got := Cause(errors.New("boom")); got != "" {
+		t.Fatalf("Cause() = %q, want \"\"", got)
+	}
+}
+
+func TestReasonIsTheWholeLineForTheLog(t *testing.T) {
+	failed := &RunError{Reason: "Unable to load cookies from /data/cookies.txt", err: errors.New("exit status 1")}
+
+	if got := Reason(failed); got != failed.Reason {
+		t.Fatalf("Reason() = %q, want the line yt-dlp printed", got)
+	}
+}
+
+func TestRunErrorKeepsTheRunAndDropsThePath(t *testing.T) {
+	failed := &RunError{
+		Args:   []string{"--dump-json", "--cookies", "/data/cookies.txt", "https://youtu.be/x"},
+		Reason: "Unable to load cookies from /data/cookies.txt",
+		err:    errors.New("exit status 1"),
+	}
+
+	got := failed.Error()
+	if strings.Contains(got, "/data/cookies.txt") {
+		t.Fatalf("the cookies file reaches /api/tasks through %q", got)
+	}
+
+	for _, want := range []string{"--dump-json", "https://youtu.be/x", "exit status 1"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("a log that cannot say %q is not worth reading: %q", want, got)
+		}
 	}
 }

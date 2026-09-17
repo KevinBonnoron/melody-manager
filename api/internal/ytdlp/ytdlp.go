@@ -85,6 +85,82 @@ func validateURL(raw string) error {
 	return nil
 }
 
+// RunError is a yt-dlp run that came back empty-handed, carrying the reason it printed.
+type RunError struct {
+	Args   []string
+	Reason string
+	err    error
+}
+
+// The arguments say which run failed, which is most of what a log is for, but a failed import
+// keeps its error on the task and /api/tasks hands every task to every signed-in caller: the
+// cookies file, the cache directory and the temporary file go no further than this process.
+func (r *RunError) Error() string {
+	args := withoutPaths(strings.Join(r.Args, " "))
+	if r.Reason == "" {
+		return fmt.Sprintf("yt-dlp %s: %v", args, r.err)
+	}
+	return fmt.Sprintf("yt-dlp %s: %v: %s", args, r.err, withoutPaths(r.Reason))
+}
+
+func (r *RunError) Unwrap() error { return r.err }
+
+// Reason is the whole of what yt-dlp said went wrong, for the server's log and nowhere else.
+// What a caller is told is Cause.
+func Reason(err error) string {
+	var failed *RunError
+	if errors.As(err, &failed) {
+		return failed.Reason
+	}
+	return ""
+}
+
+// Cause names what went wrong in a word this server chose, or "" for a reason it does not
+// recognise. The text it reads is YouTube's own, relayed by yt-dlp out of playabilityStatus
+// and reworded server-side whenever they like, so recognising it is a guess that has to be
+// allowed to fail: a caller is told nothing rather than told something unread.
+func Cause(err error) string {
+	reason := strings.ToLower(Reason(err))
+	switch {
+	case reason == "":
+		return ""
+	case strings.Contains(reason, "private video"), strings.Contains(reason, "video is private"):
+		return "private"
+	case strings.Contains(reason, "available in your country"), strings.Contains(reason, "blocked it in your country"):
+		return "geoBlocked"
+	case strings.Contains(reason, "members-only"), strings.Contains(reason, "members only"), strings.Contains(reason, "premium"):
+		return "membersOnly"
+	case strings.Contains(reason, "sign in"), strings.Contains(reason, "age-restricted"), strings.Contains(reason, "inappropriate for some users"):
+		return "signIn"
+	case strings.Contains(reason, "unsupported url"):
+		return "unsupportedUrl"
+	case strings.Contains(reason, "unavailable"), strings.Contains(reason, "has been removed"), strings.Contains(reason, "no longer exists"):
+		return "unavailable"
+	}
+	return ""
+}
+
+var windowsPath = regexp.MustCompile(`^[A-Za-z]:[\\/]`)
+
+// withoutPaths keeps the reason and drops where the server keeps its files: yt-dlp names the
+// cookies file, its cache directory or a temporary file when it cannot read one, and none of
+// that tells whoever asked anything about the video. A URL is left alone, being the answer to
+// what was asked rather than a corner of the disk.
+func withoutPaths(reason string) string {
+	fields := strings.Fields(reason)
+	for i, field := range fields {
+		if strings.Contains(field, "://") {
+			continue
+		}
+
+		bare := strings.TrimLeft(field, `'"([<`)
+		if strings.HasPrefix(bare, "/") || strings.HasPrefix(bare, "~/") || windowsPath.MatchString(bare) {
+			fields[i] = "..."
+		}
+	}
+	return strings.Join(fields, " ")
+}
+
 func run(ctx context.Context, args ...string) ([]byte, error) {
 	out, err := exec.CommandContext(ctx, "yt-dlp", args...).Output()
 	if err == nil {
@@ -94,11 +170,9 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	// "exit status 1" says nothing about what yt-dlp refused to do; its last line does.
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
-		if said := lastError(exit.Stderr); said != "" {
-			return nil, fmt.Errorf("yt-dlp %s: %w: %s", strings.Join(args, " "), err, said)
-		}
+		return nil, &RunError{Args: args, Reason: lastError(exit.Stderr), err: err}
 	}
-	return nil, fmt.Errorf("yt-dlp %s: %w", strings.Join(args, " "), err)
+	return nil, &RunError{Args: args, err: err}
 }
 
 const stderrExcerpt = 400

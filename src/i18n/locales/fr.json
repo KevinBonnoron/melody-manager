@@ -67,6 +67,14 @@
     "previewFailed": "Impossible de lire les pistes de cette source",
     "previewRetry": "Réessayer",
     "previewEmpty": "Aucune piste trouvée sur cette source",
+    "previewCause": {
+      "private": "Cette vidéo est privée",
+      "unavailable": "Cette vidéo n'est plus disponible",
+      "signIn": "Cette vidéo demande un compte connecté ; ajoutez des cookies pour cette source dans les réglages",
+      "membersOnly": "Cette vidéo est réservée aux membres de la chaîne",
+      "geoBlocked": "Cette vidéo n'est pas disponible dans ce pays",
+      "unsupportedUrl": "Ce lien n'est pas un lien que ce serveur sait lire"
+    },
     "previewCount_one": "{{count}} piste à importer",
     "previewCount_other": "{{count}} pistes à importer",
     "previewSegmentRange": "de {{start}} à {{end}}",

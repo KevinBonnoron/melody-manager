@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { tracksClient } from '@/clients/tracks.client';
 import type { ResolvedTrack } from '@/shared';
 
-export type TrackPreviewState = { status: 'loading' } | { status: 'ready'; tracks: ResolvedTrack[] } | { status: 'error' };
+export type TrackPreviewState = { status: 'loading' } | { status: 'ready'; tracks: ResolvedTrack[] } | { status: 'error'; cause: string };
 
 interface PreviewStore {
   previews: ReadonlyMap<string, TrackPreviewState>;
@@ -38,6 +38,13 @@ function record(url: string, state: TrackPreviewState) {
   publish({ ...store, previews, lastChanged: url });
 }
 
+// The delegate throws with the status line for a message and keeps the server's answer in
+// `body`, so the name the API gave the failure is only reachable there.
+function causeOf(error: unknown): string {
+  const body = (error as { body?: { message?: unknown } } | null)?.body;
+  return typeof body?.message === 'string' ? body.message : '';
+}
+
 async function load(url: string) {
   if (inFlight.has(url)) {
     return;
@@ -48,8 +55,8 @@ async function load(url: string) {
   try {
     const { tracks } = await tracksClient.previewFromUrl(url);
     record(url, { status: 'ready', tracks: tracks ?? [] });
-  } catch {
-    record(url, { status: 'error' });
+  } catch (error) {
+    record(url, { status: 'error', cause: causeOf(error) });
   } finally {
     inFlight.delete(url);
   }

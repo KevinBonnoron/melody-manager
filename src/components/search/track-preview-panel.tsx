@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { TrackPreviewState } from '@/hooks/use-track-previews';
 import { cn, formatDuration } from '@/lib/utils';
-import { type PreviewSegment, toPreviewSegments, totalDuration } from './track-preview';
+import { type PreviewSegment, previewCauseKey, toPreviewSegments, totalDuration } from './track-preview';
 
 interface Props {
   id: string;
@@ -33,6 +33,7 @@ function spokenTiming(segment: PreviewSegment, t: Translate) {
 
 export function TrackPreviewPanel({ id, label, state, className, onRetry }: Props) {
   const { t } = useTranslation();
+  const causeKey = state?.status === 'error' ? previewCauseKey(state.cause) : undefined;
   const segments = state?.status === 'ready' ? toPreviewSegments(state.tracks) : [];
   const total = formatDuration(totalDuration(segments));
   const spokenTotal = t('SearchPage.previewSegmentDuration', { duration: formatDuration(totalDuration(segments), 'long') });
@@ -47,9 +48,12 @@ export function TrackPreviewPanel({ id, label, state, className, onRetry }: Prop
       )}
 
       {state?.status === 'error' && (
-        <div className="flex items-center gap-2 text-[11.5px] text-destructive">
-          <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="min-w-0 flex-1">{t('SearchPage.previewFailed')}</span>
+        <div className="flex items-start gap-2 text-[11.5px]">
+          <CircleAlert className="mt-px h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="text-destructive">{t('SearchPage.previewFailed')}</p>
+            {causeKey !== undefined && <p className="mt-0.5 text-[11px] text-muted-foreground">{t(causeKey)}</p>}
+          </div>
           <Button size="xs" variant="ghost" className="shrink-0" onClick={onRetry}>
             {t('SearchPage.previewRetry')}
           </Button>

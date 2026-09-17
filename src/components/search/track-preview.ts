@@ -57,3 +57,11 @@ export function shownPreviews(expanded: ReadonlySet<string>, candidates: Iterabl
 
   return shown;
 }
+
+// The names the API is allowed to give a failure. Anything else, including a reason the server
+// could not name, says only that the read failed: a word nobody wrote here is not shown.
+const PREVIEW_CAUSES = ['private', 'unavailable', 'signIn', 'membersOnly', 'geoBlocked', 'unsupportedUrl'];
+
+export function previewCauseKey(cause: string): string | undefined {
+  return PREVIEW_CAUSES.includes(cause) ? `SearchPage.previewCause.${cause}` : undefined;
+}
