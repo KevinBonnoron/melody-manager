@@ -29,6 +29,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
+	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
 func appShellCORS() *hook.Handler[*core.RequestEvent] {
@@ -325,7 +326,26 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		tracks, err := services.PreviewTracks(ctx, e.App, deps.Registry, body.URL, userID(e))
 		if err != nil {
 			if errors.Is(err, services.ErrNoProvider) {
-				return e.BadRequestError("unsupported url", err)
+				return e.BadRequestError("unsupportedUrl", err)
+			}
+			// Why a video could not be read decides what the caller does about it, so it
+			// travels, but as a word this server chose: yt-dlp's own line is whatever
+			// YouTube wrote, and it goes to the log where a name for it is worked out.
+			if reason := ytdlp.Reason(err); reason != "" {
+				cause := ytdlp.Cause(err)
+				if cause == "" {
+					// The only thing that says a wording has moved on. Grep for it.
+					e.App.Logger().Warn("preview failed for a reason with no name", "url", body.URL, "reason", reason)
+					return e.InternalServerError("preview failed", err)
+				}
+
+				e.App.Logger().Warn("preview failed", "url", body.URL, "cause", cause, "reason", reason)
+				// A link this server cannot read is the caller's to fix, wherever the
+				// refusal came from: the registry above, or yt-dlp looking at it.
+				if cause == "unsupportedUrl" {
+					return e.BadRequestError(cause, err)
+				}
+				return e.InternalServerError(cause, err)
 			}
 			return e.InternalServerError("preview failed", err)
 		}

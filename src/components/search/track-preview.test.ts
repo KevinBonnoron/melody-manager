@@ -1,5 +1,5 @@
 import type { ResolvedTrack } from '@/shared';
-import { announcedPreview, shownPreviews, supportsTrackPreview, toPreviewSegments, totalDuration } from './track-preview';
+import { announcedPreview, previewCauseKey, shownPreviews, supportsTrackPreview, toPreviewSegments, totalDuration } from './track-preview';
 import { describe, expect, it } from 'bun:test';
 
 const track = (over: Partial<ResolvedTrack>): ResolvedTrack => ({ title: 'Untitled', duration: 0, origin: 'https://youtu.be/x', artistName: 'Artist', albumName: 'Album', ...over });
@@ -68,5 +68,16 @@ describe('track preview', () => {
     const drawn = shownPreviews(new Set(['https://youtu.be/gone']), ['https://youtu.be/other']);
 
     expect(announcedPreview(previews, drawn, 'https://youtu.be/gone')).toBeUndefined();
+  });
+
+  it('translates a failure the server named', () => {
+    expect(previewCauseKey('private')).toBe('SearchPage.previewCause.private');
+    expect(previewCauseKey('signIn')).toBe('SearchPage.previewCause.signIn');
+  });
+
+  it('shows nothing rather than a word nobody wrote here', () => {
+    expect(previewCauseKey('')).toBeUndefined();
+    expect(previewCauseKey('preview failed')).toBeUndefined();
+    expect(previewCauseKey('Sign in to confirm you are not a bot')).toBeUndefined();
   });
 });

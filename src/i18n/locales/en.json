@@ -67,6 +67,14 @@
     "previewFailed": "The tracks of this source could not be read",
     "previewRetry": "Try again",
     "previewEmpty": "No track found on this source",
+    "previewCause": {
+      "private": "This video is private",
+      "unavailable": "This video is no longer available",
+      "signIn": "This video needs a signed-in account; add cookies for this source in the settings",
+      "membersOnly": "This video is reserved for the channel's members",
+      "geoBlocked": "This video is not available in this country",
+      "unsupportedUrl": "This link is not one this server knows how to read"
+    },
     "previewCount_one": "{{count}} track to import",
     "previewCount_other": "{{count}} tracks to import",
     "previewSegmentRange": "from {{start}} to {{end}}",

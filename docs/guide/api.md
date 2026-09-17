@@ -121,6 +121,12 @@ adding anything. The body is `{"url": "..."}` and the answer is
 chapter, each carrying the `startTime` and `endTime` it would be cut on, so the
 caller can show the track list before importing it.
 
+A failure answers with a `message` naming why, out of `unsupportedUrl`,
+`private`, `unavailable`, `signIn`, `membersOnly` and `geoBlocked`, or
+`preview failed` when the source gave a reason this server has no name for.
+The reason itself is whatever the source wrote and stays in the server log,
+where an unnamed one is logged as `preview failed for a reason with no name`.
+
 ### `POST /api/local/scan`
 
 Walk the local music directory again. Returns a task; watch it through
