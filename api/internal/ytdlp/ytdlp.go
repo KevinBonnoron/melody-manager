@@ -62,7 +62,12 @@ type Comment struct {
 
 var streamURLCache = expirable.NewLRU[string, string](1000, nil, streamURLTTL)
 
-var extraArgs = []string{"--js-runtimes", "bun"}
+// A JS runtime alone does not solve YouTube's challenges: yt-dlp also needs a solver script
+// of the version it was built against, and a distribution that ships an older one fails the n
+// challenge, which costs formats and, on some videos, the whole extraction. Letting yt-dlp
+// fetch the matching script keeps that out of the packager's hands. Needs yt-dlp >= 2026.08.19,
+// the release pinned by flake.nix and docker/Dockerfile.
+var extraArgs = []string{"--js-runtimes", "bun", "--remote-components", "ejs:github"}
 
 func cookieArgs(cookiesFile string) []string {
 	if cookiesFile == "" {
