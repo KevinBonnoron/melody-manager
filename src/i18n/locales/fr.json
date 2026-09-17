@@ -58,7 +58,19 @@
     "urlAdded": "Ajouté à la bibliothèque",
     "added": "Ajouté",
     "openSource": "Ouvrir la source",
-    "clear": "Effacer la recherche"
+    "clear": "Effacer la recherche",
+    "previewTracks": "Aperçu des pistes",
+    "previewTracksFor": "Aperçu des pistes de « {{title}} »",
+    "previewRegion": "Pistes de « {{title}} »",
+    "previewRegionLink": "Pistes du lien collé",
+    "previewLoading": "Lecture de la source…",
+    "previewFailed": "Impossible de lire les pistes de cette source",
+    "previewRetry": "Réessayer",
+    "previewEmpty": "Aucune piste trouvée sur cette source",
+    "previewCount_one": "{{count}} piste à importer",
+    "previewCount_other": "{{count}} pistes à importer",
+    "previewSegmentRange": "de {{start}} à {{end}}",
+    "previewSegmentDuration": "durée {{duration}}"
   },
   "SourcesPage": {
     "title": "Sources",

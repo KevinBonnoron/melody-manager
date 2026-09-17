@@ -1,8 +1,8 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { IFuseOptions } from 'fuse.js';
 import Fuse from 'fuse.js';
-import { ArrowRight, Clock, ExternalLink, Library, Link as LinkIcon, Loader2, Music2, Plus, Search, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, Clock, ExternalLink, Library, Link as LinkIcon, ListMusic, Loader2, Music2, Plus, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { albumsClient } from '@/clients/albums.client';
@@ -20,12 +20,15 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { artistNames, resolveAll, useArtistsById } from '@/hooks/use-library-index';
 import { usePlugins } from '@/hooks/use-plugins';
 import { useRecordSearch, useSearchHistory } from '@/hooks/use-search-history';
+import { useTrackPreviews } from '@/hooks/use-track-previews';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
 import { getSourceColor } from '@/lib/source-colors';
 import { cn, formatDuration, getProviderColor } from '@/lib/utils';
 import type { Album, Artist, SearchResult, SearchType, Track } from '@/shared';
 import { isAlbumResult, isArtistResult, isPlaylistResult, isTrackResult } from '@/shared';
+import { announcedPreview, shownPreviews, supportsTrackPreview } from './track-preview';
+import { TrackPreviewPanel } from './track-preview-panel';
 
 type Scope = string;
 const ALL: Scope = 'all';
@@ -114,9 +117,13 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const [isSearchingExternal, setIsSearchingExternal] = useState(false);
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
+  const { previews, expanded: openPreviews, lastChanged: lastPreview, toggle: togglePreview, retry: retryPreview } = useTrackPreviews();
+  const previewIdPrefix = useId();
 
   const trimmedQuery = query.trim();
   const urlMatch = useMemo(() => detectUrlSource(trimmedQuery), [trimmedQuery]);
+  const urlPreviewId = `${previewIdPrefix}-url`;
+  const isUrlPreviewOpen = urlMatch !== null && supportsTrackPreview(urlMatch) && openPreviews.has(trimmedQuery);
   useRecordSearch(query, !urlMatch);
 
   const libraryResults = useMemo(() => {
@@ -224,6 +231,43 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
   const suggestedAlbums = useMemo(() => albums.slice(0, 4), [albums]);
   const visibleExternal = useMemo(() => (scope === ALL ? externalResults : externalResults.filter((r) => r.provider === scope)), [externalResults, scope]);
+
+  const shownPreviewUrls = useMemo(() => {
+    const drawn = visibleExternal.filter((result) => isTrackResult(result) && supportsTrackPreview(result.provider)).map((result) => result.origin);
+    return shownPreviews(openPreviews, isUrlPreviewOpen ? [trimmedQuery, ...drawn] : drawn);
+  }, [visibleExternal, openPreviews, isUrlPreviewOpen, trimmedQuery]);
+
+  const announced = useMemo(() => announcedPreview(previews, shownPreviewUrls, lastPreview), [previews, shownPreviewUrls, lastPreview]);
+  const announcedUrl = announced === undefined ? null : lastPreview;
+  const previewAnnouncement = useMemo(() => {
+    if (announced === undefined) {
+      return '';
+    }
+
+    if (announced.status === 'loading') {
+      return t('SearchPage.previewLoading');
+    }
+
+    if (announced.status === 'error') {
+      return t('SearchPage.previewFailed');
+    }
+
+    return t('SearchPage.previewCount', { count: announced.tracks.length });
+  }, [announced, t]);
+
+  const [spokenPreview, setSpokenPreview] = useState('');
+  useEffect(() => {
+    // A live region reads a message once: two previews that load, fail or hold the same number
+    // of tracks say the same words, and the second is dropped unless the region is emptied
+    // first and filled again on a later frame.
+    setSpokenPreview('');
+    if (announcedUrl === null || previewAnnouncement === '') {
+      return undefined;
+    }
+
+    const frame = requestAnimationFrame(() => setSpokenPreview(previewAnnouncement));
+    return () => cancelAnimationFrame(frame);
+  }, [previewAnnouncement, announcedUrl]);
 
   const items = useMemo<Array<{ key: string; run: () => void; keepOpen?: boolean }>>(
     () => [
@@ -363,12 +407,19 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
               <div className="text-xs text-muted-foreground truncate mt-0.5">{trimmedQuery.length > 60 ? `${trimmedQuery.slice(0, 60)}…` : trimmedQuery}</div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleAddUrl}>
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               {t('SearchPage.addToLibrary')}
             </Button>
+            {supportsTrackPreview(urlMatch) && (
+              <Button size="sm" variant="outline" aria-expanded={isUrlPreviewOpen} aria-controls={isUrlPreviewOpen ? urlPreviewId : undefined} onClick={() => togglePreview(trimmedQuery)}>
+                <ListMusic className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                {t('SearchPage.previewTracks')}
+              </Button>
+            )}
           </div>
+          {isUrlPreviewOpen && <TrackPreviewPanel id={urlPreviewId} label={t('SearchPage.previewRegionLink')} state={previews.get(trimmedQuery)} onRetry={() => retryPreview(trimmedQuery)} />}
         </div>
       )}
 
@@ -528,15 +579,18 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
           <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(520px,1fr))]">
             {!isSearchingExternal &&
-              visibleExternal.map((result) => {
+              visibleExternal.map((result, index) => {
                 const title = isTrackResult(result) ? result.title : (result as { name: string }).name;
                 const subtitle = isTrackResult(result) ? [result.artist, result.album].filter(Boolean).join(' · ') : isAlbumResult(result) ? result.artist : isArtistResult(result) ? (result.genres?.join(', ') ?? '') : '';
                 const image = result.coverUrl;
                 const isAdding = addingUrls.has(result.origin);
                 const isAdded = addedUrls.has(result.origin) || result.libraryStatus?.isInLibrary;
+                const canPreview = isTrackResult(result) && supportsTrackPreview(result.provider);
+                const previewId = `${previewIdPrefix}-external-${index}`;
+                const isPreviewOpen = canPreview && openPreviews.has(result.origin);
 
                 return (
-                  <div key={result.origin} data-key={`external-${result.origin}`} className={cn('flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted/30', activeKey === `external-${result.origin}` && 'bg-muted/40 ring-1 ring-inset ring-primary/50')}>
+                  <div key={result.origin} data-key={`external-${result.origin}`} className={cn('flex flex-wrap items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted/30', activeKey === `external-${result.origin}` && 'bg-muted/40 ring-1 ring-inset ring-primary/50')}>
                     <div className="w-11 h-11 rounded-md overflow-hidden bg-muted shrink-0 grid place-items-center" style={{ background: image ? undefined : `linear-gradient(135deg, ${getSourceColor(result.provider)}44, ${getSourceColor(result.provider)}18)` }}>
                       {image ? <img src={image} alt={title} className="w-full h-full object-cover" /> : <Music2 className="h-4 w-4 text-foreground/70" />}
                     </div>
@@ -548,6 +602,19 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                       </div>
                     </div>
                     <span className={`w-[76px] shrink-0 rounded border px-1.5 py-0.5 text-center text-[10px] ${getProviderColor(result.provider)}`}>{result.provider}</span>
+                    {canPreview && (
+                      <button
+                        type="button"
+                        aria-expanded={isPreviewOpen}
+                        aria-controls={isPreviewOpen ? previewId : undefined}
+                        onClick={() => togglePreview(result.origin)}
+                        className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50', isPreviewOpen && 'bg-muted/60 text-foreground')}
+                        title={t('SearchPage.previewTracks')}
+                        aria-label={t('SearchPage.previewTracksFor', { title })}
+                      >
+                        <ListMusic className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    )}
                     <a
                       href={result.origin}
                       target="_blank"
@@ -571,12 +638,17 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                         </>
                       )}
                     </Button>
+                    {isPreviewOpen && <TrackPreviewPanel id={previewId} label={t('SearchPage.previewRegion', { title })} state={previews.get(result.origin)} onRetry={() => retryPreview(result.origin)} className="w-full" />}
                   </div>
                 );
               })}
           </div>
         </div>
       )}
+
+      <output aria-live="polite" className="sr-only">
+        {spokenPreview}
+      </output>
     </div>
   );
 }

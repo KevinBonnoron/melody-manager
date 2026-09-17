@@ -58,7 +58,19 @@
     "urlAdded": "Added to library",
     "added": "Added",
     "openSource": "Open the source",
-    "clear": "Clear the search"
+    "clear": "Clear the search",
+    "previewTracks": "Preview the tracks",
+    "previewTracksFor": "Preview the tracks of \"{{title}}\"",
+    "previewRegion": "Tracks of \"{{title}}\"",
+    "previewRegionLink": "Tracks of the pasted link",
+    "previewLoading": "Reading the source…",
+    "previewFailed": "The tracks of this source could not be read",
+    "previewRetry": "Try again",
+    "previewEmpty": "No track found on this source",
+    "previewCount_one": "{{count}} track to import",
+    "previewCount_other": "{{count}} tracks to import",
+    "previewSegmentRange": "from {{start}} to {{end}}",
+    "previewSegmentDuration": "duration {{duration}}"
   },
   "SourcesPage": {
     "title": "Sources",
