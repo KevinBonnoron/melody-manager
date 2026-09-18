@@ -251,6 +251,74 @@
   --sidebar-ring: oklch(0.55 0.16 240);
 }
 
+[data-accent="orange"] {
+  --hue: 40;
+  --primary: oklch(0.56 0.17 40);
+  --ring: oklch(0.51 0.17 40);
+  --sidebar-primary: oklch(0.51 0.17 40);
+  --sidebar-ring: oklch(0.51 0.17 40);
+}
+
+.dark[data-accent="orange"],
+.dark [data-accent="orange"] {
+  --hue: 45;
+  --primary: oklch(0.6 0.16 45);
+  --ring: oklch(0.6 0.16 45);
+  --sidebar-primary: oklch(0.6 0.16 45);
+  --sidebar-ring: oklch(0.6 0.16 45);
+}
+
+[data-accent="lime"] {
+  --hue: 130;
+  --primary: oklch(0.54 0.16 130);
+  --ring: oklch(0.49 0.16 130);
+  --sidebar-primary: oklch(0.49 0.16 130);
+  --sidebar-ring: oklch(0.49 0.16 130);
+}
+
+.dark[data-accent="lime"],
+.dark [data-accent="lime"] {
+  --hue: 130;
+  --primary: oklch(0.6 0.15 130);
+  --ring: oklch(0.6 0.15 130);
+  --sidebar-primary: oklch(0.6 0.15 130);
+  --sidebar-ring: oklch(0.6 0.15 130);
+}
+
+[data-accent="cyan"] {
+  --hue: 200;
+  --primary: oklch(0.54 0.13 200);
+  --ring: oklch(0.49 0.13 200);
+  --sidebar-primary: oklch(0.49 0.13 200);
+  --sidebar-ring: oklch(0.49 0.13 200);
+}
+
+.dark[data-accent="cyan"],
+.dark [data-accent="cyan"] {
+  --hue: 200;
+  --primary: oklch(0.6 0.13 200);
+  --ring: oklch(0.6 0.13 200);
+  --sidebar-primary: oklch(0.6 0.13 200);
+  --sidebar-ring: oklch(0.6 0.13 200);
+}
+
+[data-accent="fuchsia"] {
+  --hue: 325;
+  --primary: oklch(0.52 0.22 325);
+  --ring: oklch(0.47 0.22 325);
+  --sidebar-primary: oklch(0.47 0.22 325);
+  --sidebar-ring: oklch(0.47 0.22 325);
+}
+
+.dark[data-accent="fuchsia"],
+.dark [data-accent="fuchsia"] {
+  --hue: 328;
+  --primary: oklch(0.6 0.2 328);
+  --ring: oklch(0.6 0.2 328);
+  --sidebar-primary: oklch(0.6 0.2 328);
+  --sidebar-ring: oklch(0.6 0.2 328);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

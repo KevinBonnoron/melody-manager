@@ -6,7 +6,7 @@ type Resolved = 'dark' | 'light';
 
 const DARK = '(prefers-color-scheme: dark)';
 
-export const ACCENTS = ['violet', 'emerald', 'amber', 'rose', 'sky'] as const;
+export const ACCENTS = ['violet', 'fuchsia', 'rose', 'orange', 'amber', 'lime', 'emerald', 'cyan', 'sky'] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 export const PROGRESS_SHAPES = ['bars', 'columns', 'wave', 'plain'] as const;
