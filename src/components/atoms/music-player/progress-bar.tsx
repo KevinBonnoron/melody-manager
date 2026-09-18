@@ -98,43 +98,45 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
   return (
     <div className="flex items-center gap-2">
       <span className="w-10 shrink-0 text-right text-[10.5px] tabular-nums text-muted-foreground">{formatDuration(currentTime)}</span>
-      <div
-        ref={trackRef}
-        className="group relative h-7 flex-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        role="slider"
-        tabIndex={0}
-        aria-label={t('MusicPlayer.seek')}
-        aria-valuemin={0}
-        aria-valuemax={duration}
-        aria-valuenow={currentTime}
-        onClick={(event) => seekTo(event.clientX, event.currentTarget.getBoundingClientRect())}
-        onKeyDown={(event) => {
-          const step = event.shiftKey ? 10 : 5;
-          if (event.key === 'ArrowRight') {
-            event.preventDefault();
-            onSeek(Math.min(currentTime + step, duration));
-          } else if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            onSeek(Math.max(currentTime - step, 0));
-          }
-        }}
-      >
-        {bars.length > 0 ? (
-          <>
-            <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-muted-foreground/40" pending={pending} />
-            <div ref={fillRef} className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden" style={{ width: at }}>
-              <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={pending} />
+      <div className="relative h-7 flex-1">
+        <div
+          ref={trackRef}
+          className="absolute inset-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          role="slider"
+          tabIndex={0}
+          aria-label={t('MusicPlayer.seek')}
+          aria-valuemin={0}
+          aria-valuemax={duration}
+          aria-valuenow={currentTime}
+          onClick={(event) => seekTo(event.clientX, event.currentTarget.getBoundingClientRect())}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 10 : 5;
+            if (event.key === 'ArrowRight') {
+              event.preventDefault();
+              onSeek(Math.min(currentTime + step, duration));
+            } else if (event.key === 'ArrowLeft') {
+              event.preventDefault();
+              onSeek(Math.max(currentTime - step, 0));
+            }
+          }}
+        >
+          {bars.length > 0 ? (
+            <>
+              <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-muted-foreground/40" pending={pending} />
+              <div ref={fillRef} className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden" style={{ width: at }}>
+                <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={pending} />
+              </div>
+            </>
+          ) : (
+            <div className="flex h-full items-center">
+              <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
+                <div ref={fillRef} className="h-full rounded-full bg-primary" style={{ width: at }} />
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="flex h-full items-center">
-            <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
-              <div ref={fillRef} className="h-full rounded-full bg-primary" style={{ width: at }} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {progressCursor && bars.length > 0 && <div ref={cursorRef} className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: at }} />}
+          {progressCursor && bars.length > 0 && <div ref={cursorRef} className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: at }} />}
+        </div>
 
         {chapters.map((chapter) => (
           <Tooltip key={chapter.startTime}>
@@ -144,10 +146,7 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
                 aria-label={t('MusicPlayer.jumpToChapter', { title: chapter.title, at: formatDuration(chapter.startTime) })}
                 className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 cursor-pointer bg-foreground/40 hover:bg-foreground/60"
                 style={{ left: `${(chapter.startTime / duration) * 100}%` }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSeek(chapter.startTime);
-                }}
+                onClick={() => onSeek(chapter.startTime)}
               />
             </TooltipTrigger>
             <TooltipContent>
