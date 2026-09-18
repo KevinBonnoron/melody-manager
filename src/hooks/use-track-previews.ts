@@ -1,11 +1,18 @@
 import { useSyncExternalStore } from 'react';
 import { tracksClient } from '@/clients/tracks.client';
 import type { ResolvedTrack } from '@/shared';
+import { readCache, type TimedCache, type TimedCacheLimits, writeCache } from './timed-cache';
 
 export type TrackPreviewState = { status: 'loading' } | { status: 'ready'; tracks: ResolvedTrack[] } | { status: 'error'; cause: string };
 
+// Held longer than a search is: what a video is cut into barely moves, and asking again costs a
+// yt-dlp run that reads the description and, on a long video, the comments too.
+const LIMITS: TimedCacheLimits = { ttlMs: 30 * 60 * 1000, maxEntries: 20 };
+
+export type TrackPreviews = TimedCache<TrackPreviewState>;
+
 interface PreviewStore {
-  previews: ReadonlyMap<string, TrackPreviewState>;
+  previews: TrackPreviews;
   expanded: ReadonlySet<string>;
   lastChanged: string | null;
 }
@@ -33,8 +40,8 @@ function getSnapshot(): PreviewStore {
 }
 
 function record(url: string, state: TrackPreviewState) {
-  const previews = new Map(store.previews);
-  previews.set(url, state);
+  const previews: TrackPreviews = new Map(store.previews);
+  writeCache(previews, url, state, Date.now(), LIMITS);
   publish({ ...store, previews, lastChanged: url });
 }
 
@@ -70,7 +77,7 @@ function toggle(url: string) {
   }
 
   publish({ ...store, expanded, lastChanged: collapsing ? store.lastChanged : url });
-  if (!collapsing && store.previews.get(url)?.status !== 'ready') {
+  if (!collapsing && readCache(store.previews, url, Date.now(), LIMITS)?.status !== 'ready') {
     void load(url);
   }
 }
