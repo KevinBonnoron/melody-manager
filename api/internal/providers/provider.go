@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"strings"
 
@@ -99,10 +100,27 @@ func (r *Registry) StreamResolver(id string) StreamResolver {
 }
 
 // DetectFromURL returns the provider id whose manifest urlPatterns match, or "".
-func DetectFromURL(url string) string {
+//
+// A pattern ending in ":" is one of our own source ids, matched on the front of the string.
+// Every other pattern is a domain, and a domain is only the host: looked for anywhere in the
+// string it is also found in a query, a path or a userinfo, and the link
+// http://169.254.169.254/?x=youtube.com would be handed to yt-dlp as if YouTube had written it.
+func DetectFromURL(raw string) string {
+	host := ""
+	if u, err := url.Parse(raw); err == nil {
+		host = strings.ToLower(u.Hostname())
+	}
+
 	for _, mf := range manifests {
 		for _, p := range mf.URLPatterns {
-			if strings.Contains(url, strings.TrimSuffix(p, ":")) {
+			if strings.HasSuffix(p, ":") {
+				if strings.HasPrefix(raw, p) {
+					return mf.ID
+				}
+				continue
+			}
+
+			if host == p || strings.HasSuffix(host, "."+p) {
 				return mf.ID
 			}
 		}
