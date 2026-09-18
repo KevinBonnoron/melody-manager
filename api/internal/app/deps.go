@@ -9,6 +9,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/cache"
 	"github.com/KevinBonnoron/melody-manager/api/internal/config"
 	"github.com/KevinBonnoron/melody-manager/api/internal/devices"
+	"github.com/KevinBonnoron/melody-manager/api/internal/player"
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
 )
@@ -20,6 +21,7 @@ type Deps struct {
 	Devices  *devices.Service
 	Cache    *cache.Cache
 	Config   *config.Store
+	Player   *player.Service
 }
 
 // New builds the default dependency set.
