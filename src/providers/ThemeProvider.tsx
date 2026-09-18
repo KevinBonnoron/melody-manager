@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 
+type Resolved = 'dark' | 'light';
+
+const DARK = '(prefers-color-scheme: dark)';
+
 export const ACCENTS = ['violet', 'emerald', 'amber', 'rose', 'sky'] as const;
 export type Accent = (typeof ACCENTS)[number];
 
@@ -13,6 +17,7 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme;
+  resolvedTheme: Resolved;
   setTheme: (theme: Theme) => void;
   accent: Accent;
   setAccent: (accent: Accent) => void;
@@ -20,6 +25,7 @@ type ThemeProviderState = {
 
 const initialState: ThemeProviderState = {
   theme: 'system',
+  resolvedTheme: 'dark',
   setTheme: () => null,
   accent: 'violet',
   setAccent: () => null,
@@ -36,27 +42,35 @@ export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 
   useEffect(() => {
     window.document.documentElement.dataset.accent = accent;
   }, [accent]);
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia(DARK).matches);
+  useEffect(() => {
+    const query = window.matchMedia(DARK);
+    const follow = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    query.addEventListener('change', follow);
+    setSystemDark(query.matches);
+    return () => {
+      query.removeEventListener('change', follow);
+    };
+  }, []);
+
+  const resolved: Resolved = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.add('disable-transitions');
     root.classList.remove('light', 'dark');
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(theme);
-    }
+    root.classList.add(resolved);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         root.classList.remove('disable-transitions');
       });
     });
-  }, [theme]);
+  }, [resolved]);
 
   const value = {
     theme,
+    resolvedTheme: resolved,
     setTheme: (theme: Theme) => {
       localStorage.setItem(storageKey, theme);
       setTheme(theme);
