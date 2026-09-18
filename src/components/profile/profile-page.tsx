@@ -4,6 +4,7 @@ import { useAuth } from 'pocketbase-react-hooks';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { SectionTabs } from '@/components/atoms/section-tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,8 +16,11 @@ import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
 import { AppearanceSettings } from './appearance-settings';
 
+type Section = 'account' | 'security' | 'appearance';
+
 export function ProfilePage() {
   const { t } = useTranslation();
+  const [section, setSection] = useState<Section>('account');
   const user = useAuthUser();
   const { signOut, signIn } = useAuth();
   const navigate = useNavigate();
@@ -135,19 +139,31 @@ export function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <SectionTabs<Section>
+        tabs={[
+          { id: 'account', label: t('ProfilePage.sections.account') },
+          { id: 'security', label: t('ProfilePage.sections.security') },
+          { id: 'appearance', label: t('ProfilePage.sections.appearance') },
+        ]}
+        active={section}
+        onChange={setSection}
+      />
+
+      {section === 'account' && (
         <Card className="p-4">
           <form onSubmit={handleUpdateName} className="space-y-3">
-            <Label htmlFor="name">{t('ProfilePage.name')}</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isUpdatingName} />
+            <h3 className="font-semibold">{t('ProfilePage.name')}</h3>
+            <Input id="name" aria-label={t('ProfilePage.name')} value={name} onChange={(e) => setName(e.target.value)} disabled={isUpdatingName} />
             <Button type="submit" size="sm" disabled={isUpdatingName || name.trim() === user.name}>
               {isUpdatingName && <Loader2 className="h-4 w-4 animate-spin" />}
               {t('ProfilePage.save')}
             </Button>
           </form>
         </Card>
+      )}
 
-        <Card className="p-4 lg:row-span-2">
+      {section === 'security' && (
+        <Card className="p-4">
           <form onSubmit={handleUpdatePassword} className="space-y-3">
             <h3 className="font-semibold">{t('ProfilePage.changePassword')}</h3>
             <div className="space-y-2">
@@ -168,11 +184,9 @@ export function ProfilePage() {
             </Button>
           </form>
         </Card>
+      )}
 
-        <Card className="p-4">
-          <AppearanceSettings />
-        </Card>
-      </div>
+      {section === 'appearance' && <AppearanceSettings />}
 
       <Separator />
 
