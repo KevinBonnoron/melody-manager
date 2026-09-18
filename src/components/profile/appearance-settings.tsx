@@ -24,7 +24,7 @@ export function AppearanceSettings() {
         <Label>{t('Appearance.mode')}</Label>
         <div className="flex flex-wrap gap-2">
           {MODES.map(({ id, icon: Icon }) => (
-            <Button key={id} type="button" variant={theme === id ? 'default' : 'outline'} size="sm" onClick={() => setTheme(id)}>
+            <Button key={id} type="button" variant={theme === id ? 'default' : 'outline'} size="sm" aria-pressed={theme === id} onClick={() => setTheme(id)}>
               <Icon className="h-4 w-4 mr-1.5" />
               {t(`Appearance.${id}`)}
             </Button>
