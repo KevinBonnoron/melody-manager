@@ -91,7 +91,7 @@ export function LibraryPage() {
           </Section>
         )}
 
-        {shows('playlists') && playlists.length > 0 && (
+        {shows('playlists') && (playlists.length > 0 || isAll) && (
           <Section title={t('LibraryPage.playlists')} count={playlists.length} bare={!isAll}>
             <CardGrid items={playlists} getKey={(playlist) => playlist.id} className={CARD_GRID} fallbackHeight={246} trailing={<NewPlaylistCard onClick={() => setCreateOpen(true)} />}>
               {(playlist) => <PlaylistCard playlist={playlist} />}
