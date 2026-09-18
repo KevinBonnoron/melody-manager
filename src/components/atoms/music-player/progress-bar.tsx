@@ -93,11 +93,12 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
   };
 
   const pending = loading;
-  const at = `${Math.min(1, Math.max(0, currentTime / duration)) * 100}%`;
+  const position = Math.min(Math.max(currentTime, 0), duration);
+  const at = `${duration > 0 ? (position / duration) * 100 : 0}%`;
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-10 shrink-0 text-right text-[10.5px] tabular-nums text-muted-foreground">{formatDuration(currentTime)}</span>
+      <span className="w-10 shrink-0 text-right text-[10.5px] tabular-nums text-muted-foreground">{formatDuration(position)}</span>
       <div className="relative h-7 flex-1">
         <div
           ref={trackRef}
@@ -107,16 +108,16 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
           aria-label={t('MusicPlayer.seek')}
           aria-valuemin={0}
           aria-valuemax={duration}
-          aria-valuenow={currentTime}
+          aria-valuenow={position}
           onClick={(event) => seekTo(event.clientX, event.currentTarget.getBoundingClientRect())}
           onKeyDown={(event) => {
             const step = event.shiftKey ? 10 : 5;
             if (event.key === 'ArrowRight') {
               event.preventDefault();
-              onSeek(Math.min(currentTime + step, duration));
+              onSeek(Math.min(position + step, duration));
             } else if (event.key === 'ArrowLeft') {
               event.preventDefault();
-              onSeek(Math.max(currentTime - step, 0));
+              onSeek(Math.max(position - step, 0));
             }
           }}
         >
