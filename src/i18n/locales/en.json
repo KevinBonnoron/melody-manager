@@ -792,7 +792,12 @@
     "passwordTooShort": "Password must be at least 8 characters",
     "passwordsMismatch": "Passwords do not match",
     "avatarUpdated": "Avatar updated successfully",
-    "avatarUpdateError": "Failed to update avatar"
+    "avatarUpdateError": "Failed to update avatar",
+    "sections": {
+      "account": "Account",
+      "security": "Security",
+      "appearance": "Appearance"
+    }
   },
   "PasswordField": {
     "showPassword": "Show password",

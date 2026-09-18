@@ -21,7 +21,7 @@ export function AppearanceSettings() {
   return (
     <div className="space-y-4">
       <Card className="space-y-2 p-4">
-        <Label>{t('Appearance.mode')}</Label>
+        <h3 className="font-semibold">{t('Appearance.mode')}</h3>
         <div className="flex flex-wrap gap-2">
           {MODES.map(({ id, icon: Icon }) => (
             <Button key={id} type="button" variant={theme === id ? 'default' : 'outline'} size="sm" aria-pressed={theme === id} onClick={() => setTheme(id)}>
@@ -33,7 +33,7 @@ export function AppearanceSettings() {
       </Card>
 
       <Card className="space-y-2 p-4">
-        <Label>{t('Appearance.colour')}</Label>
+        <h3 className="font-semibold">{t('Appearance.colour')}</h3>
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((value: Accent) => (
             <button
@@ -53,7 +53,7 @@ export function AppearanceSettings() {
       </Card>
 
       <Card className="space-y-2 p-4">
-        <Label>{t('Appearance.progress')}</Label>
+        <h3 className="font-semibold">{t('Appearance.progress')}</h3>
         <div className="grid gap-2 sm:grid-cols-3">
           {PROGRESS_SHAPES.map((id: ProgressShape) => (
             <div key={id} className={cn('group relative flex flex-col rounded-lg border transition-colors', progressShape === id ? 'border-primary bg-primary-soft' : 'border-border hover:border-muted-foreground/40')}>

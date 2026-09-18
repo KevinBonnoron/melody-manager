@@ -792,7 +792,12 @@
     "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "avatarUpdated": "Avatar mis à jour avec succès",
-    "avatarUpdateError": "Impossible de mettre à jour l'avatar"
+    "avatarUpdateError": "Impossible de mettre à jour l'avatar",
+    "sections": {
+      "account": "Compte",
+      "security": "Sécurité",
+      "appearance": "Apparence"
+    }
   },
   "PasswordField": {
     "showPassword": "Afficher le mot de passe",
