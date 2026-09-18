@@ -1,164 +1,168 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import WaveSurfer from 'wavesurfer.js';
-import { tracksClient } from '@/clients/tracks.client';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useMusicPlayer } from '@/contexts/music-player-context';
+import { type PlayheadSource, usePlayhead } from '@/hooks/use-playhead';
+import { useTrackPeaks } from '@/hooks/use-track-peaks';
+import { cn, formatDuration } from '@/lib/utils';
 
-export function ProgressBar() {
+const BAR_WIDTH = 2;
+const BAR_GAP = 1;
+const PLACEHOLDER_BAR = 0.3;
+
+interface Chapter {
+  startTime: number;
+  title: string;
+}
+
+interface Props extends PlayheadSource {
+  trackId?: string;
+  chapters?: Chapter[];
+  onSeek: (time: number) => void;
+}
+
+export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, seek, audioElement } = useMusicPlayer();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
-  const seekRef = useRef(seek);
-  seekRef.current = seek;
-  const [peaks, setPeaks] = useState<number[] | null>(null);
-  useEffect(() => {
-    if (!currentTrack) {
+  const { currentTime, duration } = source;
+  const { peaks, loading } = useTrackPeaks(trackId, true);
+
+  const [barCount, setBarCount] = useState(0);
+  const observerRef = useRef<ResizeObserver | null>(null);
+  const trackRef = useCallback((element: HTMLDivElement | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    if (!element) {
       return;
     }
 
-    let stale = false;
-    setPeaks(null);
-    tracksClient
-      .getPeaks(currentTrack.id)
-      .then((res) => {
-        if (!stale) {
-          setPeaks(res.peaks);
-        }
-      })
-      .catch(() => {
-        if (!stale) {
-          setPeaks([]);
-        }
-      });
-    return () => {
-      stale = true;
-    };
-  }, [currentTrack]);
+    const measure = () => setBarCount(Math.max(0, Math.floor(element.clientWidth / (BAR_WIDTH + BAR_GAP))));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    observerRef.current = observer;
+  }, []);
 
-  useEffect(() => {
-    if (!containerRef.current || !audioElement || !currentTrack || !peaks?.length) {
-      return;
+  const bars = useMemo(() => {
+    if (barCount === 0) {
+      return [];
     }
 
-    wavesurferRef.current?.destroy();
+    if (peaks.length === 0) {
+      return Array.from({ length: barCount }, () => PLACEHOLDER_BAR);
+    }
 
-    const getColor = (className: string) => {
-      const el = document.createElement('div');
-      el.className = className;
-      el.style.display = 'none';
-      document.body.appendChild(el);
-      const color = getComputedStyle(el).color;
-      document.body.removeChild(el);
-      return color || undefined;
-    };
-    const primaryColor = getColor('text-primary') ?? '#6366f1';
-    const mutedColor = getColor('text-muted-foreground') ?? '#9ca3af';
-    const ws = WaveSurfer.create({
-      container: containerRef.current,
-      media: audioElement,
-      peaks: peaks.length > 0 ? [peaks] : undefined,
-      duration: currentTrack.duration,
-      height: 28,
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
-      waveColor: mutedColor,
-      progressColor: primaryColor,
-      cursorWidth: 0,
-      interact: true,
-      normalize: true,
+    const step = peaks.length / barCount;
+    const loudest = Math.max(...peaks.map(Math.abs), 0.0001);
+    return Array.from({ length: barCount }, (_, i) => {
+      const from = Math.floor(i * step);
+      const to = Math.max(from + 1, Math.floor((i + 1) * step));
+      let max = 0;
+      for (let j = from; j < to && j < peaks.length; j++) {
+        max = Math.max(max, Math.abs(peaks[j]));
+      }
+
+      return max / loudest;
     });
+  }, [peaks, barCount]);
 
-    ws.on('interaction', (newTime) => {
-      seekRef.current(newTime);
-    });
+  const fillRef = useRef<HTMLDivElement>(null);
+  usePlayhead(
+    source,
+    useCallback((ratio: number) => {
+      if (fillRef.current) {
+        fillRef.current.style.width = `${ratio * 100}%`;
+      }
+    }, []),
+  );
 
-    wavesurferRef.current = ws;
-
-    return () => {
-      ws.destroy();
-      wavesurferRef.current = null;
-    };
-  }, [currentTrack, audioElement, peaks]);
-
-  if (!currentTrack) {
+  if (duration <= 0) {
     return null;
   }
 
-  const chapters = currentTrack.metadata?.chapters ?? [];
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    return hours > 0 ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}` : `${mins}:${secs.toString().padStart(2, '0')}`;
+  const seekTo = (clientX: number, rect: DOMRect) => {
+    if (rect.width > 0) {
+      onSeek(Math.max(0, Math.min(duration, ((clientX - rect.left) / rect.width) * duration)));
+    }
   };
 
-  const progressPercent = currentTrack.duration > 0 ? (currentTime / currentTrack.duration) * 100 : 0;
-  const handleSimpleBarClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    seek(ratio * currentTrack.duration);
-  };
+  const pending = loading;
+  const at = `${Math.min(1, Math.max(0, currentTime / duration)) * 100}%`;
 
   return (
-    <div className="relative w-full min-h-[28px]">
-      {peaks === null || peaks.length === 0 ? (
-        <button type="button" className="mx-10 h-[28px] w-[calc(100%-5rem)] flex items-center cursor-pointer" onClick={handleSimpleBarClick} aria-label={t('MusicPlayer.seek')}>
-          <div className="relative w-full h-1 bg-muted-foreground/30 rounded-full overflow-hidden">
-            <div className="absolute inset-y-0 left-0 bg-primary rounded-full transition-none" style={{ width: `${progressPercent}%` }} />
+    <div className="flex items-center gap-2">
+      <span className="w-10 shrink-0 text-right text-[10.5px] tabular-nums text-muted-foreground">{formatDuration(currentTime)}</span>
+      <div
+        ref={trackRef}
+        className="group relative h-7 flex-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        role="slider"
+        tabIndex={0}
+        aria-label={t('MusicPlayer.seek')}
+        aria-valuemin={0}
+        aria-valuemax={duration}
+        aria-valuenow={currentTime}
+        onClick={(event) => seekTo(event.clientX, event.currentTarget.getBoundingClientRect())}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 : 5;
+          if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            onSeek(Math.min(currentTime + step, duration));
+          } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            onSeek(Math.max(currentTime - step, 0));
+          }
+        }}
+      >
+        {bars.length > 0 ? (
+          <>
+            <Shape bars={bars} className="text-muted-foreground/40" pending={pending} />
+            <div ref={fillRef} className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden" style={{ width: at }}>
+              <Shape bars={bars} className="text-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={pending} />
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full items-center">
+            <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
+              <div ref={fillRef} className="h-full rounded-full bg-primary" style={{ width: at }} />
+            </div>
           </div>
-        </button>
-      ) : (
+        )}
+
+        {chapters.map((chapter) => (
+          <Tooltip key={chapter.startTime}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={t('MusicPlayer.jumpToChapter', { title: chapter.title, at: formatDuration(chapter.startTime) })}
+                className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 cursor-pointer bg-foreground/40 hover:bg-foreground/60"
+                style={{ left: `${(chapter.startTime / duration) * 100}%` }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSeek(chapter.startTime);
+                }}
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">{chapter.title}</p>
+              <p className="text-xs text-muted-foreground">{formatDuration(chapter.startTime)}</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+      <span className="w-10 shrink-0 text-[10.5px] tabular-nums text-muted-foreground">{formatDuration(duration)}</span>
+    </div>
+  );
+}
+
+function Shape({ bars, className, width, pending }: { bars: number[]; className: string; width?: number; pending?: boolean }) {
+  return (
+    <div className={cn('flex h-full items-center', className, pending && 'animate-pulse')} style={{ width: width ? `${width}px` : undefined, gap: `${BAR_GAP}px` }}>
+      {bars.map((value, index) => (
         <div
-          ref={containerRef}
-          className="cursor-pointer mx-10 [&_canvas]:!bg-transparent"
-          aria-label={t('MusicPlayer.seekWaveform')}
-          role="slider"
-          tabIndex={0}
-          aria-valuenow={currentTime}
-          aria-valuemin={0}
-          aria-valuemax={currentTrack.duration || 0}
-          onKeyDown={(e) => {
-            const step = e.shiftKey ? 10 : 5;
-            if (e.key === 'ArrowRight') {
-              seek(Math.min(currentTime + step, currentTrack.duration));
-            } else if (e.key === 'ArrowLeft') {
-              seek(Math.max(currentTime - step, 0));
-            }
-          }}
+          // biome-ignore lint/suspicious/noArrayIndexKey: bars are a fixed-length resampling, position is the identity
+          key={index}
+          className="shrink-0 rounded-[1px] bg-current"
+          style={{ width: `${BAR_WIDTH}px`, height: `${Math.max(1, value * 100)}%` }}
         />
-      )}
-      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none tabular-nums">{formatTime(currentTime)}</span>
-      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none tabular-nums">{formatTime(currentTrack.duration)}</span>
-      {chapters.length > 0 && (
-        <div className="absolute top-0 left-0 right-0 h-full pointer-events-none">
-          {chapters.map((chapter) => {
-            const position = currentTrack.duration > 0 ? (chapter.startTime / currentTrack.duration) * 100 : 0;
-            return (
-              <Tooltip key={chapter.startTime}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Jump to chapter ${chapter.title} at ${formatTime(chapter.startTime)}`}
-                    className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-foreground/40 pointer-events-auto cursor-pointer hover:bg-foreground/60"
-                    style={{ left: `${position}%` }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      seek(chapter.startTime);
-                    }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{chapter.title}</p>
-                  <p className="text-xs text-muted-foreground">{formatTime(chapter.startTime)}</p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-      )}
+      ))}
     </div>
   );
 }

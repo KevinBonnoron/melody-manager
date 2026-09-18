@@ -499,12 +499,12 @@
     "repeatOff": "Enable repeat",
     "repeatAll": "Repeat playlist",
     "repeatOne": "Repeat track",
-    "seekWaveform": "Waveform seek bar",
     "settings": "Playback settings",
     "settingsDescription": "Configure playback device and audio format",
     "like": "Like track",
     "unlike": "Remove from liked songs",
-    "volume": "Volume"
+    "volume": "Volume",
+    "jumpToChapter": "Jump to {{title}}, at {{at}}"
   },
   "DeviceSelector": {
     "selectDevice": "Select playback device",
