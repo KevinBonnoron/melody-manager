@@ -9,6 +9,12 @@ const DARK = '(prefers-color-scheme: dark)';
 export const ACCENTS = ['violet', 'emerald', 'amber', 'rose', 'sky'] as const;
 export type Accent = (typeof ACCENTS)[number];
 
+export const PROGRESS_SHAPES = ['bars', 'columns', 'wave', 'plain'] as const;
+export type ProgressShape = (typeof PROGRESS_SHAPES)[number];
+
+export const WAVE_STYLES = ['filled', 'stroked'] as const;
+export type WaveStyle = (typeof WAVE_STYLES)[number];
+
 type ThemeProviderProps = {
   children: React.ReactNode;
   defaultTheme?: Theme;
@@ -21,6 +27,12 @@ type ThemeProviderState = {
   setTheme: (theme: Theme) => void;
   accent: Accent;
   setAccent: (accent: Accent) => void;
+  progressShape: ProgressShape;
+  setProgressShape: (shape: ProgressShape) => void;
+  progressCursor: boolean;
+  setProgressCursor: (shown: boolean) => void;
+  waveStyle: WaveStyle;
+  setWaveStyle: (style: WaveStyle) => void;
 };
 
 const initialState: ThemeProviderState = {
@@ -29,6 +41,12 @@ const initialState: ThemeProviderState = {
   setTheme: () => null,
   accent: 'violet',
   setAccent: () => null,
+  progressShape: 'bars',
+  setProgressShape: () => null,
+  progressCursor: true,
+  setProgressCursor: () => null,
+  waveStyle: 'filled',
+  setWaveStyle: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
@@ -37,6 +55,18 @@ export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 
   const [accent, setAccent] = useState<Accent>(() => {
     const stored = localStorage.getItem(`${storageKey}-accent`) as Accent | null;
     return stored && ACCENTS.includes(stored) ? stored : 'violet';
+  });
+
+  const [progressShape, setProgressShape] = useState<ProgressShape>(() => {
+    const stored = localStorage.getItem(`${storageKey}-progress`) as ProgressShape | null;
+    return stored && PROGRESS_SHAPES.includes(stored) ? stored : 'bars';
+  });
+
+  const [progressCursor, setProgressCursor] = useState<boolean>(() => localStorage.getItem(`${storageKey}-cursor`) !== 'off');
+
+  const [waveStyle, setWaveStyle] = useState<WaveStyle>(() => {
+    const stored = localStorage.getItem(`${storageKey}-wave`) as WaveStyle | null;
+    return stored && WAVE_STYLES.includes(stored) ? stored : 'filled';
   });
 
   useEffect(() => {
@@ -79,6 +109,21 @@ export function ThemeProvider({ children, defaultTheme = 'system', storageKey = 
     setAccent: (accent: Accent) => {
       localStorage.setItem(`${storageKey}-accent`, accent);
       setAccent(accent);
+    },
+    progressShape,
+    setProgressShape: (shape: ProgressShape) => {
+      localStorage.setItem(`${storageKey}-progress`, shape);
+      setProgressShape(shape);
+    },
+    progressCursor,
+    setProgressCursor: (shown: boolean) => {
+      localStorage.setItem(`${storageKey}-cursor`, shown ? 'on' : 'off');
+      setProgressCursor(shown);
+    },
+    waveStyle,
+    setWaveStyle: (style: WaveStyle) => {
+      localStorage.setItem(`${storageKey}-wave`, style);
+      setWaveStyle(style);
     },
   };
 

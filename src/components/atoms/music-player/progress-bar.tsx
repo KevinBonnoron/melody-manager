@@ -4,6 +4,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { type PlayheadSource, usePlayhead } from '@/hooks/use-playhead';
 import { useTrackPeaks } from '@/hooks/use-track-peaks';
 import { cn, formatDuration } from '@/lib/utils';
+import type { ProgressShape, WaveStyle } from '@/providers/ThemeProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 
 const BAR_WIDTH = 2;
 const BAR_GAP = 1;
@@ -22,8 +24,10 @@ interface Props extends PlayheadSource {
 
 export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props) {
   const { t } = useTranslation();
+  const { progressShape, progressCursor, waveStyle } = useTheme();
   const { currentTime, duration } = source;
-  const { peaks, loading } = useTrackPeaks(trackId, true);
+  const drawn = progressShape !== 'plain';
+  const { peaks, loading } = useTrackPeaks(trackId, drawn);
 
   const [barCount, setBarCount] = useState(0);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -42,7 +46,7 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
   }, []);
 
   const bars = useMemo(() => {
-    if (barCount === 0) {
+    if (!drawn || barCount === 0) {
       return [];
     }
 
@@ -62,14 +66,18 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
 
       return max / loudest;
     });
-  }, [peaks, barCount]);
+  }, [drawn, peaks, barCount]);
 
   const fillRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
   usePlayhead(
     source,
     useCallback((ratio: number) => {
       if (fillRef.current) {
         fillRef.current.style.width = `${ratio * 100}%`;
+      }
+      if (cursorRef.current) {
+        cursorRef.current.style.left = `${ratio * 100}%`;
       }
     }, []),
   );
@@ -113,9 +121,9 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
       >
         {bars.length > 0 ? (
           <>
-            <Shape bars={bars} className="text-muted-foreground/40" pending={pending} />
+            <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-muted-foreground/40" pending={pending} />
             <div ref={fillRef} className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden" style={{ width: at }}>
-              <Shape bars={bars} className="text-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={pending} />
+              <Shape bars={bars} shape={progressShape} waveStyle={waveStyle} className="text-primary" width={bars.length * (BAR_WIDTH + BAR_GAP)} pending={pending} />
             </div>
           </>
         ) : (
@@ -125,6 +133,8 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
             </div>
           </div>
         )}
+
+        {progressCursor && bars.length > 0 && <div ref={cursorRef} className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: at }} />}
 
         {chapters.map((chapter) => (
           <Tooltip key={chapter.startTime}>
@@ -152,9 +162,33 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
   );
 }
 
-function Shape({ bars, className, width, pending }: { bars: number[]; className: string; width?: number; pending?: boolean }) {
+function Shape({ bars, shape, waveStyle, className, width, pending }: { bars: number[]; shape: ProgressShape; waveStyle: WaveStyle; className: string; width?: number; pending?: boolean }) {
+  const style = { width: width ? `${width}px` : undefined };
+
+  if (shape === 'wave') {
+    const span = bars.length * (BAR_WIDTH + BAR_GAP);
+    const x = (index: number) => index * (BAR_WIDTH + BAR_GAP);
+    const height = (value: number) => Math.max(1, value * 100);
+    const up = bars.map((value, index) => `${x(index)},${50 - height(value) / 2}`).join(' ');
+    const down = bars.map((value, index) => `${x(index)},${50 + height(value) / 2}`).join(' ');
+    const outline = bars.map((_, index) => `${x(bars.length - 1 - index)},${50 + height(bars[bars.length - 1 - index]) / 2}`).join(' ');
+
+    return (
+      <svg className={cn('h-full', width === undefined && 'w-full', className, pending && 'animate-pulse')} style={style} viewBox={`0 0 ${span} 100`} preserveAspectRatio="none" aria-hidden="true" role="presentation">
+        {waveStyle === 'stroked' ? (
+          <>
+            <polyline points={up} fill="none" stroke="currentColor" strokeWidth={4} vectorEffect="non-scaling-stroke" />
+            <polyline points={down} fill="none" stroke="currentColor" strokeWidth={4} vectorEffect="non-scaling-stroke" />
+          </>
+        ) : (
+          <polygon points={`${up} ${outline}`} className="fill-current" />
+        )}
+      </svg>
+    );
+  }
+
   return (
-    <div className={cn('flex h-full items-center', className, pending && 'animate-pulse')} style={{ width: width ? `${width}px` : undefined, gap: `${BAR_GAP}px` }}>
+    <div className={cn('flex h-full', shape === 'columns' ? 'items-end' : 'items-center', className, pending && 'animate-pulse')} style={{ ...style, gap: `${BAR_GAP}px` }}>
       {bars.map((value, index) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: bars are a fixed-length resampling, position is the identity
