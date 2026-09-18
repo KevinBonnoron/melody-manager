@@ -887,7 +887,11 @@
       "emerald": "Émeraude",
       "amber": "Ambre",
       "rose": "Rose",
-      "sky": "Ciel"
+      "sky": "Ciel",
+      "orange": "Orange",
+      "lime": "Citron vert",
+      "cyan": "Cyan",
+      "fuchsia": "Fuchsia"
     },
     "progress": "Barre de progression",
     "progressShapes": {
