@@ -13,7 +13,7 @@ export function ShuffleButton({ shuffle, onToggle }: ShuffleButtonProps) {
   const label = shuffle ? t('MusicPlayer.shuffleOff') : t('MusicPlayer.shuffleOn');
 
   return (
-    <Button variant="ghost" size="icon" className={`relative ${shuffle ? 'text-primary' : ''}`} onClick={onToggle} title={label} aria-label={label} aria-pressed={shuffle}>
+    <Button variant="ghost" size="icon" className="relative" onClick={onToggle} title={label} aria-label={label} aria-pressed={shuffle}>
       <Shuffle className="h-4 w-4" />
       <ControlDot shown={shuffle} />
     </Button>

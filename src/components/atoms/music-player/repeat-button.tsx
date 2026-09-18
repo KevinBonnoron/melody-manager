@@ -17,7 +17,7 @@ export function RepeatButton({ repeatMode, onToggle }: RepeatButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" onClick={onToggle} className={`relative ${repeating ? 'text-primary' : ''}`} aria-label={label} aria-pressed={repeating}>
+        <Button type="button" variant="ghost" size="icon" onClick={onToggle} className="relative" aria-label={label} aria-pressed={repeating}>
           {repeatMode === 'one' ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
           <ControlDot shown={repeating} />
         </Button>
