@@ -499,12 +499,12 @@
     "repeatOff": "Activer la répétition",
     "repeatAll": "Répéter la playlist",
     "repeatOne": "Répéter le morceau",
-    "seekWaveform": "Barre de déplacement en forme d'onde",
     "settings": "Paramètres de lecture",
     "settingsDescription": "Choisir l'appareil de lecture et le format audio",
     "like": "Ajouter aux titres likés",
     "unlike": "Retirer des titres likés",
-    "volume": "Volume"
+    "volume": "Volume",
+    "jumpToChapter": "Aller à {{title}}, à {{at}}"
   },
   "DeviceSelector": {
     "selectDevice": "Sélectionner un appareil de lecture",

@@ -21,12 +21,11 @@ import { PipPlayer } from './music-player/pip-player';
 import { PlaybackControls } from './music-player/playback-controlts';
 import { ProgressBar } from './music-player/progress-bar';
 import { QueueSheet } from './music-player/queue-sheet';
-import { SimpleProgressBar } from './music-player/simple-progress-bar';
 import { TrackInfo } from './music-player/track-info';
 
 export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, playHere, audioFormat, setAudioFormat, queue } = useMusicPlayer();
+  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, playHere, audioFormat, setAudioFormat, queue, audioElement } = useMusicPlayer();
   const remote = useRemotePlayback();
   const { isRemote } = useNowPlaying();
   const transferPlayback = useTransferPlayback();
@@ -66,7 +65,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
       ) : (
         <div className="w-full px-3.5 py-2.5">
           <div className="flex flex-col gap-2">
-            {reported ? <SimpleProgressBar {...reported} /> : <ProgressBar />}
+            <ProgressBar chapters={track?.metadata?.chapters} {...(reported ?? { trackId: track?.id, currentTime, duration: track?.duration ?? 0, playing: isPlaying, loading: isLoading, onSeek: seek, media: audioElement })} />
 
             <div className="flex items-center gap-2 min-w-0 @2xl:gap-4">
               <div className="flex min-w-0 flex-1">

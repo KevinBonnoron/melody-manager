@@ -12,8 +12,8 @@ import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getSourceColor } from '@/lib/source-colors';
 import { DeviceSelector } from './device-selector';
+import { ProgressBar } from './progress-bar';
 import { QueueSheet } from './queue-sheet';
-import { SimpleProgressBar } from './simple-progress-bar';
 
 interface Props {
   open: boolean;
@@ -105,7 +105,7 @@ export function NowPlaying({ open, onClose }: Props) {
             {track.source}
           </span>
 
-          <SimpleProgressBar trackId={track.id} currentTime={control.currentTime} duration={control.duration || track.duration} playing={isPlaying} loading={isLoadingHere} onSeek={control.seek} />
+          <ProgressBar trackId={track.id} currentTime={control.currentTime} duration={control.duration || track.duration} playing={isPlaying} loading={isLoadingHere} onSeek={control.seek} chapters={track.metadata?.chapters} />
 
           <div className="flex items-center justify-center gap-3">
             <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} aria-label={t('NowPlaying.shuffle')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${shuffle ? 'text-primary' : 'text-muted-foreground'}`}>
