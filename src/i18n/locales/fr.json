@@ -877,7 +877,6 @@
     "unignore": "Ne plus ignorer"
   },
   "Appearance": {
-    "title": "Apparence",
     "mode": "Mode",
     "light": "Clair",
     "dark": "Sombre",
@@ -889,6 +888,26 @@
       "amber": "Ambre",
       "rose": "Rose",
       "sky": "Ciel"
+    },
+    "progress": "Barre de progression",
+    "progressShapes": {
+      "bars": "Barres",
+      "wave": "Onde",
+      "plain": "Simple",
+      "columns": "Colonnes"
+    },
+    "progressAbout": {
+      "bars": "Dessinée à partir du son, une barre par tranche.",
+      "wave": "Dessinée à partir du son, d'un seul tenant.",
+      "plain": "Une barre simple. Le son n'est jamais lu, donc rien n'est téléchargé pour elle.",
+      "columns": "Dessinée à partir du son, posée sur la ligne."
+    },
+    "progressCursor": "Curseur de lecture",
+    "progressCursorAbout": "Un trait sur toute la hauteur, à l'endroit où en est la piste.",
+    "progressCursorPlain": "La barre simple n'en a pas.",
+    "waveStyles": {
+      "filled": "Plein",
+      "stroked": "Trait"
     }
   },
   "DevicesPage": {

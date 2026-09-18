@@ -877,7 +877,6 @@
     "unignore": "Stop ignoring"
   },
   "Appearance": {
-    "title": "Appearance",
     "mode": "Mode",
     "light": "Light",
     "dark": "Dark",
@@ -889,6 +888,26 @@
       "amber": "Amber",
       "rose": "Rose",
       "sky": "Sky"
+    },
+    "progress": "Progress bar",
+    "progressShapes": {
+      "bars": "Bars",
+      "wave": "Wave",
+      "plain": "Plain",
+      "columns": "Columns"
+    },
+    "progressAbout": {
+      "bars": "Drawn from the sound, one bar per slice.",
+      "wave": "Drawn from the sound, as one continuous shape.",
+      "plain": "A plain bar. The sound is never read, so nothing is fetched for it.",
+      "columns": "Drawn from the sound, standing on the line."
+    },
+    "progressCursor": "Playhead",
+    "progressCursorAbout": "A line down the bar at the point the track has reached.",
+    "progressCursorPlain": "The plain bar has none to show.",
+    "waveStyles": {
+      "filled": "Filled",
+      "stroked": "Line"
     }
   },
   "DevicesPage": {
