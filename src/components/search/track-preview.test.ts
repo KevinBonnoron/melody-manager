@@ -1,6 +1,16 @@
+import { type TimedCacheLimits, writeCache } from '@/hooks/timed-cache';
+import type { TrackPreviews } from '@/hooks/use-track-previews';
 import type { ResolvedTrack } from '@/shared';
 import { announcedPreview, previewCauseKey, shownPreviews, supportsTrackPreview, toPreviewSegments, totalDuration } from './track-preview';
 import { describe, expect, it } from 'bun:test';
+
+const CACHE: TimedCacheLimits = { ttlMs: 60_000, maxEntries: 20 };
+
+const ready = (url: string): TrackPreviews => {
+  const previews: TrackPreviews = new Map();
+  writeCache(previews, url, { status: 'ready', tracks: [] }, 0, CACHE);
+  return previews;
+};
 
 const track = (over: Partial<ResolvedTrack>): ResolvedTrack => ({ title: 'Untitled', duration: 0, origin: 'https://youtu.be/x', artistName: 'Artist', albumName: 'Album', ...over });
 
@@ -42,15 +52,11 @@ describe('track preview', () => {
   });
 
   it('announces the preview the reader still has open', () => {
-    const previews = new Map([['https://youtu.be/x', { status: 'ready' as const, tracks: [] }]]);
-
-    expect(announcedPreview(previews, new Set(['https://youtu.be/x']), 'https://youtu.be/x')).toEqual({ status: 'ready', tracks: [] });
+    expect(announcedPreview(ready('https://youtu.be/x'), new Set(['https://youtu.be/x']), 'https://youtu.be/x')).toEqual({ status: 'ready', tracks: [] });
   });
 
   it('says nothing about a preview that was folded away before it arrived', () => {
-    const previews = new Map([['https://youtu.be/x', { status: 'ready' as const, tracks: [] }]]);
-
-    expect(announcedPreview(previews, new Set(), 'https://youtu.be/x')).toBeUndefined();
+    expect(announcedPreview(ready('https://youtu.be/x'), new Set(), 'https://youtu.be/x')).toBeUndefined();
   });
 
   it('says nothing when no preview has changed', () => {
@@ -64,10 +70,9 @@ describe('track preview', () => {
   });
 
   it('says nothing about a preview whose row the query moved past', () => {
-    const previews = new Map([['https://youtu.be/gone', { status: 'ready' as const, tracks: [] }]]);
     const drawn = shownPreviews(new Set(['https://youtu.be/gone']), ['https://youtu.be/other']);
 
-    expect(announcedPreview(previews, drawn, 'https://youtu.be/gone')).toBeUndefined();
+    expect(announcedPreview(ready('https://youtu.be/gone'), drawn, 'https://youtu.be/gone')).toBeUndefined();
   });
 
   it('translates a failure the server named', () => {

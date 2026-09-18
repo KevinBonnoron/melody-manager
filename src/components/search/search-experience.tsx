@@ -11,6 +11,7 @@ import { playlistsClient } from '@/clients/playlists.client';
 import { tracksClient } from '@/clients/tracks.client';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
+import { cachedValue } from '@/hooks/timed-cache';
 import { useActiveSources } from '@/hooks/use-active-sources';
 import { useAlbums } from '@/hooks/use-album';
 import { useArtists } from '@/hooks/use-artists';
@@ -384,7 +385,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
               </Button>
             )}
           </div>
-          {isUrlPreviewOpen && <TrackPreviewPanel id={urlPreviewId} label={t('SearchPage.previewRegionLink')} state={previews.get(trimmedQuery)} onRetry={() => retryPreview(trimmedQuery)} />}
+          {isUrlPreviewOpen && <TrackPreviewPanel id={urlPreviewId} label={t('SearchPage.previewRegionLink')} state={cachedValue(previews, trimmedQuery)} onRetry={() => retryPreview(trimmedQuery)} />}
         </div>
       )}
 
@@ -607,7 +608,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                         </>
                       )}
                     </Button>
-                    {isPreviewOpen && <TrackPreviewPanel id={previewId} label={t('SearchPage.previewRegion', { title })} state={previews.get(result.origin)} onRetry={() => retryPreview(result.origin)} className="w-full" />}
+                    {isPreviewOpen && <TrackPreviewPanel id={previewId} label={t('SearchPage.previewRegion', { title })} state={cachedValue(previews, result.origin)} onRetry={() => retryPreview(result.origin)} className="w-full" />}
                   </div>
                 );
               })}

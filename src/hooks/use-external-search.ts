@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { searchClient } from '@/clients/search.client';
 import type { SearchResult, SearchType } from '@/shared';
-import { readSearchCache, type SearchCache, searchCacheKey, writeSearchCache } from './search-cache';
+import { cacheKey, readCache, type TimedCache, type TimedCacheLimits, writeCache } from './timed-cache';
 
 const SEARCH_TYPES: SearchType[] = ['track', 'album', 'artist', 'playlist'];
 const SETTLE_MS = 500;
 
-const cache: SearchCache = new Map();
+// Long enough that walking back to a search just run does not ask the sources again, short
+// enough that what they answer is still what they would answer now.
+const LIMITS: TimedCacheLimits = { ttlMs: 5 * 60 * 1000, maxEntries: 20 };
+
+const cache: TimedCache<SearchResult[]> = new Map();
 const inFlight = new Map<string, Promise<SearchResult[]>>();
 
 function ask(key: string, query: string): Promise<SearchResult[]> {
@@ -19,7 +23,7 @@ function ask(key: string, query: string): Promise<SearchResult[]> {
     .then((responses) => {
       const results = responses.flatMap((response) => (response.status === 'fulfilled' ? response.value.results : []));
       if (responses.every((response) => response.status === 'fulfilled')) {
-        writeSearchCache(cache, key, results, Date.now());
+        writeCache(cache, key, results, Date.now(), LIMITS);
       }
 
       return results;
@@ -43,8 +47,8 @@ export function useExternalSearch(query: string, providerTypes: string, enabled:
       return undefined;
     }
 
-    const key = searchCacheKey(providerTypes, query);
-    const known = readSearchCache(cache, key, Date.now());
+    const key = cacheKey(providerTypes, query);
+    const known = readCache(cache, key, Date.now(), LIMITS);
     if (known !== undefined) {
       setResults(known);
       setIsSearching(false);

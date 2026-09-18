@@ -1,4 +1,5 @@
-import type { TrackPreviewState } from '@/hooks/use-track-previews';
+import { cachedValue } from '@/hooks/timed-cache';
+import type { TrackPreviewState, TrackPreviews } from '@/hooks/use-track-previews';
 import type { ResolvedTrack } from '@/shared';
 
 const PREVIEWABLE_SOURCES = ['youtube'];
@@ -37,12 +38,12 @@ export function totalDuration(segments: PreviewSegment[]): number {
 
 // A preview that has been folded away keeps loading, and its result must not reach the live
 // region: what is announced is only ever a preview the reader still has open.
-export function announcedPreview(previews: ReadonlyMap<string, TrackPreviewState>, expanded: ReadonlySet<string>, lastChanged: string | null): TrackPreviewState | undefined {
+export function announcedPreview(previews: TrackPreviews, expanded: ReadonlySet<string>, lastChanged: string | null): TrackPreviewState | undefined {
   if (lastChanged === null || !expanded.has(lastChanged)) {
     return undefined;
   }
 
-  return previews.get(lastChanged);
+  return cachedValue(previews, lastChanged);
 }
 
 // An open preview whose row is no longer on screen, because the query moved on, is not one the
