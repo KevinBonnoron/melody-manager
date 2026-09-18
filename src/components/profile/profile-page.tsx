@@ -1,5 +1,4 @@
-import { useNavigate } from '@tanstack/react-router';
-import { Camera, Loader2, LogOut } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { useAuth } from 'pocketbase-react-hooks';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
@@ -22,8 +20,7 @@ export function ProfilePage() {
   const { t } = useTranslation();
   const [section, setSection] = useState<Section>('account');
   const user = useAuthUser();
-  const { signOut, signIn } = useAuth();
-  const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [name, setName] = useState(user.name);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
@@ -117,11 +114,6 @@ export function ProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    signOut();
-    navigate({ to: '/login' });
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -187,13 +179,6 @@ export function ProfilePage() {
       )}
 
       {section === 'appearance' && <AppearanceSettings />}
-
-      <Separator />
-
-      <Button variant="destructive" className="w-fit" onClick={handleLogout}>
-        <LogOut className="h-4 w-4" />
-        {t('SignOutDropdownMenuItem.label')}
-      </Button>
     </div>
   );
 }
