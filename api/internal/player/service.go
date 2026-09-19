@@ -37,8 +37,6 @@ type Records interface {
 // longer hold anything it can carry on with, and only the caller knows what it
 // was supposed to be playing.
 type Output interface {
-	// Knows says whether a device is still somewhere sound can come out of.
-	Knows(owner, device string) bool
 	// Play and Resume take the moment the sound is to start, which is what
 	// several devices need to start together. A zero moment means now, which is
 	// what one device on its own wants: nothing to agree with, nothing to wait
@@ -80,35 +78,14 @@ func NewService(store Records, out Output, more Continuation) *Service {
 	}
 }
 
-// State is what the user is playing. Devices that are no longer there are
-// taken out as it is read: a record left naming them would keep claiming to
-// play out of somewhere that has gone, which nothing else would ever correct.
+// State is what the user is playing, without changing anything. A device the
+// registry does not hold right now is left named: a browser that went away has
+// already taken itself out when its stream ended, and a speaker missing from a
+// sweep is usually about to be found again. One that is truly gone drops out
+// when an order reaches for it, which is the moment it matters.
 func (s *Service) State(owner string) (State, error) {
 	defer s.hold(owner)()
-
-	state, err := s.store.Load(owner)
-	if err != nil {
-		return State{}, err
-	}
-
-	next := state
-	for _, device := range state.Devices {
-		if s.out == nil || s.out.Knows(owner, device) {
-			continue
-		}
-		next = next.Leave(device)
-	}
-	if len(next.Devices) == 0 {
-		next = next.Pause(s.now())
-	}
-	if next.Playing == state.Playing && len(next.Devices) == len(state.Devices) {
-		return state, nil
-	}
-
-	if err := s.store.Save(owner, next); err != nil {
-		return State{}, err
-	}
-	return next, nil
+	return s.store.Load(owner)
 }
 
 // Start begins playback on the tracks handed over, the first of them first.
@@ -255,6 +232,14 @@ func (s *Service) Leave(ctx context.Context, owner, device string) (State, error
 		}
 		return nil, nil
 	})
+}
+
+// Finished is a device that has reached the end of what it was given, noticed
+// from the outside rather than reported by a client: a speaker plays with no
+// browser watching it, and nothing else would move the list on.
+func (s *Service) Finished(owner, trackID string, cycle int64) error {
+	_, err := s.Ended(context.Background(), owner, trackID, cycle)
+	return err
 }
 
 // SavePosition is a device reporting where it has got to. It takes the same

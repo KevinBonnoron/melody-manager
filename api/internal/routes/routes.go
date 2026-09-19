@@ -144,6 +144,8 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g := se.Router.Group("/api")
 	g.Bind(apis.RequireAuth())
 
+	registerPlayer(se, g, deps)
+
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
 		trackID := e.Request.URL.Query().Get("track")
 		if trackID == "" {
@@ -208,25 +210,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g.GET("/devices", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, map[string]any{"success": true, "data": deps.Devices.List(userID(e))})
 	})
-	g.POST("/devices/{id}/state", func(e *core.RequestEvent) error {
-		uid := userID(e)
-		if uid == "" {
-			return e.UnauthorizedError("authentication required", nil)
-		}
-		var body struct {
-			TrackID  string  `json:"trackId"`
-			Playing  bool    `json:"playing"`
-			Position float64 `json:"position"`
-			Volume   int     `json:"volume"`
-		}
-		if err := e.BindBody(&body); err != nil {
-			return e.BadRequestError("invalid state", err)
-		}
-		if !deps.Devices.ReportState(uid, e.Request.PathValue("id"), body.Playing, body.TrackID, body.Position, body.Volume) {
-			return e.NotFoundError("device not found", nil)
-		}
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
-	})
 	g.POST("/devices/{id}/play/{trackId}", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
 	g.POST("/devices/{id}/play", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
 	g.POST("/devices/{id}/pause", deviceAction(deps, "pause", players.Player.Pause))
@@ -277,6 +260,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			if !deps.Devices.SendCommand(dev.ID, fmt.Sprintf("volume:%d", volume)) {
 				return e.NotFoundError("device not found", nil)
 			}
+			deps.Devices.SetClientVolume(dev.ID, volume)
 			return e.JSON(http.StatusOK, map[string]any{"success": true})
 		}
 		player, speaks := deps.Devices.PlayerFor(dev)
@@ -699,16 +683,29 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 		Type    string `json:"type"`
 		Session string `json:"session"`
 		Name    string `json:"name"`
+		Volume  int    `json:"volume"`
 	}
 	_ = e.BindBody(&identity)
 
 	var registered *devices.Device
 	if identity.Session != "" {
-		device, ok := deps.Devices.RegisterClient(owner, identity.Type, identity.Session, identity.Name)
+		device, ok := deps.Devices.RegisterClient(owner, identity.Type, identity.Session, identity.Name, identity.Volume)
 		if !ok {
 			return e.BadRequestError("unregisterable device type", nil)
 		}
-		defer deps.Devices.UnregisterClient(owner, device.ID, device.Epoch())
+		defer func() {
+			// A device whose stream has ended is not playing any more, whatever
+			// the record still says, so it leaves the set rather than being left
+			// in it claiming to make sound. A stream already replaced by a newer
+			// one for the same session is not that device, and taking it out
+			// would silence the connection that took its place.
+			if !deps.Devices.UnregisterClient(owner, device.ID, device.Epoch()) {
+				return
+			}
+			if _, err := deps.Player.Leave(context.Background(), owner, device.ID); err != nil {
+				slog.Warn("a device that went away could not be taken out of the playback", "device", device.ID, "error", err)
+			}
+		}()
 		registered = &device
 	}
 
@@ -904,7 +901,7 @@ func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
 		}
 	}
 
-	deps.Devices.SetSpeakerTrack(dev.ID, userID(e), trackID)
+	deps.Devices.SetSpeakerTrack(dev.ID, userID(e), trackID, 0)
 	deps.Devices.WatchSpeaker(dev.ID)
 	return e.JSON(http.StatusOK, map[string]any{"success": true})
 }
