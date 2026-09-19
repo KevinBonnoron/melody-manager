@@ -591,6 +591,19 @@ func (s *Service) knownSpeakers(kind string) []string {
 	return store.KnownSpeakers(kind)
 }
 
+// GetFor finds a device the caller is allowed to drive: a shared one, or a
+// client of their own. A client belongs to whoever registered it, and knowing
+// its id is not the same as being allowed to play on it.
+func (s *Service) GetFor(owner, id string) (Device, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	device, ok := s.devices[id]
+	if !ok || (clientTypes[device.Type] && device.owner != owner) {
+		return Device{}, false
+	}
+	return device, true
+}
+
 // List returns the shared devices plus the caller's own browser clients.
 func (s *Service) List(owner string) []Device {
 	s.mu.RLock()

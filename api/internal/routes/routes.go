@@ -144,6 +144,8 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g := se.Router.Group("/api")
 	g.Bind(apis.RequireAuth())
 
+	registerPlayer(se, g, deps)
+
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
 		trackID := e.Request.URL.Query().Get("track")
 		if trackID == "" {
