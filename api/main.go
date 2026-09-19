@@ -80,7 +80,7 @@ func main() {
 				slog.Info("library checked", "checked", result.Checked, "changed", result.Changed, "lost", result.Lost)
 			}
 		}()
-		deps.Devices.SetPlaybackStore(services.NewPlaybackPositions(se.App))
+		deps.Devices.SetPlaybackStore(deps.Player)
 		deps.Devices.SetSpeakerStore(services.NewSpeakerAddresses(se.App))
 		deps.Devices.SetPlayers(players.Registry{
 			sonos.Kind:      sonos.NewPlayer(),
