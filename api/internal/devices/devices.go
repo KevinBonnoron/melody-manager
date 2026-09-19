@@ -4,14 +4,13 @@ package devices
 
 import (
 	"context"
-	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
 	"math"
 	"net"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +36,7 @@ type Device struct {
 	Position float64 `json:"position"`
 
 	owner      string
+	cycle      int64
 	epoch      uint64
 	reportedAt time.Time
 }
@@ -61,7 +61,7 @@ func (s *Service) WatchSpeaker(id string) {
 
 	go func() {
 		defer s.watching.Delete(id)
-		idle, wasPlaying, lastSaved := 0, false, time.Time{}
+		idle, wasPlaying, lastSaved, left := 0, false, time.Time{}, 0.0
 		for {
 			playing, remaining, ok := s.pollSpeaker(id)
 			if !ok {
@@ -73,6 +73,16 @@ func (s *Service) WatchSpeaker(id string) {
 				s.saveSpeakerPosition(id)
 			} else if !playing && wasPlaying {
 				s.saveSpeakerPosition(id)
+				// A speaker plays with no browser watching it, so the end of its
+				// track is nobody's to report but this loop's. It stopped near
+				// the end because it reached it; it stopped anywhere else
+				// because somebody asked it to.
+				if left <= speakerEndTolerance {
+					s.speakerFinished(id)
+				}
+			}
+			if playing {
+				left = remaining
 			}
 			wasPlaying = playing
 
@@ -149,8 +159,9 @@ func (s *Service) SetSpeakerStore(store SpeakerStore) {
 	s.mu.Unlock()
 }
 
-// SetSpeakerTrack records what a speaker was told to play, and for whom.
-func (s *Service) SetSpeakerTrack(id, owner, trackID string) {
+// SetSpeakerTrack records what a speaker was told to play, for whom, and which
+// run of it: the end this loop reports is the end of that run.
+func (s *Service) SetSpeakerTrack(id, owner, trackID string, cycle int64) {
 	s.mu.Lock()
 	device, ok := s.devices[id]
 	if !ok || !s.speaks(device.Type) {
@@ -161,6 +172,7 @@ func (s *Service) SetSpeakerTrack(id, owner, trackID string) {
 		device.owner = owner
 	}
 	device.TrackID = trackID
+	device.cycle = cycle
 	s.devices[id] = device
 	snapshot := s.listLocked()
 	s.mu.Unlock()
@@ -187,7 +199,7 @@ func (s *Service) pollSpeaker(id string) (playing bool, remaining float64, ok bo
 
 	playing = state != "STOPPED" && state != "PAUSED_PLAYBACK" && state != "UNKNOWN"
 	if playing && device.TrackID == "" {
-		s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)))
+		s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)), 0)
 	}
 
 	s.reportSpeaker(id, playing, float64(position), volume)
@@ -223,6 +235,22 @@ func (s *Service) reportSpeaker(id string, playing bool, position float64, volum
 
 const speakerSaveInterval = 15 * time.Second
 
+const speakerEndTolerance = 3.0
+
+func (s *Service) speakerFinished(id string) {
+	s.mu.RLock()
+	device, ok := s.devices[id]
+	store := s.playback
+	s.mu.RUnlock()
+	if !ok || store == nil || device.owner == "" || device.TrackID == "" {
+		return
+	}
+
+	if err := store.Finished(device.owner, device.TrackID, device.cycle); err != nil {
+		slog.Warn("the end of a track on a speaker was not acted on", "device", id, "error", err)
+	}
+}
+
 func (s *Service) saveSpeakerPosition(id string) {
 	s.mu.RLock()
 	device, ok := s.devices[id]
@@ -254,6 +282,7 @@ type Command struct {
 // PlaybackStore records where a user's playback got to.
 type PlaybackStore interface {
 	SavePosition(owner, trackID string, position float64) error
+	Finished(owner, trackID string, cycle int64) error
 }
 
 // SpeakerStore holds what the operator decided about each speaker.
@@ -279,8 +308,6 @@ type Service struct {
 	nextSub   int
 	nextEpoch uint64
 	speakers  SpeakerStore
-
-	sessions map[string]string
 }
 
 type subscriber struct {
@@ -291,7 +318,7 @@ type subscriber struct {
 
 // New creates a device service.
 func New(publicURL func() string) *Service {
-	return &Service{publicURL: publicURL, devices: map[string]Device{}, subs: map[int]subscriber{}, sessions: map[string]string{}}
+	return &Service{publicURL: publicURL, devices: map[string]Device{}, subs: map[int]subscriber{}}
 }
 
 var nudges = make(chan struct{}, 1)
@@ -362,18 +389,13 @@ const positionJumpTolerance = 2.0
 var clientTypes = map[string]bool{"browser": true, "mobile": true, "desktop": true}
 
 // RegisterClient declares one open client of a user.
-func (s *Service) RegisterClient(owner, deviceType, session, label string) (Device, bool) {
+func (s *Service) RegisterClient(owner, deviceType, session, label string, volume int) (Device, bool) {
 	if !clientTypes[deviceType] || session == "" {
 		return Device{}, false
 	}
 
 	s.mu.Lock()
-	key := owner + "\x00" + session
-	id, known := s.sessions[key]
-	if !known {
-		id = newDeviceID()
-		s.sessions[key] = id
-	}
+	id := deviceID(owner, session)
 
 	device, existed := s.devices[id]
 	if !existed {
@@ -382,7 +404,9 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string) (Devi
 		s.mu.Unlock()
 		return Device{}, false
 	}
+	changed := !existed || device.Type != deviceType || device.Volume != volume || device.Name != label || device.Status != "available" || !device.Usable
 	device.Type = deviceType
+	device.Volume = volume
 	device.Name = label
 	device.Status = "available"
 	device.Usable = true
@@ -391,7 +415,7 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string) (Devi
 	s.devices[id] = device
 	snapshot := s.listLocked()
 	s.mu.Unlock()
-	if !existed {
+	if changed {
 		s.notifyOwner(owner, snapshot)
 	}
 	return device, true
@@ -400,43 +424,38 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string) (Devi
 // Epoch identifies the registration a stream owns, to hand back on teardown.
 func (d Device) Epoch() uint64 { return d.epoch }
 
-// ReportState records what a client is doing.
-func (s *Service) ReportState(owner, id string, playing bool, trackID string, position float64, volume int) bool {
-	s.mu.Lock()
-	device, ok := s.devices[id]
-	if !ok || !clientTypes[device.Type] || device.owner != owner {
-		s.mu.Unlock()
-		return false
-	}
-
-	changed := device.Playing != playing || device.TrackID != trackID || device.Volume != volume || positionJumped(device, position)
-	device.Playing = playing
-	device.TrackID = trackID
-	device.Position = position
-	device.reportedAt = time.Now()
-	device.Volume = volume
-	device.Status = "available"
-	if playing {
-		device.Status = "playing"
-	}
-	s.devices[id] = device
-	snapshot := s.listLocked()
-	s.mu.Unlock()
-	if changed {
-		s.notifyOwner(owner, snapshot)
-	}
-	return true
-}
-
-// UnregisterClient drops a client whose stream has ended.
-func (s *Service) UnregisterClient(owner, id string, epoch uint64) {
+// UnregisterClient drops a client whose stream has ended, and says whether it
+// did. A stream that has already been replaced by a newer one for the same
+// session is not the device any more, and tearing it down must not be taken for
+// the device going away.
+func (s *Service) UnregisterClient(owner, id string, epoch uint64) bool {
 	s.mu.Lock()
 	d, ok := s.devices[id]
 	if !ok || !clientTypes[d.Type] || d.owner != owner || d.epoch != epoch {
 		s.mu.Unlock()
-		return
+		return false
 	}
 	delete(s.devices, id)
+	snapshot := s.listLocked()
+	s.mu.Unlock()
+	s.notifyOwner(owner, snapshot)
+	return true
+}
+
+// SetClientVolume records how loud a client was told to be. A speaker is asked
+// and read back; a client has nothing to read back from, so what it was told is
+// what everyone else is shown.
+func (s *Service) SetClientVolume(id string, volume int) {
+	s.mu.Lock()
+	device, ok := s.devices[id]
+	if !ok || !clientTypes[device.Type] || device.Volume == volume {
+		s.mu.Unlock()
+		return
+	}
+
+	device.Volume = volume
+	s.devices[id] = device
+	owner := device.owner
 	snapshot := s.listLocked()
 	s.mu.Unlock()
 	s.notifyOwner(owner, snapshot)
@@ -552,7 +571,7 @@ func (s *Service) adopt(id string) {
 		return
 	}
 
-	s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)))
+	s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)), 0)
 	s.WatchSpeaker(id)
 }
 
@@ -589,6 +608,19 @@ func (s *Service) knownSpeakers(kind string) []string {
 		return nil
 	}
 	return store.KnownSpeakers(kind)
+}
+
+// GetFor finds a device the caller is allowed to drive: a shared one, or a
+// client of their own. A client belongs to whoever registered it, and knowing
+// its id is not the same as being allowed to play on it.
+func (s *Service) GetFor(owner, id string) (Device, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	device, ok := s.devices[id]
+	if !ok || (clientTypes[device.Type] && device.owner != owner) {
+		return Device{}, false
+	}
+	return device, true
 }
 
 // List returns the shared devices plus the caller's own browser clients.
@@ -686,12 +718,13 @@ func (s *Service) notifyOwner(owner string, list []Device) {
 	}
 }
 
-func newDeviceID() string {
-	buf := make([]byte, 12)
-	if _, err := rand.Read(buf); err != nil {
-		return strconv.FormatInt(time.Now().UnixNano(), 36)
-	}
-	return hex.EncodeToString(buf)
+// deviceID is the same for the same browser session on the same account, and
+// stays so across a restart of this server. A device named in a playback record
+// that has outlived the registry would otherwise be a stranger on the way back,
+// and the sound would be told to stop somewhere nobody is listening.
+func deviceID(owner, session string) string {
+	sum := sha256.Sum256([]byte("melody.device.v1." + owner + "\x00" + session))
+	return hex.EncodeToString(sum[:12])
 }
 
 func ipToID(ip string) string {

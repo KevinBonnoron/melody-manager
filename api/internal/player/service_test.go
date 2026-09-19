@@ -49,7 +49,6 @@ type call struct {
 
 type output struct {
 	mu       sync.Mutex
-	missing  map[string]bool
 	calls    []call
 	runs     []int64
 	errs     map[string]error
@@ -75,12 +74,6 @@ func (o *output) record(c call) error {
 	o.inFlight--
 	o.calls = append(o.calls, c)
 	return o.errs[c.device]
-}
-
-func (o *output) Knows(_, device string) bool {
-	o.mu.Lock()
-	defer o.mu.Unlock()
-	return !o.missing[device]
 }
 
 func (o *output) Play(_ context.Context, _, device, trackID string, position float64, cycle int64, start time.Time) error {
@@ -144,7 +137,7 @@ func (s *supply) More(_ context.Context, _ string, _ []string, want int) ([]stri
 
 func service(state State) (*Service, *records, *output, *supply) {
 	store := &records{state: state}
-	out := &output{errs: map[string]error{}, missing: map[string]bool{}}
+	out := &output{errs: map[string]error{}}
 	more := &supply{}
 	svc := NewService(store, out, more)
 	svc.now = func() time.Time { return epoch }
@@ -529,54 +522,6 @@ func TestAddingATrackWithNothingPlayingIsWrittenDown(t *testing.T) {
 	}
 }
 
-func TestReadingTheRecordTakesOutDevicesThatHaveGone(t *testing.T) {
-	svc, store, out, _ := service(State{Devices: []string{"sonos", "phone"}, List: []string{"a"}, Track: "a", Playing: true})
-	out.missing["sonos"] = true
-
-	state, err := svc.State("u1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(state.Devices, []string{"phone"}) {
-		t.Fatalf("devices = %v", state.Devices)
-	}
-	if !state.Playing {
-		t.Fatal("playback stopped although a device is left")
-	}
-	if !reflect.DeepEqual(store.state.Devices, []string{"phone"}) {
-		t.Fatalf("stored = %+v", store.state)
-	}
-}
-
-func TestARecordPlayingNowhereIsReadAsStopped(t *testing.T) {
-	svc, store, out, _ := service(State{Devices: []string{"sonos"}, List: []string{"a"}, Track: "a", Playing: true, Position: 40})
-	out.missing["sonos"] = true
-
-	state, err := svc.State("u1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if state.Playing || len(state.Devices) != 0 {
-		t.Fatalf("state = %+v", state)
-	}
-	if store.state.Playing {
-		t.Fatalf("stored as playing: %+v", store.state)
-	}
-	if store.state.Position != 40 {
-		t.Fatalf("the position was lost: %+v", store.state)
-	}
-}
-
-func TestReadingARecordWhoseDevicesAreAllThereWritesNothing(t *testing.T) {
-	svc, store, _, _ := service(State{Devices: []string{"sonos"}, List: []string{"a"}, Track: "a", Playing: true})
-	if _, err := svc.State("u1"); err != nil {
-		t.Fatal(err)
-	}
-	if store.saves != 0 {
-		t.Fatalf("saves = %d", store.saves)
-	}
-}
-
 func TestOneDeviceStartsAtOnce(t *testing.T) {
 	svc, _, out, _ := service(State{Devices: []string{"sonos"}})
 	if _, err := svc.Start(context.Background(), "u1", []string{"a"}); err != nil {
@@ -767,5 +712,74 @@ func TestADeviceIsToldWhichRunOfTheTrackItIsToPlay(t *testing.T) {
 	}
 	if got := out.cycles(); len(got) != 1 || got[0] != epoch.UnixMilli() {
 		t.Fatalf("cycles = %v", got)
+	}
+}
+
+func TestASpeakerReportingTheSameRunTwiceWhileRepeatingOneRestartsItOnce(t *testing.T) {
+	started := epoch.Add(-3 * time.Minute)
+	svc, _, out, _ := service(State{
+		Devices:    []string{"sonos"},
+		List:       []string{"a", "b"},
+		Track:      "a",
+		PositionAt: started,
+		Playing:    true,
+		Repeat:     RepeatOne,
+	})
+	ticking := epoch
+	svc.now = func() time.Time {
+		ticking = ticking.Add(50 * time.Millisecond)
+		return ticking
+	}
+
+	if err := svc.Finished("u1", "a", started.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	before := len(out.seen())
+
+	if err := svc.Finished("u1", "a", started.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.seen(); len(got) != before {
+		t.Fatalf("the second report reached a device: %+v", got[before:])
+	}
+}
+
+func TestASpeakerReachingTheEndMovesTheListOn(t *testing.T) {
+	svc, store, out, _ := service(State{Devices: []string{"sonos"}, List: []string{"a", "b"}, Track: "a", Playing: true})
+	if err := svc.Finished("u1", "a", 0); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Track != "b" {
+		t.Fatalf("stored = %+v", store.state)
+	}
+	if got := out.seen(); len(got) != 1 || got[0].trackID != "b" {
+		t.Fatalf("calls = %+v", got)
+	}
+}
+
+func TestASpeakerReportingATrackTheListHasLeftIsIgnored(t *testing.T) {
+	svc, store, out, _ := service(State{Devices: []string{"sonos"}, List: []string{"a", "b"}, Track: "b", Index: 1, Repeat: RepeatNone, Playing: true}.Sound())
+	if err := svc.Finished("u1", "a", 0); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Track != "b" || store.saves != 0 {
+		t.Fatalf("stored = %+v after %d saves", store.state, store.saves)
+	}
+	if got := out.seen(); len(got) != 0 {
+		t.Fatalf("calls = %+v", got)
+	}
+}
+
+func TestAReadOfTheRecordLeavesADeviceItCannotSeeAlone(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"sonos"}, List: []string{"a"}, Track: "a", Repeat: RepeatNone, Playing: true}.Sound())
+	state, err := svc.State("u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(state.Devices) != 1 || !state.Playing {
+		t.Fatalf("state = %+v", state)
+	}
+	if store.saves != 0 {
+		t.Fatalf("reading wrote %d times", store.saves)
 	}
 }
