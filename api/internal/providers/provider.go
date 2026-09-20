@@ -50,6 +50,13 @@ type StreamResolver interface {
 	ResolveStream(ctx context.Context, sourceURL string, cfg Config) (*Stream, error)
 }
 
+// StreamForgetter is a resolver that holds what it resolved. An address a
+// source refuses because it is spent is worth nothing to the next caller
+// either, and only the resolver knows where it is kept.
+type StreamForgetter interface {
+	ForgetStream(sourceURL string, cfg Config)
+}
+
 // Registry holds the registered provider implementations keyed by id.
 type Registry struct {
 	providers map[string]Provider

@@ -36,7 +36,13 @@ func (Bandcamp) ResolveStream(ctx context.Context, sourceURL string, _ Config) (
 	return &Stream{Kind: "url", URL: url}, nil
 }
 
+// ForgetStream drops the address held for this source.
+func (Bandcamp) ForgetStream(sourceURL string, _ Config) {
+	ytdlp.InvalidateStreamURL(strings.TrimPrefix(sourceURL, "bandcamp:"), "")
+}
+
 var (
-	_ TrackResolver  = Bandcamp{}
-	_ StreamResolver = Bandcamp{}
+	_ StreamForgetter = Bandcamp{}
+	_ TrackResolver   = Bandcamp{}
+	_ StreamResolver  = Bandcamp{}
 )

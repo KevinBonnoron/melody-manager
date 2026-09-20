@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,57 +37,165 @@ func StreamTrack(ctx context.Context, app core.App, reg *providers.Registry, aud
 	sourceURL := track.GetString("origin")
 	hasSegment := meta.StartTime != nil && meta.EndTime != nil
 
-	input := localFile(app, track, localRoots(app))
-	if input != "" {
-		hasSegment = false
-	}
-	if input == "" {
-		sr := reg.StreamResolver(source)
-		if sr == nil {
-			return e.NotFoundError("no stream resolver for source", nil)
+	if input := localFile(app, track, localRoots(app)); input != "" {
+		if err := serveInput(ctx, e, audio, sourceURL, input, transcode, nil); err != nil {
+			return streamError(e, source, err)
 		}
-		st, err := sr.ResolveStream(ctx, sourceURL, pbx.EffectiveConfig(app, userID, source))
-		if err != nil {
-			return e.InternalServerError("resolve stream", err)
-		}
-		switch {
-		case st.Kind == "file":
-			input = st.Path
-		case hasSegment || transcode != "":
-			if st.Download == nil {
-				input = st.URL
-				break
-			}
-			if input, err = fetchAudio(ctx, audio, sourceURL, st.Download); err != nil {
-				return e.InternalServerError("download", err)
-			}
-		default:
-			return proxyURL(e, st.URL)
-		}
+		return nil
 	}
 
+	sr := reg.StreamResolver(source)
+	if sr == nil {
+		return e.NotFoundError("no stream resolver for source", nil)
+	}
+	cfg := pbx.EffectiveConfig(app, userID, source)
+
+	var segment *[2]float64
 	if hasSegment {
-		return serveSegment(ctx, e, audio, sourceURL, input, *meta.StartTime, *meta.EndTime)
+		segment = &[2]float64{*meta.StartTime, *meta.EndTime}
 	}
 
+	err = onceMore(ctx, sr, sourceURL, cfg, func(st *providers.Stream) error {
+		return fromSource(ctx, e, audio, sourceURL, st, transcode, segment)
+	})
+	if err != nil {
+		return streamError(e, source, err)
+	}
+	return nil
+}
+
+// onceMore hands a freshly resolved stream to use, and when the source refuses
+// the address it gave, drops it and resolves once more.
+//
+// A resolved address is bound to a client and expires, so the copy that is held
+// stops working and the refusal says only that it was refused. Resolving again
+// is how the difference between a spent address and a track that is gone is
+// found out. Once: a second refusal is about the track.
+func onceMore(ctx context.Context, sr providers.StreamResolver, sourceURL string, cfg providers.Config, use func(*providers.Stream) error) error {
+	for attempt := 0; ; attempt++ {
+		st, err := sr.ResolveStream(ctx, sourceURL, cfg)
+		if err != nil {
+			return fmt.Errorf("resolve stream: %w", err)
+		}
+
+		err = use(st)
+		if err == nil {
+			return nil
+		}
+		forgetter, holds := sr.(providers.StreamForgetter)
+		if attempt == 0 && holds && refused(err) {
+			forgetter.ForgetStream(sourceURL, cfg)
+			continue
+		}
+		return err
+	}
+}
+
+// fromSource serves what a resolver handed back. A file is played from disk; a
+// cut or a transcode needs the audio itself, downloaded when the source offers
+// a download and read over the network when it does not; anything else is the
+// address, proxied.
+func fromSource(ctx context.Context, e *core.RequestEvent, audio *cache.Cache, sourceURL string, st *providers.Stream, transcode string, segment *[2]float64) error {
+	switch {
+	case st.Kind == "file":
+		return serveInput(ctx, e, audio, sourceURL, st.Path, transcode, segment)
+	case segment != nil || transcode != "":
+		input := st.URL
+		if st.Download != nil {
+			path, err := fetchAudio(ctx, audio, sourceURL, st.Download)
+			if err != nil {
+				return fmt.Errorf("download: %w", err)
+			}
+			input = path
+		}
+		return serveInput(ctx, e, audio, sourceURL, input, transcode, segment)
+	default:
+		return proxyURL(e, st.URL)
+	}
+}
+
+// serveInput serves one piece of audio, cut or converted first if it has to be.
+func serveInput(ctx context.Context, e *core.RequestEvent, audio *cache.Cache, sourceURL, input, transcode string, segment *[2]float64) error {
+	if segment != nil {
+		return serveSegment(ctx, e, audio, sourceURL, input, segment[0], segment[1])
+	}
 	if transcode != "" && !sameFormat(input, transcode) {
 		return serveTranscode(ctx, e, audio, sourceURL, input, transcode)
 	}
 
 	f, err := os.Open(input)
 	if err != nil {
-		return e.NotFoundError("audio file not found", err)
+		return fmt.Errorf("audio file not found: %w", err)
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return e.InternalServerError("stat", err)
+		return fmt.Errorf("stat: %w", err)
 	}
 	if mime := MimeFor(filepath.Ext(input)); mime != "" {
 		e.Response.Header().Set("Content-Type", mime)
 	}
 	http.ServeContent(e.Response, e.Request, filepath.Base(input), info.ModTime(), f)
 	return nil
+}
+
+// refusal is a source turning down an address rather than failing to serve it.
+type refusal struct{ status int }
+
+func (r refusal) Error() string { return fmt.Sprintf("the source refused the address: %d", r.status) }
+
+// refused says whether a failure was a refusal. A spent address is refused
+// rather than reported as spent, so this is as close as the source gets to
+// saying so.
+func refused(err error) bool {
+	var r refusal
+	return errors.As(err, &r)
+}
+
+// turnedDown are the answers that mean the address is no good rather than the
+// audio being unavailable for a moment.
+func turnedDown(status int) bool {
+	return status == http.StatusUnauthorized || status == http.StatusForbidden || status == http.StatusGone
+}
+
+const (
+	// codeSourceRefused is the source turning down the address it gave, twice:
+	// the track is not reachable with what this server holds for it.
+	codeSourceRefused = "SOURCE_REFUSED"
+	// codePlaybackFailed is everything else. A listener can act on the reasons
+	// above and on nothing below, so the rest is one answer.
+	codePlaybackFailed = "PLAYBACK_FAILED"
+)
+
+// streamError answers with the reason rather than with the stage that broke. A
+// client reads the message out of a failed media load and has nothing else to
+// show for it, so "segment" tells a listener nothing they can act on.
+//
+// A refusal is answered before the credentials are blamed: the message carries
+// the status the source gave, and authErrorCode reads a 403 in it as a source
+// asking to be signed in to.
+//
+// What is answered is a name, never the failure's own words. Those carry the
+// paths this server reads from, the address it resolved and whatever ffmpeg
+// wrote to its error output, and the message reaches the caller where the error
+// itself does not.
+func streamError(e *core.RequestEvent, source string, err error) error {
+	code, status := streamCode(source, err)
+	if code == codePlaybackFailed {
+		slog.Warn("a track could not be played", "source", source, "error", err)
+	}
+	return e.Error(status, code, err)
+}
+
+// streamCode is the name for a failure, and the status that goes with it.
+func streamCode(source string, err error) (string, int) {
+	if refused(err) {
+		return codeSourceRefused, http.StatusForbidden
+	}
+	if code := authErrorCode(source, err); code != "" {
+		return code, http.StatusForbidden
+	}
+	return codePlaybackFailed, http.StatusInternalServerError
 }
 
 var peaksCache = expirable.NewLRU[string, []float64](500, nil, peaksTTL)
@@ -225,18 +334,18 @@ func isRemote(input string) bool {
 func serveSegment(ctx context.Context, e *core.RequestEvent, audio *cache.Cache, sourceURL, input string, start, end float64) error {
 	path, cleanup, err := segmentFile(ctx, audio, sourceURL, input, start, end)
 	if err != nil {
-		return e.InternalServerError("segment", err)
+		return fmt.Errorf("cutting the track out of the source: %w", err)
 	}
 	defer cleanup()
 
 	f, err := os.Open(path)
 	if err != nil {
-		return e.InternalServerError("segment", err)
+		return fmt.Errorf("cutting the track out of the source: %w", err)
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return e.InternalServerError("segment", err)
+		return fmt.Errorf("cutting the track out of the source: %w", err)
 	}
 	e.Response.Header().Set("Content-Type", "audio/mpeg")
 	http.ServeContent(e.Response, e.Request, filepath.Base(path), info.ModTime(), f)
@@ -246,7 +355,7 @@ func serveSegment(ctx context.Context, e *core.RequestEvent, audio *cache.Cache,
 func serveTranscode(ctx context.Context, e *core.RequestEvent, audio *cache.Cache, sourceURL, input, format string) error {
 	path, cleanup, err := transcodeFile(ctx, audio, sourceURL, input, format)
 	if err != nil {
-		return e.InternalServerError("transcode", err)
+		return fmt.Errorf("converting the track: %w", err)
 	}
 	defer cleanup()
 
@@ -409,6 +518,9 @@ func fetchRange(ctx context.Context, url string, offset, length int64, w io.Writ
 		return 0, 0, err
 	}
 	defer resp.Body.Close()
+	if turnedDown(resp.StatusCode) {
+		return 0, 0, refusal{status: resp.StatusCode}
+	}
 	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
 		return 0, 0, fmt.Errorf("range request: unexpected status %d", resp.StatusCode)
 	}
@@ -525,20 +637,25 @@ func fileExists(p string) bool {
 
 func proxyURL(e *core.RequestEvent, url string) error {
 	if url == "" {
-		return e.NotFoundError("no stream url", nil)
+		return errors.New("the source gave no address for this track")
 	}
 	req, err := http.NewRequestWithContext(e.Request.Context(), http.MethodGet, url, nil)
 	if err != nil {
-		return e.InternalServerError("proxy request", err)
+		return fmt.Errorf("asking the source for the audio: %w", err)
 	}
 	if rng := e.Request.Header.Get("Range"); rng != "" {
 		req.Header.Set("Range", rng)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return e.InternalServerError("proxy fetch", err)
+		return fmt.Errorf("asking the source for the audio: %w", err)
 	}
 	defer resp.Body.Close()
+	// Read before writing: passing a refusal straight through would hand the
+	// listener a 403 from the source and spend the one chance to ask again.
+	if turnedDown(resp.StatusCode) {
+		return refusal{status: resp.StatusCode}
+	}
 	for _, h := range []string{"Content-Type", "Content-Length", "Accept-Ranges", "Content-Range"} {
 		if v := resp.Header.Get(h); v != "" {
 			e.Response.Header().Set(h, v)
