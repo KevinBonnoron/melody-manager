@@ -2,8 +2,12 @@ package ytdlp
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Ported from the deleted server/src/utils/yt-dlp.util.test.ts.
@@ -385,5 +389,55 @@ func TestRunErrorKeepsTheRunAndDropsThePath(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("a log that cannot say %q is not worth reading: %q", want, got)
 		}
+	}
+}
+
+func TestAnAddressIsGoodUntilTheMomentItCarries(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	expire := now.Add(6 * time.Hour)
+	raw := "https://rr3---sn-x.googlevideo.com/videoplayback?expire=" + strconv.FormatInt(expire.Unix(), 10) + "&ei=abc"
+
+	got := goodUntil(raw, now)
+	if want := expire.Add(-streamURLMargin); !got.Equal(want) {
+		t.Fatalf("good until %v, want %v", got, want)
+	}
+}
+
+func TestAnAddressThatCarriesNoMomentIsAGuess(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	for _, raw := range []string{"https://cf.soundcloud.com/media/abc", "https://host/x?expire=soon", "://broken"} {
+		if got := goodUntil(raw, now); !got.Equal(now.Add(streamURLTTL)) {
+			t.Fatalf("%q: good until %v, want the fallback %v", raw, got, now.Add(streamURLTTL))
+		}
+	}
+}
+
+func TestAnAddressAlreadySpentIsNotGood(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	raw := "https://host/v?expire=" + strconv.FormatInt(now.Add(-time.Hour).Unix(), 10)
+	if got := goodUntil(raw, now); !got.Before(now) {
+		t.Fatalf("good until %v, which is not behind %v", got, now)
+	}
+}
+
+func TestDifferentCredentialsDoNotShareAResolution(t *testing.T) {
+	mine := filepath.Join(t.TempDir(), "mine.txt")
+	if err := os.WriteFile(mine, []byte("# mine\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tmine\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	theirs := filepath.Join(t.TempDir(), "theirs.txt")
+	if err := os.WriteFile(theirs, []byte("# theirs\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\ttheirs\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	source := "https://www.youtube.com/watch?v=abc"
+	if streamKey(source, mine) == streamKey(source, theirs) {
+		t.Fatal("two sets of cookies share one entry")
+	}
+	if streamKey(source, "") == streamKey(source, mine) {
+		t.Fatal("cookies and none share one entry")
+	}
+	if streamKey(source, "") != streamKey(source, "") {
+		t.Fatal("no cookies does not answer to itself")
 	}
 }
