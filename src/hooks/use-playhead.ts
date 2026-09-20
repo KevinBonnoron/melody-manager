@@ -39,7 +39,9 @@ export function usePlayheadTime(playhead: Playhead): number {
 /** usePlayhead paints the playhead every frame, from the same reading. */
 export function usePlayhead(playhead: Playhead, paint: (ratio: number) => void) {
   const paintRef = useRef(paint);
-  paintRef.current = paint;
+  useEffect(() => {
+    paintRef.current = paint;
+  }, [paint]);
 
   useEffect(() => {
     const show = () => {

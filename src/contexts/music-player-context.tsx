@@ -13,9 +13,11 @@ import { artistNames } from '@/hooks/use-library-index';
 import { usePlayerQueue, usePlayerRead, usePlayerState } from '@/hooks/use-player-state';
 import { usePlayheadTime } from '@/hooks/use-playhead';
 import i18n from '@/i18n';
+import { reached } from '@/lib/clock';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
+import { correctionFor } from '@/lib/drift';
 import { apply } from '@/lib/player-state';
 import type { Playhead } from '@/lib/playhead';
 import { playheadOf } from '@/lib/playhead';
@@ -91,15 +93,23 @@ async function reasonFor(src: string): Promise<string | null> {
 
 const VOLUME_SETTLE_MS = 200;
 
+const IN_STEP_MS = 2000;
+
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 
 export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { data: trackPlays = [] } = useLiveQuery({ query: (q) => q.from({ trackPlays: trackPlayCollection }) });
+  // Written where React can see them rather than during the render: a render
+  // that is thrown away must not leave what the committed callbacks read.
   const trackPlaysRef = useRef<TrackPlay[]>([]);
-  trackPlaysRef.current = trackPlays as TrackPlay[];
   const userIdRef = useRef<string | undefined>(undefined);
-  userIdRef.current = user?.id;
+  useEffect(() => {
+    trackPlaysRef.current = trackPlays as TrackPlay[];
+  }, [trackPlays]);
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   const state = usePlayerState();
   const stateRead = usePlayerRead();
@@ -131,6 +141,11 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // already name the run that replaced this one.
   const cycleRef = useRef(0);
   const waitingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Starting and stopping on an agreed moment both wait, first for the clock to
+  // be measured and then for the moment itself. An order that arrives meanwhile
+  // replaces the one waiting, which must then do nothing rather than let the
+  // sound out, or stop it, after the device was told otherwise.
+  const orderRef = useRef(0);
   const [holding, setHolding] = useState<string | null>(null);
   const loadRequestRef = useRef(0);
 
@@ -152,7 +167,9 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const currentTime = usePlayheadTime(playhead);
 
   const stateRef = useRef<PlayerState>(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const send = useCallback(async (order: () => Promise<PlayerState>, whenLost: string) => {
     try {
@@ -246,8 +263,33 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener('canplay', ready, { once: true });
   }, []);
 
+  /** stopHere lets the sound out until the moment they were all told to stop. */
+  const stopHere = useCallback((audio: HTMLAudioElement, stopAt: number, current: () => boolean) => {
+    if (!stopAt) {
+      audio.pause();
+      return;
+    }
+
+    void whenMeasured().then(() => {
+      if (!current()) {
+        return;
+      }
+
+      const when = startsIn(stopAt, serverNow());
+      if ('late' in when) {
+        audio.pause();
+        return;
+      }
+
+      if (waitingRef.current) {
+        clearTimeout(waitingRef.current);
+      }
+      waitingRef.current = setTimeout(() => audio.pause(), when.wait);
+    });
+  }, []);
+
   const loadHere = useCallback(
-    async (trackId: string, at: number, startAt: number, cycle: number) => {
+    async (trackId: string, at: number, startAt: number, cycle: number, current: () => boolean) => {
       const audio = audioRef.current;
       if (!audio) {
         return;
@@ -306,7 +348,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         trackPlayCollection.insert({ id: playId, user: userId, track: trackId, completed: false } as TrackPlay);
       }
 
-      startHere(audio, at, startAt, () => request === loadRequestRef.current);
+      startHere(audio, at, startAt, () => current() && request === loadRequestRef.current);
     },
     [audioFormat, startHere],
   );
@@ -420,32 +462,85 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Only an order that decides whether sound comes out takes an epoch. A
+        // volume or a seek arriving beside a scheduled start leaves it alone.
+        const takeOver = () => {
+          const order = ++orderRef.current;
+          return () => order === orderRef.current;
+        };
+
         const action = command.action;
         if (action.startsWith('play:')) {
+          const current = takeOver();
           const [, trackId, at, startAt, cycle] = action.split(':');
-          void loadHere(trackId, Number(at) || 0, Number(startAt) || 0, Number(cycle) || 0);
+          void loadHere(trackId, Number(at) || 0, Number(startAt) || 0, Number(cycle) || 0, current);
         } else if (action.startsWith('resume:')) {
+          const current = takeOver();
           const [, trackId, at, startAt, cycle] = action.split(':');
+          const from = Number(at) || 0;
+          const when = Number(startAt) || 0;
           if (loadedRef.current === trackId && audio.src) {
             cycleRef.current = Number(cycle) || 0;
-            startHere(audio, audio.currentTime, Number(startAt) || 0, () => true);
+            // Carrying on from where this device stopped would keep whatever
+            // gap the stop left. The record says where playback is, and that is
+            // what every device comes back to.
+            if (when) {
+              audio.currentTime = from;
+            }
+            startHere(audio, when ? from : audio.currentTime, when, current);
           } else {
-            void loadHere(trackId, Number(at) || 0, Number(startAt) || 0, Number(cycle) || 0);
+            void loadHere(trackId, from, when, Number(cycle) || 0, current);
           }
-        } else if (action === 'pause' || action === 'stop') {
+        } else if (action === 'stop' || action.startsWith('pause:')) {
+          const current = takeOver();
           if (waitingRef.current) {
             clearTimeout(waitingRef.current);
             waitingRef.current = null;
           }
-          audio.pause();
+          stopHere(audio, action === 'stop' ? 0 : Number(action.slice(6)) || 0, current);
         } else if (action.startsWith('seek:')) {
           audio.currentTime = Number(action.slice(5)) || 0;
         } else if (action.startsWith('volume:')) {
           setLocalVolume(Number(action.slice(7)) / 100);
         }
       }),
-    [loadHere, startHere],
+    [loadHere, startHere, stopHere],
   );
+
+  // Devices told to start together still walk apart, because no two decoders
+  // run at quite the same speed. Each one watches its own distance from the
+  // record and bends its speed by a thousandth to close it, which is inaudible
+  // and needs no leader: they are all following the same written position.
+  // Alone, there is nobody to be in step with and the element is the truth.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    if (!media || !state.playing || state.devices.length < 2) {
+      audio.playbackRate = 1;
+      return;
+    }
+
+    // The position is read when the correction is made rather than depended on
+    // here: a record written while the timer waits would otherwise restart it,
+    // and a device losing its turn every time the record moves never corrects.
+    const timer = setInterval(() => {
+      const record = stateRef.current;
+      const drift = audio.currentTime - reached(record.position, record.positionAt, true, serverNow());
+      const { rate, seek } = correctionFor(drift);
+      if (seek) {
+        audio.currentTime = audio.currentTime - drift;
+      }
+      audio.playbackRate = rate;
+    }, IN_STEP_MS);
+
+    return () => {
+      clearInterval(timer);
+      audio.playbackRate = 1;
+    };
+  }, [media, state.playing, state.devices.length]);
 
   const play = useCallback(
     (tracks: Track[]) => {
