@@ -75,30 +75,90 @@ as a play.
 Every device the server knows: speakers on the network and browsers signed in,
 with what each is playing.
 
-### `POST /api/devices/{id}/play` · `play/{trackId}`
-
-Start playing, optionally naming the track.
-
-### `POST /api/devices/{id}/pause` · `stop` · `next` · `previous`
-
-Transport, for whichever kind of device it is.
-
-### `POST /api/devices/{id}/seek`
-
-Move within the track. Seconds, in the body.
-
 ### `POST /api/devices/{id}/volume`
 
-Set the level, 0 to 100.
+Set the level, 0 to 100. Volume belongs to the device rather than to what is
+playing, which is why it is addressed here and everything else is not.
 
-### `POST /api/devices/{id}/state`
+A device the server does not know, or a speaker it cannot use, answers `404`,
+and so does a browser whose connection has since gone. The rest is the speaker's
+own: `501` when its protocol has no word for what was asked, `409` when it holds
+nothing to act on, and `502` when it cannot be reached at all.
 
-What a browser reports about itself: what it is playing and where it has got to.
+## Playback
 
-A device asked for something its protocol has no word for answers `501`: a
-Chromecast handed a single track has no queue, so "next" is a question it cannot
-be asked rather than a failure. A device that cannot be reached at all answers
-`502`.
+One record per user says what should be playing, and it exists whether or not
+anything is, and whether or not a client is open. Clients draw it and ask for
+changes; the server tells the devices. Every endpoint here answers with the
+whole record, so a client never has to work out what its own order did.
+
+```json
+{
+  "track": "...", "position": 61.5, "positionAt": "2026-09-20T17:31:02.412Z",
+  "playing": true, "devices": ["..."], "list": ["..."], "order": [2, 0, 1],
+  "index": 0, "shuffle": true, "repeat": "none", "now": "2026-09-20T17:31:04.118Z"
+}
+```
+
+`position` is where the playhead was at `positionAt`, not where it is now: a
+client works out the rest itself. `now` is the server's own clock, which is what
+a client measures its offset against. `list` is the tracks; `order` is the
+permutation they are played in and `index` where the playhead sits in it, so
+shuffling reorders without losing what was queued.
+
+### `GET /api/player`
+
+The record, read without changing it.
+
+### `POST /api/player/play`
+
+Start playing. The body is `{"tracks": ["..."]}` and the first of them is the
+one to play; a single track is a list of one. The server extends the list as the
+playhead advances, so playback does not stop at the end of what was sent.
+
+### `POST /api/player/resume` · `pause` · `next` · `previous`
+
+Transport, with no body. They address the record rather than a device, so
+pausing means the same thing when the sound is coming out of three places.
+
+### `POST /api/player/skip`
+
+Put the playhead on a track already in the list. `{"trackId": "..."}`.
+
+### `POST /api/player/ended`
+
+A device reporting that it reached the end of what it was given.
+`{"trackId": "...", "cycle": 1758389462412}`, where `cycle` is the run it was
+told to play, carried in the order it obeyed. Every device playing a track
+reaches its end and says so; the run is what tells one report from several.
+
+### `POST /api/player/seek`
+
+Move within the track. `{"position": 61.5}`, in seconds.
+
+### `POST /api/player/add` · `remove`
+
+`{"trackId": "..."}`. An added track goes in just after the one playing rather
+than at the end.
+
+### `POST /api/player/clear`
+
+Empty the list. What is playing carries on: it outlives the list it came from.
+
+### `POST /api/player/shuffle` · `repeat`
+
+`{"shuffle": true}` and `{"repeat": "none" | "all" | "one"}`. They belong to the
+record, so every device shows the same answer and any of them can change it.
+
+### `POST /api/player/devices`
+
+Where the sound comes out: `{"deviceIds": ["..."]}`. One device is the set of
+one and several in step is the same set with more in it. Moving playback keeps
+the position, so what was playing carries on where it was.
+
+### `POST /api/player/join` · `leave`
+
+Add or remove one device without naming the others. `{"deviceId": "..."}`.
 
 ## Library
 
