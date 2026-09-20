@@ -4,6 +4,8 @@ package ytdlp
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,7 +62,13 @@ type Comment struct {
 	Parent string `json:"parent"`
 }
 
-var streamURLCache = expirable.NewLRU[string, string](1000, nil, streamURLTTL)
+var streamURLCache = expirable.NewLRU[string, held](1000, nil, streamURLTTL)
+
+// held is a resolved address together with the moment it stops working.
+type held struct {
+	url   string
+	until time.Time
+}
 
 // A JS runtime alone does not solve YouTube's challenges: yt-dlp also needs a solver script
 // of the version it was built against, and a distribution that ships an older one fails the n
@@ -205,13 +213,24 @@ func lastError(stderr []byte) string {
 
 const streamURLTTL = 4 * time.Hour
 
-// StreamURL resolves a direct audio URL for the source (cached for streamURLTTL).
+// streamURLMargin is how much of an address's life goes unused. One handed out
+// with seconds left is spent before the audio it points at has been read.
+const streamURLMargin = time.Minute
+
+// StreamURL resolves a direct audio URL for the source.
+//
+// What comes back is bound to the credentials it was resolved with and stops
+// working at a moment written into the address itself, so it is held under
+// those credentials and only for as long as it is good for. Nothing is
+// borrowed: two callers with different cookies never share a resolution, and
+// two with none share one because their resolutions are the same.
 func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, error) {
 	if err := validateURL(sourceURL); err != nil {
 		return "", err
 	}
-	if v, ok := streamURLCache.Get(sourceURL); ok {
-		return v, nil
+	key := streamKey(sourceURL, cookiesFile)
+	if v, ok := streamURLCache.Get(key); ok && time.Now().Before(v.until) {
+		return v.url, nil
 	}
 
 	format := "bestaudio"
@@ -231,12 +250,44 @@ func StreamURL(ctx context.Context, sourceURL, cookiesFile string) (string, erro
 		return "", err
 	}
 	url := strings.TrimSpace(string(out))
-	streamURLCache.Add(sourceURL, url)
+	streamURLCache.Add(key, held{url: url, until: goodUntil(url, time.Now())})
 	return url, nil
 }
 
-// InvalidateStreamURL drops a cached stream URL (e.g.
-func InvalidateStreamURL(sourceURL string) { streamURLCache.Remove(sourceURL) }
+// InvalidateStreamURL drops the address held for these credentials, so that the
+// next caller resolves a new one rather than being handed a spent copy.
+func InvalidateStreamURL(sourceURL, cookiesFile string) {
+	streamURLCache.Remove(streamKey(sourceURL, cookiesFile))
+}
+
+// streamKey is the source together with the credentials it was resolved with.
+func streamKey(sourceURL, cookiesFile string) string {
+	material, _ := os.ReadFile(cookiesFile)
+	sum := sha256.Sum256(material)
+	return sourceURL + "\x00" + hex.EncodeToString(sum[:])
+}
+
+// goodUntil reads how long a resolved address is good for. Google writes it into
+// the address as expire=<unix seconds>; one that says nothing is held for
+// streamURLTTL instead, which is a guess rather than a promise.
+func goodUntil(raw string, now time.Time) time.Time {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return now.Add(streamURLTTL)
+	}
+	for _, name := range []string{"expire", "exp"} {
+		v := u.Query().Get(name)
+		if v == "" {
+			continue
+		}
+		secs, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			continue
+		}
+		return time.Unix(secs, 0).Add(-streamURLMargin)
+	}
+	return now.Add(streamURLTTL)
+}
 
 const multiTrackLength = 10 * time.Minute
 
