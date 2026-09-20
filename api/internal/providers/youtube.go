@@ -64,10 +64,18 @@ func (YouTube) ResolveStream(ctx context.Context, sourceURL string, cfg Config) 
 	return &Stream{Kind: "url", URL: url}, nil
 }
 
+// ForgetStream drops the address held for this source under these credentials.
+func (YouTube) ForgetStream(sourceURL string, cfg Config) {
+	cookiesFile, cleanup := writeCookies(cfg)
+	defer cleanup()
+	ytdlp.InvalidateStreamURL(sourceURL, cookiesFile)
+}
+
 var (
-	_ Searcher       = YouTube{}
-	_ TrackResolver  = YouTube{}
-	_ StreamResolver = YouTube{}
+	_ Searcher        = YouTube{}
+	_ StreamForgetter = YouTube{}
+	_ TrackResolver   = YouTube{}
+	_ StreamResolver  = YouTube{}
 )
 
 func mapSearchResults(entries []ytdlp.TrackInfo, source string) []domain.SearchResult {

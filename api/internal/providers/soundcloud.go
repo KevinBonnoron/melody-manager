@@ -44,10 +44,16 @@ func (SoundCloud) ResolveStream(ctx context.Context, sourceURL string, _ Config)
 	}, nil
 }
 
+// ForgetStream drops the address held for this source.
+func (SoundCloud) ForgetStream(sourceURL string, _ Config) {
+	ytdlp.InvalidateStreamURL(sourceURL, "")
+}
+
 var (
-	_ Searcher       = SoundCloud{}
-	_ TrackResolver  = SoundCloud{}
-	_ StreamResolver = SoundCloud{}
+	_ Searcher        = SoundCloud{}
+	_ StreamForgetter = SoundCloud{}
+	_ TrackResolver   = SoundCloud{}
+	_ StreamResolver  = SoundCloud{}
 )
 
 func (SoundCloud) PlaylistName(ctx context.Context, url string, cfg Config) (string, error) {
