@@ -220,40 +220,6 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g.GET("/devices", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, map[string]any{"success": true, "data": deps.Devices.List(userID(e))})
 	})
-	g.POST("/devices/{id}/play/{trackId}", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
-	g.POST("/devices/{id}/play", func(e *core.RequestEvent) error { return playOnDevice(e, deps) })
-	g.POST("/devices/{id}/pause", deviceAction(deps, "pause", players.Player.Pause))
-	g.POST("/devices/{id}/stop", deviceAction(deps, "stop", players.Player.Stop))
-	g.POST("/devices/{id}/next", deviceAction(deps, "next", players.Player.Next))
-	g.POST("/devices/{id}/previous", deviceAction(deps, "previous", players.Player.Previous))
-	g.POST("/devices/{id}/seek", func(e *core.RequestEvent) error {
-		dev, ok := usableDevice(deps, e)
-		if !ok {
-			return e.NotFoundError("device not found", nil)
-		}
-		var body struct {
-			Position float64 `json:"position"`
-		}
-		if err := e.BindBody(&body); err != nil {
-			return e.BadRequestError("invalid body", err)
-		}
-		position := rounded(body.Position)
-		if clientDevice(deps, dev) {
-			if !deps.Devices.SendCommand(dev.ID, fmt.Sprintf("seek:%d", position)) {
-				return e.NotFoundError("device not found", nil)
-			}
-			return e.JSON(http.StatusOK, map[string]any{"success": true})
-		}
-		player, speaks := deps.Devices.PlayerFor(dev)
-		if !speaks {
-			return e.NotFoundError("device not found", nil)
-		}
-		if err := player.Seek(e.Request.Context(), dev.IPAddress, position); err != nil {
-			return speakerError(e, err)
-		}
-		deps.Devices.WatchSpeaker(dev.ID)
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
-	})
 	g.POST("/devices/{id}/volume", func(e *core.RequestEvent) error {
 		dev, ok := usableDevice(deps, e)
 		if !ok {
@@ -846,95 +812,6 @@ func userID(e *core.RequestEvent) string {
 	return ""
 }
 
-func playOnDevice(e *core.RequestEvent, deps *app.Deps) error {
-	dev, ok := usableDevice(deps, e)
-	if !ok {
-		return e.NotFoundError("device not found", nil)
-	}
-	ctx := e.Request.Context()
-	trackID := e.Request.PathValue("trackId")
-	var body struct {
-		Position float64 `json:"position"`
-	}
-	if err := e.BindBody(&body); err != nil {
-		return e.BadRequestError("invalid body", err)
-	}
-	position := rounded(body.Position)
-
-	if clientDevice(deps, dev) {
-		action := "play"
-		if trackID != "" {
-			action = fmt.Sprintf("play:%s:%d", trackID, position)
-		}
-		if !deps.Devices.SendCommand(dev.ID, action) {
-			return e.NotFoundError("device not found", nil)
-		}
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
-	}
-	player, speaks := deps.Devices.PlayerFor(dev)
-	if !speaks {
-		return e.NotFoundError("device not found", nil)
-	}
-	if trackID == "" {
-		if err := player.Play(ctx, dev.IPAddress); err != nil {
-			return speakerError(e, err)
-		}
-		deps.Devices.WatchSpeaker(dev.ID)
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
-	}
-	track, err := e.App.FindRecordById("tracks", trackID)
-	if err != nil {
-		return e.NotFoundError("track not found", err)
-	}
-	artist, album, artURL := "", "", ""
-	if ids := track.GetStringSlice("artists"); len(ids) > 0 {
-		if a, err := e.App.FindRecordById("artists", ids[0]); err == nil {
-			artist = a.GetString("name")
-		}
-	}
-	if al, err := e.App.FindRecordById("albums", track.GetString("album")); err == nil {
-		album = al.GetString("name")
-		artURL = deps.Devices.CoverURL(al.Id, al.GetString("cover"))
-	}
-	if !deps.Devices.Reachable() {
-		return e.BadRequestError("the server public URL is not reachable from the device; set it in the admin settings", nil)
-	}
-
-	tok, err := mintStreamToken(e.App, e.Auth.Id, trackID)
-	if err != nil {
-		return e.InternalServerError("stream token", err)
-	}
-	format, mime := "mp3", "audio/mpeg"
-	if native := services.MimeFor(services.LocalFormat(e.App, track)); native != "" && player.Accepts(ctx, dev.IPAddress, native) {
-		if audio, err := services.LocalAudio(ctx, e.App, track); err == nil && player.Decodes(audio.SampleRate, audio.BitDepth) {
-			format, mime = "", native
-		}
-	}
-
-	streamURL := deps.Devices.StreamURL(trackID, tok, format)
-	if err := player.PlayURL(ctx, dev.IPAddress, players.Track{
-		URL:      streamURL,
-		MimeType: mime,
-		Title:    track.GetString("title"),
-		Artist:   artist,
-		Album:    album,
-		ArtURL:   artURL,
-		Duration: track.GetInt("duration"),
-	}); err != nil {
-		return speakerError(e, err)
-	}
-
-	if position > 0 {
-		if err := player.Seek(ctx, dev.IPAddress, position); err != nil {
-			slog.Warn("seek after handover failed", "device", dev.ID, "kind", dev.Type, "position", position, "error", err)
-		}
-	}
-
-	deps.Devices.SetSpeakerTrack(dev.ID, userID(e), trackID, 0)
-	deps.Devices.WatchSpeaker(dev.ID)
-	return e.JSON(http.StatusOK, map[string]any{"success": true})
-}
-
 const coverThumbSize = "500x500"
 
 const passwordMinLength = 8
@@ -954,30 +831,6 @@ func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
 		return devices.Device{}, false
 	}
 	return dev, true
-}
-
-func deviceAction(deps *app.Deps, action string, fn func(players.Player, context.Context, string) error) func(*core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		dev, ok := usableDevice(deps, e)
-		if !ok {
-			return e.NotFoundError("device not found", nil)
-		}
-		if clientDevice(deps, dev) {
-			if !deps.Devices.SendCommand(dev.ID, action) {
-				return e.NotFoundError("device not found", nil)
-			}
-			return e.JSON(http.StatusOK, map[string]any{"success": true})
-		}
-		player, speaks := deps.Devices.PlayerFor(dev)
-		if !speaks {
-			return e.NotFoundError("device not found", nil)
-		}
-		if err := fn(player, e.Request.Context(), dev.IPAddress); err != nil {
-			return speakerError(e, err)
-		}
-		deps.Devices.WatchSpeaker(dev.ID)
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
-	}
 }
 
 func renameError(e *core.RequestEvent, err error) error {
