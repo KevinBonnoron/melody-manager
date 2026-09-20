@@ -243,7 +243,7 @@ function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label
 }
 
 function TrackRow({ rank, track, count, albumMap, artistMap }: { rank: number; track: Track; count: number; albumMap: Map<string, Album>; artistMap: Map<string, Artist> }) {
-  const { playTrack, togglePlayPause, currentTrack, isPlaying, setQueue } = useMusicPlayer();
+  const { play, togglePlayPause, currentTrack, isPlaying } = useMusicPlayer();
   const album = albumMap.get(track.album);
   const artistNames = track.artists
     .map((id) => artistMap.get(id)?.name)
@@ -254,8 +254,7 @@ function TrackRow({ rank, track, count, albumMap, artistMap }: { rank: number; t
     if (isCurrentTrack) {
       togglePlayPause();
     } else {
-      setQueue([track]);
-      playTrack(track);
+      play([track]);
     }
   };
 

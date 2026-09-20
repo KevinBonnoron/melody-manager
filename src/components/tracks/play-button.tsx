@@ -9,11 +9,10 @@ interface Props {
 }
 
 export function PlayButton({ tracks, label }: Props) {
-  const { playTrack, setQueue } = useMusicPlayer();
+  const { play } = useMusicPlayer();
   const handlePlayAll = () => {
     if (tracks.length > 0) {
-      setQueue(tracks);
-      playTrack(tracks[0]);
+      play(tracks);
     }
   };
 

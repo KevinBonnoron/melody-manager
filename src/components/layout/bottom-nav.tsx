@@ -4,19 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
-import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { cn } from '@/lib/utils';
 
 export function BottomNav({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
   const location = useLocation();
-  const { togglePlayPause, playNext, currentTime } = useMusicPlayer();
+  const { togglePlayPause, playNext, currentTime, activeDevice } = useMusicPlayer();
   const { track: currentTrack, isPlaying, isRemote } = useNowPlaying();
-  const remote = useRemotePlayback();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
-  const control = isRemote && remote ? { toggle: remote.togglePlayPause, next: remote.playNext, time: remote.currentTime } : { toggle: togglePlayPause, next: playNext, time: currentTime };
+  const control = { toggle: togglePlayPause, next: playNext, time: currentTime };
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -62,7 +60,7 @@ export function BottomNav({ onExpand }: { onExpand: () => void }) {
                 <p className="text-[13px] font-semibold truncate leading-tight">{currentTrack.title}</p>
                 <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
                   {isRemote && <MonitorSpeaker className="h-3 w-3 shrink-0 text-primary" />}
-                  <span className="truncate">{isRemote && remote ? remote.device.name : artistNames(currentTrack.artists, artistsById)}</span>
+                  <span className="truncate">{isRemote && activeDevice ? activeDevice.name : artistNames(currentTrack.artists, artistsById)}</span>
                 </p>
               </div>
             </button>

@@ -264,7 +264,7 @@ export function HistoryPage() {
 
 function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; track: Track; albumMap: Map<string, Album>; artistMap: Map<string, Artist> }) {
   const { t } = useTranslation();
-  const { playTrack, togglePlayPause, currentTrack, setQueue } = useMusicPlayer();
+  const { play: playTracks, togglePlayPause, currentTrack } = useMusicPlayer();
   const album = albumMap.get(track.album);
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artistNames = track.artists
@@ -279,8 +279,7 @@ function HistoryRow({ play, track, albumMap, artistMap }: { play: TrackPlay; tra
     if (isCurrentTrack) {
       togglePlayPause();
     } else {
-      setQueue([track]);
-      playTrack(track);
+      playTracks([track]);
     }
   };
 

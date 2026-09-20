@@ -29,15 +29,14 @@ export function ArtistPage({ artistId }: Props) {
   const { data: tracks = [] } = useArtistTracks(artistId);
   const { data: albums = [] } = useAlbumsForArtist(artistId);
   const { ratingOf, toggleLike, toggleDislike, isReady: ratingsReady } = useArtistRatings();
-  const { playTrack, setQueue } = useMusicPlayer();
+  const { play } = useMusicPlayer();
   const user = useAuthUser();
   const isAdmin = user.role === 'admin';
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const handlePlayAll = () => {
     if (tracks.length > 0) {
-      setQueue(tracks);
-      playTrack(tracks[0]);
+      play(tracks);
     }
   };
 

@@ -24,6 +24,7 @@ import { useRecordSearch, useSearchHistory } from '@/hooks/use-search-history';
 import { useTrackPreviews } from '@/hooks/use-track-previews';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
+import { fromTrack } from '@/lib/from-track';
 import { getSourceColor } from '@/lib/source-colors';
 import { cn, formatDuration, getProviderColor } from '@/lib/utils';
 import type { Album, Artist, SearchResult, Track } from '@/shared';
@@ -77,7 +78,7 @@ interface Props {
 export function SearchExperience({ variant = 'page', initialQuery = '', onNavigate }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { playTrackWithContext } = useMusicPlayer();
+  const { play } = useMusicPlayer();
   const [query, setQuery] = useState(initialQuery);
   useEffect(() => {
     setQuery(initialQuery);
@@ -239,10 +240,10 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
     () => [
       ...libraryResults.artists.map((artist) => ({ key: `artist-${artist.id}`, run: () => navigate({ to: '/artists/$artistId', params: { artistId: artist.id } }) })),
       ...libraryResults.albums.map((album) => ({ key: `album-${album.id}`, run: () => navigate({ to: '/albums/$albumId', params: { albumId: album.id } }) })),
-      ...libraryResults.tracks.map((track) => ({ key: `track-${track.id}`, run: () => playTrackWithContext(track, libraryResults.tracks) })),
+      ...libraryResults.tracks.map((track) => ({ key: `track-${track.id}`, run: () => play(fromTrack(track, libraryResults.tracks)) })),
       ...visibleExternal.map((result) => ({ key: `external-${result.origin}`, run: () => handleAdd(result), keepOpen: true })),
     ],
-    [libraryResults, visibleExternal, navigate, playTrackWithContext, handleAdd],
+    [libraryResults, visibleExternal, navigate, play, handleAdd],
   );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -511,7 +512,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                     key={track.id}
                     data-key={`track-${track.id}`}
                     className={cn('flex items-center gap-2.5 w-full p-2 rounded-lg text-left transition-colors hover:bg-muted/30', activeKey === `track-${track.id}` && 'bg-muted/40 ring-1 ring-inset ring-primary/50')}
-                    onClick={() => handleSelect(() => playTrackWithContext(track, libraryResults.tracks))}
+                    onClick={() => handleSelect(() => play(fromTrack(track, libraryResults.tracks)))}
                   >
                     <div className="w-10 h-10 rounded-md bg-muted grid place-items-center shrink-0 text-muted-foreground">
                       <Music2 className="h-3.5 w-3.5" />

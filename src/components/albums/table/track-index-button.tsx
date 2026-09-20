@@ -2,6 +2,7 @@ import { Loader2, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useNowPlaying } from '@/hooks/use-now-playing';
+import { fromTrack } from '@/lib/from-track';
 import type { Track } from '@/shared';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export function TrackIndexButton({ index, track, contextTracks }: Props) {
-  const { currentTrack, isLoading, playTrackWithContext, togglePlayPause } = useMusicPlayer();
+  const { currentTrack, isLoading, play, togglePlayPause } = useMusicPlayer();
   const { track: nowPlaying, isPlaying } = useNowPlaying();
   const isCurrentTrack = nowPlaying?.id === track.id;
   const isCurrentlyPlaying = isCurrentTrack && isPlaying;
@@ -26,7 +27,7 @@ export function TrackIndexButton({ index, track, contextTracks }: Props) {
     if (currentTrack?.id === track.id) {
       togglePlayPause();
     } else {
-      playTrackWithContext(track, contextTracks);
+      play(fromTrack(track, contextTracks));
     }
   }
 
