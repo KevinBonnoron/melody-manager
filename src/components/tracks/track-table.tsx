@@ -7,6 +7,7 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useTrackRatings } from '@/hooks/use-ratings';
 import { useTrackPlays } from '@/hooks/use-track-plays';
+import { fromTrack } from '@/lib/from-track';
 import { cn } from '@/lib/utils';
 import type { Track } from '@/shared';
 import { TrackActionsCell } from '../albums/table/track-actions-cell';
@@ -28,7 +29,7 @@ interface Props {
 
 export function TrackTable({ tracks }: Props) {
   const { t } = useTranslation();
-  const { playTrackWithContext, togglePlayPause, currentTrack } = useMusicPlayer();
+  const { play, togglePlayPause, currentTrack } = useMusicPlayer();
   const { track: nowPlaying, isPlaying } = useNowPlaying();
   const { isDisliked } = useTrackRatings();
   const { getPlayCount } = useTrackPlays();
@@ -43,10 +44,10 @@ export function TrackTable({ tracks }: Props) {
       if (currentTrackId === track.id) {
         togglePlayPause();
       } else {
-        playTrackWithContext(track, queueableTracks);
+        play(fromTrack(track, queueableTracks));
       }
     },
-    [currentTrackId, togglePlayPause, queueableTracks, playTrackWithContext, isDisliked],
+    [currentTrackId, togglePlayPause, queueableTracks, play, isDisliked],
   );
 
   const columns: TrackColumnDef[] = useMemo(

@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { type PlayheadSource, usePlayhead } from '@/hooks/use-playhead';
+import { usePlayhead, usePlayheadTime } from '@/hooks/use-playhead';
 import { useTrackPeaks } from '@/hooks/use-track-peaks';
+import type { Playhead } from '@/lib/playhead';
 import { cn, formatDuration } from '@/lib/utils';
 import type { ProgressShape, WaveStyle } from '@/providers/ThemeProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -16,16 +17,18 @@ interface Chapter {
   title: string;
 }
 
-interface Props extends PlayheadSource {
+interface Props {
+  playhead: Playhead;
   trackId?: string;
   chapters?: Chapter[];
   onSeek: (time: number) => void;
 }
 
-export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props) {
+export function ProgressBar({ playhead, trackId, chapters = [], onSeek }: Props) {
   const { t } = useTranslation();
   const { progressShape, progressCursor, waveStyle } = useTheme();
-  const { currentTime, duration } = source;
+  const currentTime = usePlayheadTime(playhead);
+  const { duration } = playhead;
   const drawn = progressShape !== 'plain';
   const { peaks, loading } = useTrackPeaks(trackId, drawn);
 
@@ -71,7 +74,7 @@ export function ProgressBar({ trackId, chapters = [], onSeek, ...source }: Props
   const fillRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   usePlayhead(
-    source,
+    playhead,
     useCallback((ratio: number) => {
       if (fillRef.current) {
         fillRef.current.style.width = `${ratio * 100}%`;

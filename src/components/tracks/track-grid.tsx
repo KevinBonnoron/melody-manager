@@ -14,7 +14,7 @@ interface Props {
 
 export function TrackGrid({ tracks, provider }: Props) {
   const { t } = useTranslation();
-  const { playTrack, togglePlayPause, currentTrack, isLoading, setQueue } = useMusicPlayer();
+  const { play, togglePlayPause, currentTrack, isLoading } = useMusicPlayer();
   const { track: nowPlaying, isPlaying } = useNowPlaying();
   const filteredTracks = useMemo(() => (provider === 'all' ? tracks : tracks.filter((track) => track.source === provider.type)), [tracks, provider]);
   const playableTracks = useMemo(() => filteredTracks.filter((track) => track.availability !== 'none'), [filteredTracks]);
@@ -27,11 +27,10 @@ export function TrackGrid({ tracks, provider }: Props) {
       if (currentTrack?.id === track.id) {
         togglePlayPause();
       } else {
-        setQueue(playableTracks);
-        playTrack(track);
+        play([track, ...playableTracks.filter((other) => other.id !== track.id)]);
       }
     },
-    [playableTracks, currentTrack, setQueue, playTrack, togglePlayPause],
+    [playableTracks, currentTrack, play, togglePlayPause],
   );
 
   if (filteredTracks.length === 0) {

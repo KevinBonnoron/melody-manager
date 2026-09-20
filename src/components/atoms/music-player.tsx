@@ -7,12 +7,8 @@ import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { useDocumentPip } from '@/hooks/use-document-pip';
 import { useNowPlaying } from '@/hooks/use-now-playing';
-import { useRemotePlayback } from '@/hooks/use-remote-playback';
-import { useSelectDevice } from '@/hooks/use-select-device';
-import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { useVolumeControl } from '@/hooks/use-volume-control';
 import { cn } from '@/lib/utils';
-import { isNetworkDevice, type Track } from '@/shared';
 import { ControlDot } from './music-player/control-dot';
 import { DeviceSelector } from './music-player/device-selector';
 import { FormatSelector } from './music-player/format-selector';
@@ -25,19 +21,16 @@ import { TrackInfo } from './music-player/track-info';
 
 export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
   const { t } = useTranslation();
-  const { currentTrack, currentTime, isPlaying, isLoading, seek, activeDevice, playHere, audioFormat, setAudioFormat, queue, audioElement } = useMusicPlayer();
-  const remote = useRemotePlayback();
+  const { currentTrack, seek, activeDevice, playhead, audioFormat, setAudioFormat, queue } = useMusicPlayer();
   const { isRemote } = useNowPlaying();
-  const transferPlayback = useTransferPlayback();
-  const selectDevice = useSelectDevice();
   const pip = useDocumentPip();
   const closePip = pip.close;
   const inWindow = Boolean(pip.pipWindow);
   const { level, isMuted, apply: applyVolume, toggle: handleVolumeToggle } = useVolumeControl();
   const [queueOpen, setQueueOpen] = useState(false);
 
-  const track = (isRemote ? remote?.track : currentTrack) ?? null;
-  const holder = isRemote ? remote?.device : null;
+  const track = currentTrack;
+  const holder = isRemote ? activeDevice : null;
   const nothingToShow = !track && !holder;
 
   useEffect(() => {
@@ -50,10 +43,6 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
     return null;
   }
 
-  const onAnotherClient = isRemote && remote ? { trackId: remote.track?.id, currentTime: remote.currentTime, duration: remote.duration, playing: remote.isPlaying, onSeek: remote.seek } : null;
-  const onSpeaker = activeDevice && isNetworkDevice(activeDevice) && track ? { trackId: track.id, currentTime, duration: track.duration, playing: isPlaying, loading: isLoading, onSeek: seek } : null;
-  const reported = onAnotherClient ?? onSpeaker;
-
   return (
     <div className="hidden md:block @container fixed bottom-3 left-16 right-4 z-40 overflow-hidden rounded-xl border border-primary-border bg-card/[0.92] backdrop-blur-[24px] backdrop-saturate-[1.2] shadow-[0_20px_60px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.02)] transition-[left] duration-200 ease-linear peer-data-[state=expanded]:left-[17rem]">
       {inWindow ? (
@@ -65,7 +54,7 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
       ) : (
         <div className="w-full px-3.5 py-2.5">
           <div className="flex flex-col gap-2">
-            <ProgressBar chapters={track?.metadata?.chapters} {...(reported ?? { trackId: track?.id, currentTime, duration: track?.duration ?? 0, playing: isPlaying, loading: isLoading, onSeek: seek, media: audioElement })} />
+            <ProgressBar chapters={track?.metadata?.chapters} trackId={track?.id} playhead={playhead} onSeek={seek} />
 
             <div className="flex items-center gap-2 min-w-0 @2xl:gap-4">
               <div className="flex min-w-0 flex-1">
@@ -73,11 +62,11 @@ export function MusicPlayer({ onExpand }: { onExpand: () => void }) {
               </div>
 
               <div className="flex flex-none justify-center">
-                <PlaybackControls remote={isRemote && remote ? { isPlaying: remote.isPlaying, track: remote.track, togglePlayPause: remote.togglePlayPause, playNext: remote.playNext, playPrevious: remote.playPrevious } : undefined} />
+                <PlaybackControls />
               </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-1.5 justify-end">
-                <DeviceSelector activeDevice={activeDevice} onDeviceChange={selectDevice} remote={isRemote ? remote?.device : undefined} onSelectClient={transferPlayback} onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as Track, remote.currentTime, remote.device) : undefined} />
+                <DeviceSelector />
                 <div className="hidden @5xl:block">
                   <FormatSelector audioFormat={audioFormat} onFormatChange={setAudioFormat} />
                 </div>

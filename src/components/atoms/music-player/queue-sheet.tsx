@@ -14,7 +14,7 @@ interface QueueSheetProps {
 
 export function QueueSheet({ open, onOpenChange, elevated }: QueueSheetProps) {
   const { t } = useTranslation();
-  const { queue, currentTrack, isLoading, isPlaying, removeFromQueue, clearQueue, playTrack } = useMusicPlayer();
+  const { queue, currentTrack, isLoading, isPlaying, removeFromQueue, clearQueue, skipTo } = useMusicPlayer();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
   const formatDuration = (seconds: number) => {
@@ -61,7 +61,7 @@ export function QueueSheet({ open, onOpenChange, elevated }: QueueSheetProps) {
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: contains nested interactive elements (remove button), cannot use <button>
                   // biome-ignore lint/a11y/noStaticElementInteractions: same reason
-                  <div key={`${track.id}`} className={`group flex w-full items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors text-left ${isCurrentTrack ? 'bg-primary/10' : 'hover:bg-muted/50'} ${isListened ? 'opacity-40' : ''}`} onClick={() => playTrack(track)}>
+                  <div key={`${track.id}`} className={`group flex w-full items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors text-left ${isCurrentTrack ? 'bg-primary/10' : 'hover:bg-muted/50'} ${isListened ? 'opacity-40' : ''}`} onClick={() => skipTo(track)}>
                     <span className="w-5 text-xs text-muted-foreground text-right tabular-nums flex-shrink-0 flex items-center justify-end">
                       {isCurrentTrack && isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> : isCurrentTrack && isPlaying ? <Pause className="h-3.5 w-3.5 text-primary" fill="currentColor" /> : index + 1}
                     </span>

@@ -23,7 +23,7 @@ export function AlbumCard({ album }: Props) {
   const trackCount = tracks.length;
   const providerType = tracks[0]?.source;
   const { track: nowPlaying } = useNowPlaying();
-  const { playTrack, setQueue } = useMusicPlayer();
+  const { play } = useMusicPlayer();
   const isCurrentAlbum = nowPlaying?.album === album.id;
   const { status: downloadStatus } = getAlbumDownloadStatus(tracks);
   const unavailable = trackCount > 0 && tracks.every((track) => track.availability === 'none');
@@ -53,8 +53,7 @@ export function AlbumCard({ album }: Props) {
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              setQueue(playable);
-              playTrack(playable[0]);
+              play(playable);
             }}
           >
             <Play className="h-4 w-4" fill="currentColor" />

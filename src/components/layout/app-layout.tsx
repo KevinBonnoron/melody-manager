@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { GlobalSearchButton } from '@/components/atoms/global-search-button';
 import { MusicPlayer } from '@/components/atoms/music-player';
 import { NowPlaying } from '@/components/atoms/music-player/now-playing';
-import { PlaybackStateSync } from '@/components/atoms/playback-state-sync';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -54,7 +53,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <MusicPlayer onExpand={() => setNowPlayingOpen(true)} />
             <GlobalSearchButton />
             <NowPlaying open={nowPlayingOpen} onClose={() => setNowPlayingOpen(false)} />
-            <PlaybackStateSync />
           </PageHeaderProvider>
         </SidebarProvider>
       </LibraryIndexProvider>

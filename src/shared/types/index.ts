@@ -4,7 +4,6 @@ export * from './device.type';
 export * from './dto.type';
 export * from './genre.type';
 export * from './playback-state.type';
-export * from './player-state.type';
 export * from './playlist.type';
 export * from './plugin-manifest.type';
 export * from './provider.type';

@@ -6,9 +6,6 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useTrackRatings } from '@/hooks/use-ratings';
-import { useRemotePlayback } from '@/hooks/use-remote-playback';
-import { useSelectDevice } from '@/hooks/use-select-device';
-import { useTransferPlayback } from '@/hooks/use-transfer-playback';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getSourceColor } from '@/lib/source-colors';
 import { DeviceSelector } from './device-selector';
@@ -22,11 +19,8 @@ interface Props {
 
 export function NowPlaying({ open, onClose }: Props) {
   const { t } = useTranslation();
-  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, playHere } = useMusicPlayer();
+  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, playsHere, playhead } = useMusicPlayer();
   const { track, isPlaying, isRemote } = useNowPlaying();
-  const transferPlayback = useTransferPlayback();
-  const selectDevice = useSelectDevice();
-  const remote = useRemotePlayback();
   const { isLiked, toggleLike } = useTrackRatings();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
@@ -57,8 +51,8 @@ export function NowPlaying({ open, onClose }: Props) {
     return null;
   }
 
-  const control = isRemote && remote ? remote : { togglePlayPause, playNext, playPrevious, seek, currentTime, duration: track.duration };
-  const isLoadingHere = !isRemote && isLoading;
+  const control = { togglePlayPause, playNext, playPrevious, seek, currentTime, duration: track.duration };
+  const isLoadingHere = playsHere && isLoading;
   const album = albumsById.get(track.album);
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const sourceColor = getSourceColor(track.source);
@@ -72,7 +66,7 @@ export function NowPlaying({ open, onClose }: Props) {
           <ChevronDown className="h-5 w-5" />
         </button>
         <div className="min-w-0 text-center">
-          <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isRemote && remote ? t('RemotePlayback.playingOn', { device: remote.device.name }) : t('NowPlaying.title')}</div>
+          <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isRemote && activeDevice ? t('RemotePlayback.playingOn', { device: activeDevice.name }) : t('NowPlaying.title')}</div>
           {album && <div className="truncate text-[12px] text-muted-foreground">{album.name}</div>}
         </div>
         <div className="h-9 w-9" />
@@ -105,7 +99,7 @@ export function NowPlaying({ open, onClose }: Props) {
             {track.source}
           </span>
 
-          <ProgressBar trackId={track.id} currentTime={control.currentTime} duration={control.duration || track.duration} playing={isPlaying} loading={isLoadingHere} onSeek={control.seek} chapters={track.metadata?.chapters} />
+          <ProgressBar trackId={track.id} playhead={playhead} onSeek={control.seek} chapters={track.metadata?.chapters} />
 
           <div className="flex items-center justify-center gap-3">
             <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} aria-label={t('NowPlaying.shuffle')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${shuffle ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -126,13 +120,7 @@ export function NowPlaying({ open, onClose }: Props) {
           </div>
 
           <div className="flex items-center justify-center gap-2 border-t border-border/60 pt-3">
-            <DeviceSelector
-              activeDevice={activeDevice}
-              onDeviceChange={selectDevice}
-              remote={isRemote ? remote?.device : undefined}
-              onSelectClient={transferPlayback}
-              onPlayHere={isRemote && remote?.track ? () => playHere(remote.track as NonNullable<typeof remote.track>, remote.currentTime, remote.device) : undefined}
-            />
+            <DeviceSelector />
             <button type="button" onClick={() => setQueueOpen(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-muted-foreground hover:bg-muted/50 hover:text-foreground">
               <ListMusic className="h-4 w-4" />
               {t('NowPlaying.queue')}

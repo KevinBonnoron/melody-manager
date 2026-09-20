@@ -511,7 +511,9 @@
     "playbackDevices": "Appareils de lecture",
     "thisBrowser": "Ce navigateur",
     "otherSessions": "Autres appareils",
-    "playingNow": "En lecture"
+    "playingNow": "En lecture",
+    "addToGroup": "Ajouter au groupe",
+    "removeFromGroup": "Retirer du groupe"
   },
   "FormatSelector": {
     "selectFormat": "Sélectionner le format audio",

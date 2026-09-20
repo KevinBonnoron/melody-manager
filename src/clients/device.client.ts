@@ -10,9 +10,7 @@ export const deviceClient = universalClient(
     return {
       list: () => http.get<{ success: boolean; data: Device[] }>('/devices'),
 
-      reportState: (deviceId: string, body: { trackId: string; playing: boolean; position: number; volume: number }) => http.post(`/devices/${deviceId}/state`, body),
-
-      events: (identity: { type: DeviceType; session: string; name: string }, handlers: { [K in ServerEventName]: (payload: ServerEventPayloads[K]) => void }, onBroken?: () => void) => {
+      events: (identity: { type: DeviceType; session: string; name: string; volume: number }, handlers: { [K in ServerEventName]: (payload: ServerEventPayloads[K]) => void }, onBroken?: () => void) => {
         const unsubscribes: Array<() => void> = Object.values(SERVER_EVENTS).map((name) =>
           sse.subscribe(name, (raw) => {
             if (typeof raw !== 'string') {

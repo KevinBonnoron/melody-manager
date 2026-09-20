@@ -7,7 +7,6 @@ import { useMusicPlayer } from '@/contexts/music-player-context';
 import { artistNames, useAlbumsById, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useTrackRatings } from '@/hooks/use-ratings';
-import { useRemotePlayback } from '@/hooks/use-remote-playback';
 import { useVolumeControl } from '@/hooks/use-volume-control';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
@@ -22,15 +21,11 @@ export function PipPlayer() {
   const { t } = useTranslation();
   const player = useMusicPlayer();
   const { track, isPlaying, isRemote } = useNowPlaying();
-  const remote = useRemotePlayback();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
-  const control =
-    isRemote && remote
-      ? { toggle: remote.togglePlayPause, next: remote.playNext, previous: remote.playPrevious, seek: remote.seek, time: remote.currentTime, duration: remote.duration, loading: false }
-      : { toggle: player.togglePlayPause, next: player.playNext, previous: player.playPrevious, seek: player.seek, time: player.currentTime, duration: track?.duration ?? 0, loading: player.isLoading };
+  const control = { toggle: player.togglePlayPause, next: player.playNext, previous: player.playPrevious, seek: player.seek, time: player.currentTime, duration: track?.duration ?? 0, loading: player.isLoading };
 
-  const { canGoNext, canGoPrevious } = queueBounds({ queue: player.queue, trackId: track?.id, repeatMode: player.repeatMode, remote: isRemote });
+  const { canGoNext, canGoPrevious } = queueBounds({ queue: player.queue, trackId: track?.id, repeatMode: player.repeatMode });
   const album = track ? albumsById.get(track.album) : undefined;
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const artists = artistNames(track?.artists, artistsById);
@@ -53,7 +48,7 @@ export function PipPlayer() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: what changes is what invalidates the scrub, and none of it is read here
   useEffect(() => {
     setScrub(null);
-  }, [track?.id, isRemote, player.activeDevice?.id, remote?.device.id]);
+  }, [track?.id, isRemote, player.activeDevice?.id]);
   const seekMax = Math.max(control.duration, 1);
   const position = Math.min(Math.max(scrub ?? control.time, 0), seekMax);
   const progress = control.duration > 0 ? (position / control.duration) * 100 : 0;

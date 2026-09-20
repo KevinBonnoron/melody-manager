@@ -1,5 +1,6 @@
 import { deviceClient } from '@/clients/device.client';
 import { getDeviceLabel, getDeviceType, getSessionId } from '@/lib/session-device';
+import { storedVolume } from '@/lib/volume';
 import type { Device, DeviceCommand, Task } from '@/shared';
 
 let devices: Device[] = [];
@@ -39,7 +40,7 @@ function start() {
 
   noteAlive();
   stop = deviceClient.events(
-    { type: getDeviceType(), session: getSessionId(), name: getDeviceLabel() },
+    { type: getDeviceType(), session: getSessionId(), name: getDeviceLabel(), volume: Math.round(storedVolume() * 100) },
     {
       ping: noteAlive,
       devices: (next) => {
