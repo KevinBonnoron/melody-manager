@@ -44,12 +44,6 @@ export const deviceClient = universalClient(
         };
       },
 
-      play: (deviceId: string, trackId?: string, position = 0) => (trackId ? http.post(`/devices/${deviceId}/play/${trackId}`, { position }) : http.post(`/devices/${deviceId}/play`, {})),
-      pause: (deviceId: string) => http.post(`/devices/${deviceId}/pause`, {}),
-      stop: (deviceId: string) => http.post(`/devices/${deviceId}/stop`, {}),
-      next: (deviceId: string) => http.post(`/devices/${deviceId}/next`, {}),
-      previous: (deviceId: string) => http.post(`/devices/${deviceId}/previous`, {}),
-      seek: (deviceId: string, position: number) => http.post(`/devices/${deviceId}/seek`, { position }),
       setVolume: (deviceId: string, volume: number) => http.post(`/devices/${deviceId}/volume`, { volume }),
     };
   }),
