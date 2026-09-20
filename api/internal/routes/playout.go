@@ -89,13 +89,13 @@ func (p *playout) Resume(ctx context.Context, owner, device, trackID string, pos
 	return nil
 }
 
-func (p *playout) Pause(ctx context.Context, owner, device string) error {
+func (p *playout) Pause(ctx context.Context, owner, device string, stop time.Time) error {
 	dev, speaker, err := p.target(owner, device)
 	if err != nil {
 		return err
 	}
 	if speaker == nil {
-		return p.command(dev, "pause")
+		return p.command(dev, fmt.Sprintf("pause:%s", startsAt(stop)))
 	}
 	if err := speaker.Pause(ctx, dev.IPAddress); err != nil {
 		return err

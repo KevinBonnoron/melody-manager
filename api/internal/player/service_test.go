@@ -98,8 +98,8 @@ func (o *output) cycles() []int64 {
 	return append([]int64(nil), o.runs...)
 }
 
-func (o *output) Pause(_ context.Context, _, device string) error {
-	return o.record(call{kind: "pause", device: device})
+func (o *output) Pause(_ context.Context, _, device string, stop time.Time) error {
+	return o.record(call{kind: "pause", device: device, start: stop})
 }
 
 func (o *output) Seek(_ context.Context, _, device string, position float64) error {
@@ -262,9 +262,11 @@ func TestJoiningStartsTheNewDeviceAndLeavesTheOtherAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Both are told to be at the position the sound will have reached by the
+	// moment they start, not the one it is at as the order arrives.
 	for _, device := range []string{"sonos", "phone"} {
 		got := out.to(device)
-		if len(got) != 1 || got[0].kind != "play" || got[0].position != 15 {
+		if len(got) != 1 || got[0].kind != "play" || got[0].position != 15+lead.Seconds() {
 			t.Fatalf("%s: %+v", device, got)
 		}
 	}
@@ -781,5 +783,68 @@ func TestAReadOfTheRecordLeavesADeviceItCannotSeeAlone(t *testing.T) {
 	}
 	if store.saves != 0 {
 		t.Fatalf("reading wrote %d times", store.saves)
+	}
+}
+
+func TestSeveralDevicesAreGivenTheSameMomentToStopOn(t *testing.T) {
+	svc, _, out, _ := service(State{Devices: []string{"sonos", "phone"}, List: []string{"a"}, Track: "a", Playing: true})
+	if _, err := svc.Pause(context.Background(), "u1"); err != nil {
+		t.Fatal(err)
+	}
+
+	got := out.seen()
+	if len(got) != 2 {
+		t.Fatalf("calls = %+v", got)
+	}
+	if got[0].start.IsZero() || !got[0].start.Equal(got[1].start) {
+		t.Fatalf("devices were told different moments: %v and %v", got[0].start, got[1].start)
+	}
+}
+
+func TestOneDeviceStopsAtOnce(t *testing.T) {
+	svc, _, out, _ := service(State{Devices: []string{"sonos"}, List: []string{"a"}, Track: "a", Playing: true})
+	if _, err := svc.Pause(context.Background(), "u1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.seen(); len(got) != 1 || !got[0].start.IsZero() {
+		t.Fatalf("calls = %+v", got)
+	}
+}
+
+func TestTheRecordSaysWhereTheSoundIsRatherThanWhereItWillBe(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"sonos", "phone"}, List: []string{"a"}, Track: "a", Position: 10, PositionAt: epoch.Add(-5 * time.Second), Playing: true}.Sound())
+
+	state, err := svc.Resume(context.Background(), "u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Reading the record at the moment the devices actually start must give the
+	// position they were told to be at, or every reader runs ahead of the sound.
+	told := state.Position
+	if got := store.state.PositionAtTime(epoch.Add(lead)); got != told {
+		t.Fatalf("the record reads %v at the moment the devices reach %v", got, told)
+	}
+}
+
+func TestPausingTogetherWritesThePositionTheyStopAt(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"sonos", "phone"}, List: []string{"a"}, Track: "a", Position: 10, PositionAt: epoch.Add(-5 * time.Second), Playing: true}.Sound())
+
+	if _, err := svc.Pause(context.Background(), "u1"); err != nil {
+		t.Fatal(err)
+	}
+	// They play on until the agreed moment, so what is written down is where
+	// they are when they stop, not where they were when the order arrived.
+	if store.state.Position != 15+lead.Seconds() {
+		t.Fatalf("stored %v", store.state.Position)
+	}
+}
+
+func TestASpeakerStoppedOnPurposeNearTheEndDoesNotMoveTheListOn(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"sonos"}, List: []string{"a", "b"}, Track: "a", Repeat: RepeatNone}.Sound())
+	if err := svc.Finished("u1", "a", 0); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Track != "a" || store.saves != 0 {
+		t.Fatalf("stored = %+v after %d saves", store.state, store.saves)
 	}
 }

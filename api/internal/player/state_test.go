@@ -577,3 +577,26 @@ func TestShufflingAfterAClearDoesNotRenameWhatIsPlaying(t *testing.T) {
 		t.Fatalf("state = %+v", s)
 	}
 }
+
+func TestNextPlaysWhatThePlayheadSitsOnWhenItIsNotWhatIsPlaying(t *testing.T) {
+	// Clearing the list under something still playing leaves the track outside
+	// it; whatever is queued next has not been heard and must not be stepped
+	// over.
+	s := State{List: []string{"x", "y"}, Track: "a", Playing: true}.Sound().Next(epoch)
+	if s.Current() != "x" || s.Track != "x" {
+		t.Fatalf("state = %+v", s)
+	}
+}
+
+func TestNextStillWalksTheListWhenThePlayheadIsOnIt(t *testing.T) {
+	if got := listed("a", "b", "c").Next(epoch).Current(); got != "b" {
+		t.Fatalf("current = %q", got)
+	}
+}
+
+func TestEndedPlaysWhatThePlayheadSitsOnRatherThanSkippingIt(t *testing.T) {
+	s := State{List: []string{"x"}, Track: "a", Playing: true}.Sound().Ended(epoch)
+	if s.Current() != "x" || !s.Playing {
+		t.Fatalf("state = %+v", s)
+	}
+}
