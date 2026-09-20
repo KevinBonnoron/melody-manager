@@ -3,6 +3,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* A phone held sideways has room across and none down, which is the opposite
+   of what a full-screen player is laid out for. */
+@custom-variant short (@media (max-height: 560px));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
