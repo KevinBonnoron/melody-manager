@@ -11,7 +11,12 @@ reviews:
   path_filters:
     - '!bun.lock'
     - '!flake.lock'
+    - '!api/go.sum'
     - '!src/routeTree.gen.ts'
+    - '!api/internal/migrations/snapshot.json'
+    - '!src/i18n/locales/**'
+    - '!public/*.png'
+    - '!android/app/src/main/res/**'
     - '!android/gradlew*'
     - '!android/gradle/wrapper/**'
     - '!android/**/capacitor*.gradle'
