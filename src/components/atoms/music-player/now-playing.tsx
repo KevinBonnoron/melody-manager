@@ -72,59 +72,61 @@ export function NowPlaying({ open, onClose }: Props) {
         <div className="h-9 w-9" />
       </header>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-4">
-        <div className="aspect-square w-full max-w-[min(340px,100%)] overflow-hidden rounded-2xl bg-muted shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-          {coverUrl ? (
-            <img src={coverUrl} alt={track.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <Music2 className="h-16 w-16 text-primary/50" />
-            </div>
-          )}
+      <div className="flex min-h-0 flex-1 flex-col short:flex-row short:items-center short:gap-6 short:px-6">
+        <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-4 short:px-0 short:py-0">
+          <div className="aspect-square w-full max-w-[min(340px,100%)] overflow-hidden rounded-2xl bg-muted shadow-[0_30px_80px_rgba(0,0,0,0.5)] short:h-full short:w-auto short:max-w-none">
+            {coverUrl ? (
+              <img src={coverUrl} alt={track.title} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Music2 className="h-16 w-16 text-primary/50" />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="shrink-0 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto w-full max-w-[420px] space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold tracking-tight">{track.title}</h1>
-              <p className="mt-1 truncate text-sm text-muted-foreground">{artistNames(track.artists, artistsById)}</p>
+        <div className="shrink-0 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] short:flex short:min-w-0 short:flex-1 short:items-center short:px-0 short:pb-0">
+          <div className="mx-auto w-full max-w-[420px] space-y-4 short:space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate text-xl font-bold tracking-tight">{track.title}</h1>
+                <p className="mt-1 truncate text-sm text-muted-foreground">{artistNames(track.artists, artistsById)}</p>
+              </div>
+              <LikeButton isLiked={isLiked(track.id)} toggleLike={() => toggleLike(track.id)} />
             </div>
-            <LikeButton isLiked={isLiked(track.id)} toggleLike={() => toggleLike(track.id)} />
-          </div>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em]" style={{ background: `${sourceColor}22`, color: sourceColor }}>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourceColor }} />
-            {track.source}
-          </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em]" style={{ background: `${sourceColor}22`, color: sourceColor }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourceColor }} />
+              {track.source}
+            </span>
 
-          <ProgressBar trackId={track.id} playhead={playhead} onSeek={control.seek} chapters={track.metadata?.chapters} />
+            <ProgressBar trackId={track.id} playhead={playhead} onSeek={control.seek} chapters={track.metadata?.chapters} />
 
-          <div className="flex items-center justify-center gap-3">
-            <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} aria-label={t('NowPlaying.shuffle')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${shuffle ? 'text-primary' : 'text-muted-foreground'}`}>
-              <Shuffle className="h-[18px] w-[18px]" />
-            </button>
-            <button type="button" onClick={control.playPrevious} aria-label={t('NowPlaying.previous')} className="grid h-12 w-12 place-items-center rounded-full text-foreground transition-colors hover:bg-muted/50">
-              <SkipBack className="h-[22px] w-[22px]" fill="currentColor" />
-            </button>
-            <button type="button" onClick={control.togglePlayPause} aria-label={t('NowPlaying.playPause')} className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_var(--primary-glow)] transition-transform hover:scale-105">
-              {isLoadingHere ? <Loader2 className="h-7 w-7 animate-spin" /> : isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="ml-1 h-7 w-7" fill="currentColor" />}
-            </button>
-            <button type="button" onClick={control.playNext} aria-label={t('NowPlaying.next')} className="grid h-12 w-12 place-items-center rounded-full text-foreground transition-colors hover:bg-muted/50">
-              <SkipForward className="h-[22px] w-[22px]" fill="currentColor" />
-            </button>
-            <button type="button" onClick={toggleRepeat} aria-label={t('NowPlaying.repeat')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${repeatMode !== 'none' ? 'text-primary' : 'text-muted-foreground'}`}>
-              {repeatMode === 'one' ? <Repeat1 className="h-[18px] w-[18px]" /> : <Repeat className="h-[18px] w-[18px]" />}
-            </button>
-          </div>
+            <div className="flex items-center justify-center gap-3">
+              <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} aria-label={t('NowPlaying.shuffle')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${shuffle ? 'text-primary' : 'text-muted-foreground'}`}>
+                <Shuffle className="h-[18px] w-[18px]" />
+              </button>
+              <button type="button" onClick={control.playPrevious} aria-label={t('NowPlaying.previous')} className="grid h-12 w-12 place-items-center rounded-full text-foreground transition-colors hover:bg-muted/50">
+                <SkipBack className="h-[22px] w-[22px]" fill="currentColor" />
+              </button>
+              <button type="button" onClick={control.togglePlayPause} aria-label={t('NowPlaying.playPause')} className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_var(--primary-glow)] transition-transform hover:scale-105">
+                {isLoadingHere ? <Loader2 className="h-7 w-7 animate-spin" /> : isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="ml-1 h-7 w-7" fill="currentColor" />}
+              </button>
+              <button type="button" onClick={control.playNext} aria-label={t('NowPlaying.next')} className="grid h-12 w-12 place-items-center rounded-full text-foreground transition-colors hover:bg-muted/50">
+                <SkipForward className="h-[22px] w-[22px]" fill="currentColor" />
+              </button>
+              <button type="button" onClick={toggleRepeat} aria-label={t('NowPlaying.repeat')} className={`grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-muted/50 ${repeatMode !== 'none' ? 'text-primary' : 'text-muted-foreground'}`}>
+                {repeatMode === 'one' ? <Repeat1 className="h-[18px] w-[18px]" /> : <Repeat className="h-[18px] w-[18px]" />}
+              </button>
+            </div>
 
-          <div className="flex items-center justify-center gap-2 border-t border-border/60 pt-3">
-            <DeviceSelector />
-            <button type="button" onClick={() => setQueueOpen(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-muted-foreground hover:bg-muted/50 hover:text-foreground">
-              <ListMusic className="h-4 w-4" />
-              {t('NowPlaying.queue')}
-            </button>
+            <div className="flex items-center justify-center gap-2 border-t border-border/60 pt-3">
+              <DeviceSelector />
+              <button type="button" onClick={() => setQueueOpen(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+                <ListMusic className="h-4 w-4" />
+                {t('NowPlaying.queue')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
