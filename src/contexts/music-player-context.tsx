@@ -85,10 +85,22 @@ async function reasonFor(src: string): Promise<string | null> {
     }
 
     const body = (await response.json()) as { message?: string };
-    return body.message ?? null;
+    return said(body.message ?? null);
   } catch {
     return null;
   }
+}
+
+// The server names what went wrong rather than describing it, so that it reads
+// in the reader's own language and so that a failure's own words, which carry
+// the server's paths and the address it resolved, never reach a listener.
+const named = ['SOURCE_REFUSED', 'COOKIES_REQUIRED', 'CREDENTIALS_REQUIRED', 'PLAYBACK_FAILED'];
+
+function said(message: string | null): string | null {
+  if (message && named.includes(message)) {
+    return i18n.t(`MusicPlayer.sourceError.${message}`);
+  }
+  return message;
 }
 
 const VOLUME_SETTLE_MS = 200;

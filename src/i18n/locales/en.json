@@ -482,6 +482,12 @@
   "MusicPlayer": {
     "playbackError": "Failed to play \"{{title}}\"",
     "playbackErrorGeneric": "Playback failed",
+    "sourceError": {
+      "PLAYBACK_FAILED": "This track could not be played. The server log says why.",
+      "SOURCE_REFUSED": "The source turned this track down. It may have been taken down, or need signing in to.",
+      "COOKIES_REQUIRED": "This source needs cookies before it can play. Set them on its source page.",
+      "CREDENTIALS_REQUIRED": "This source needs credentials before it can play. Set them on its source page."
+    },
     "deviceError": "Failed to communicate with device",
     "next": "Next track",
     "playPause": "Play / pause",

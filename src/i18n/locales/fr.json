@@ -482,6 +482,12 @@
   "MusicPlayer": {
     "playbackError": "Impossible de lire \"{{title}}\"",
     "playbackErrorGeneric": "Erreur de lecture",
+    "sourceError": {
+      "PLAYBACK_FAILED": "Ce titre n'a pas pu être lu. Le journal du serveur dit pourquoi.",
+      "SOURCE_REFUSED": "La source a refusé ce titre. Il a pu être retiré, ou demander une connexion.",
+      "COOKIES_REQUIRED": "Cette source a besoin de cookies pour lire ce titre. Renseigne-les sur sa page.",
+      "CREDENTIALS_REQUIRED": "Cette source a besoin d'identifiants pour lire ce titre. Renseigne-les sur sa page."
+    },
     "deviceError": "Impossible de communiquer avec l'appareil",
     "next": "Piste suivante",
     "playPause": "Lecture / pause",
