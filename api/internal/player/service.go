@@ -45,7 +45,9 @@ type Output interface {
 	// device reports back when it reaches the end of it.
 	Play(ctx context.Context, owner, device, trackID string, position float64, cycle int64, at time.Time) error
 	Resume(ctx context.Context, owner, device, trackID string, position float64, cycle int64, at time.Time) error
-	Pause(ctx context.Context, owner, device string) error
+	// Pause takes a moment too: devices that stop as each is told stop apart,
+	// and are then out of step by the difference for the rest of the track.
+	Pause(ctx context.Context, owner, device string, at time.Time) error
 	Seek(ctx context.Context, owner, device string, position float64) error
 }
 
@@ -97,19 +99,20 @@ func (s *Service) Start(ctx context.Context, owner string, tracks []string) (Sta
 
 // Resume carries on with what was already loaded.
 func (s *Service) Resume(ctx context.Context, owner string) (State, error) {
-	return s.order(ctx, owner, State.Resume, func(ctx context.Context, before, after State) ([]string, error) {
-		at := s.together(after)
+	return s.order(ctx, owner, State.Resume, func(ctx context.Context, before, after State, at time.Time) ([]string, error) {
 		return s.reach(owner, func(ctx context.Context, device string, state State) error {
 			return s.out.Resume(ctx, owner, device, state.Track, state.Position, state.Cycle(), at)
-		})(ctx, before, after)
+		})(ctx, before, after, at)
 	})
 }
 
 // Pause stops without forgetting where it got to.
 func (s *Service) Pause(ctx context.Context, owner string) (State, error) {
-	return s.order(ctx, owner, State.Pause, s.reach(owner, func(ctx context.Context, device string, _ State) error {
-		return s.out.Pause(ctx, owner, device)
-	}))
+	return s.order(ctx, owner, State.Pause, func(ctx context.Context, before, after State, at time.Time) ([]string, error) {
+		return s.reach(owner, func(ctx context.Context, device string, _ State) error {
+			return s.out.Pause(ctx, owner, device, at)
+		})(ctx, before, after, at)
+	})
 }
 
 // Next is the listener asking for the track after this one.
@@ -171,11 +174,11 @@ func (s *Service) AddNext(ctx context.Context, owner, trackID string) (State, er
 func (s *Service) Remove(ctx context.Context, owner, trackID string) (State, error) {
 	return s.order(ctx, owner, func(state State, now time.Time) State {
 		return state.Remove(trackID, now)
-	}, func(ctx context.Context, before, after State) ([]string, error) {
+	}, func(ctx context.Context, before, after State, at time.Time) ([]string, error) {
 		if after.Track == before.Track && after.Playing == before.Playing {
 			return nil, nil
 		}
-		return s.playing(owner)(ctx, before, after)
+		return s.playing(owner)(ctx, before, after, at)
 	})
 }
 
@@ -223,11 +226,11 @@ func (s *Service) Join(ctx context.Context, owner, device string) (State, error)
 func (s *Service) Leave(ctx context.Context, owner, device string) (State, error) {
 	return s.order(ctx, owner, func(state State, _ time.Time) State {
 		return state.Leave(device)
-	}, func(ctx context.Context, before, after State) ([]string, error) {
+	}, func(ctx context.Context, before, after State, _ time.Time) ([]string, error) {
 		if !before.Plays(device) {
 			return nil, nil
 		}
-		if err := s.out.Pause(ctx, owner, device); err != nil && !errors.Is(err, ErrNoDevice) {
+		if err := s.out.Pause(ctx, owner, device, time.Time{}); err != nil && !errors.Is(err, ErrNoDevice) {
 			slog.Warn("the device playback left did not stop", "device", device, "error", err)
 		}
 		return nil, nil
@@ -238,7 +241,18 @@ func (s *Service) Leave(ctx context.Context, owner, device string) (State, error
 // from the outside rather than reported by a client: a speaker plays with no
 // browser watching it, and nothing else would move the list on.
 func (s *Service) Finished(owner, trackID string, cycle int64) error {
-	_, err := s.Ended(context.Background(), owner, trackID, cycle)
+	state, err := s.State(owner)
+	if err != nil {
+		return err
+	}
+	// A speaker stopping near the end of a track has reached it, unless it was
+	// asked to stop: the record already says so, and a pause a few seconds
+	// before the end must not be read as the track running out.
+	if !state.Playing {
+		return nil
+	}
+
+	_, err = s.Ended(context.Background(), owner, trackID, cycle)
 	return err
 }
 
@@ -261,19 +275,23 @@ func (s *Service) SavePosition(owner, trackID string, position float64) error {
 }
 
 func (s *Service) playing(owner string) drive {
-	return func(ctx context.Context, before, after State) ([]string, error) {
-		at := s.together(after)
+	return func(ctx context.Context, before, after State, at time.Time) ([]string, error) {
 		return s.reach(owner, func(ctx context.Context, device string, state State) error {
 			if !state.Playing || state.Track == "" {
-				return s.out.Pause(ctx, owner, device)
+				return s.out.Pause(ctx, owner, device, at)
 			}
 			return s.out.Play(ctx, owner, device, state.Track, state.Position, state.Cycle(), at)
-		})(ctx, before, after)
+		})(ctx, before, after, at)
 	}
 }
 
-// together is the moment every device is to start, or the zero moment when
-// there is only one and starting at once is better than starting late.
+// together is the moment every device is to act on, or the zero moment when
+// there is only one and acting at once is better than acting late.
+//
+// It is decided before the state is written and the state is then expressed at
+// it, so that the record says where the sound is rather than where it will be:
+// writing "position P, now" while telling the devices to reach P a moment later
+// leaves every reader of the record ahead of what anyone can hear.
 func (s *Service) together(state State) time.Time {
 	if len(state.Devices) < 2 {
 		return time.Time{}
@@ -285,7 +303,7 @@ func (s *Service) together(state State) time.Time {
 // has gone is reported so that it can leave the set; one that refuses for its
 // own reasons does not stop the others from playing.
 func (s *Service) reach(owner string, send func(context.Context, string, State) error) drive {
-	return func(ctx context.Context, _, after State) ([]string, error) {
+	return func(ctx context.Context, _, after State, _ time.Time) ([]string, error) {
 		if len(after.Devices) == 0 {
 			if after.Playing {
 				return nil, ErrNowhereToPlay
@@ -322,7 +340,7 @@ func (s *Service) reach(owner string, send func(context.Context, string, State) 
 
 type change func(State, time.Time) State
 
-type drive func(ctx context.Context, before, after State) (gone []string, err error)
+type drive func(ctx context.Context, before, after State, at time.Time) (gone []string, err error)
 
 func (s *Service) order(ctx context.Context, owner string, apply change, send drive) (State, error) {
 	defer s.hold(owner)()
@@ -332,7 +350,15 @@ func (s *Service) order(ctx context.Context, owner string, apply change, send dr
 		return State{}, err
 	}
 
-	next := s.stock(ctx, owner, apply(state, s.now()))
+	// Applied once to learn what the order leaves behind, so that a move onto a
+	// second device is given the same moment as playing on two already.
+	at := s.together(apply(state, s.now()))
+	when := s.now()
+	if !at.IsZero() {
+		when = at
+	}
+
+	next := s.stock(ctx, owner, apply(state, when))
 	if next.Identical(state) {
 		return state, nil
 	}
@@ -348,7 +374,7 @@ func (s *Service) order(ctx context.Context, owner string, apply change, send dr
 	}
 
 	sent := next
-	gone, sendErr := send(ctx, state, next)
+	gone, sendErr := send(ctx, state, next, at)
 	for _, device := range gone {
 		next = next.Leave(device)
 	}
@@ -368,19 +394,19 @@ func (s *Service) order(ctx context.Context, owner string, apply change, send dr
 // carries on, so the devices that are new to the set are told to play and the
 // ones that have left are stopped.
 func (s *Service) move(ctx context.Context, owner string, apply change) (State, error) {
-	return s.order(ctx, owner, apply, func(ctx context.Context, before, after State) ([]string, error) {
+	return s.order(ctx, owner, apply, func(ctx context.Context, before, after State, at time.Time) ([]string, error) {
 		for _, device := range before.Devices {
 			if after.Plays(device) {
 				continue
 			}
-			if err := s.out.Pause(ctx, owner, device); err != nil && !errors.Is(err, ErrNoDevice) {
+			if err := s.out.Pause(ctx, owner, device, time.Time{}); err != nil && !errors.Is(err, ErrNoDevice) {
 				slog.Warn("the device playback moved off did not stop", "device", device, "error", err)
 			}
 		}
 		if !after.Playing {
 			return nil, nil
 		}
-		return s.playing(owner)(ctx, before, after)
+		return s.playing(owner)(ctx, before, after, at)
 	})
 }
 

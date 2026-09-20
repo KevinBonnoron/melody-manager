@@ -372,6 +372,15 @@ func (s State) Next(now time.Time) State {
 		return s
 	}
 
+	// The playhead may already be sitting on something that has not been heard:
+	// replacing the list under a track that carries on playing leaves it there,
+	// and stepping over it would lose the first of the new list.
+	if s.Current() != s.Track {
+		s.Track = s.Current()
+		s.Playing = true
+		return s.at(0, now)
+	}
+
 	switch {
 	case s.Index+1 < len(s.Order):
 		s.Index++
