@@ -19,6 +19,11 @@ const nothing: PlayerState = {
 
 let state: PlayerState = nothing;
 let seen = false;
+// Counts what has been applied, so that an answer which was already on its way
+// when a newer one landed can be recognised as behind and dropped. Orders,
+// realtime and a read of the record all describe the same thing and none of
+// them arrives in order.
+let applied = 0;
 let watching: Promise<() => void> | null = null;
 const listeners = new Set<() => void>();
 
@@ -35,6 +40,7 @@ function announce() {
 export function apply(next: PlayerState) {
   state = next;
   seen = true;
+  applied++;
   announce();
 }
 
@@ -80,6 +86,35 @@ async function watch(): Promise<() => void> {
   return () => {
     off();
   };
+}
+
+/**
+ * refresh reads the record again and says whether it managed to. The connection
+ * that carries its changes can be away without saying so, and what is held is
+ * then behind: a device taken out of the set while its tab was in the
+ * background learns it here.
+ *
+ * An answer that anything overtook is dropped rather than applied. It describes
+ * a record that has since moved on, and putting it back would undo whatever
+ * moved it.
+ */
+export async function refresh(): Promise<boolean> {
+  if (!watching) {
+    return false;
+  }
+
+  const was = applied;
+  try {
+    const read = await playerClient.state();
+    if (applied !== was) {
+      return true;
+    }
+    apply(read);
+    return true;
+  } catch (error) {
+    console.error('the player state could not be read again', error);
+    return false;
+  }
 }
 
 /**
