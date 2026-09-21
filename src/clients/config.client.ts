@@ -9,5 +9,6 @@ export const configClient = universalClient(
     get: () => http.get<ConfigResponse>('/config'),
     update: (patch: Partial<ServerConfig>) => http.patch<ServerConfig>('/config', patch),
     addressCandidates: () => http.get<{ candidates: string[] }>('/config/address-candidates'),
+    version: () => http.get<{ revision: string; builtAt: string }>('/version'),
   })),
 );

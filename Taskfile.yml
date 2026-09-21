@@ -150,3 +150,15 @@ tasks:
     cmds:
       - bun install
       - bun run dev
+
+  docker-image:
+    desc: Build the Docker image under the name it is published as, stamped with the checkout it was built from
+    vars:
+      TAG: '{{.TAG | default "ghcr.io/kevinbonnoron/melody-manager:latest"}}'
+      REVISION:
+        sh: git describe --tags --exact-match 2>/dev/null || echo "$(git rev-parse --short HEAD)$(git diff --quiet || echo -dirty)"
+      BUILT_AT:
+        sh: date -u +%Y-%m-%dT%H:%M:%SZ
+    cmds:
+      - docker build -f docker/Dockerfile --build-arg VERSION={{.REVISION}} --build-arg BUILT_AT={{.BUILT_AT}} -t {{.TAG}} .
+      - 'echo "built {{.TAG}} as {{.REVISION}}"'

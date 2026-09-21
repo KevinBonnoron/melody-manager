@@ -380,6 +380,7 @@
       "detectError": "Détection impossible",
       "loopbackWarning": "Cette adresse désigne la machine elle-même : aucun appareil extérieur au navigateur ne pourra joindre le serveur. Utilisez son adresse réseau."
     },
+    "build": "Version",
     "storedAt": "Configuration stockée dans {{path}}",
     "saved": "Enregistré",
     "listenAddr": {

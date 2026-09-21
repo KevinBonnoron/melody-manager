@@ -62,11 +62,25 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
+      # A tagged image is known by its tag, and anything else by the commit it
+      # was built from, in the short form the image itself is tagged with.
+      - name: Stamp the build
+        id: stamp
+        run: |
+          echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "version=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./docker/Dockerfile
+          build-args: |
+            VERSION=${{ steps.stamp.outputs.version }}
+            BUILT_AT=${{ steps.stamp.outputs.at }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

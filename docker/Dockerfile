@@ -11,6 +11,11 @@ RUN bun run build
 
 FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS api
 ARG TARGETARCH
+# Which build this is, so that a running server can be asked rather than
+# guessed at. Only the repository knows, and it is not in here: the image is
+# built from api/ alone, so nothing left unset can be worked out later.
+ARG VERSION=
+ARG BUILT_AT=
 WORKDIR /src
 COPY api/go.mod api/go.sum ./
 RUN go mod download
@@ -19,7 +24,11 @@ COPY api/ ./
 # module, so it is copied in rather than mounted beside it at the end.
 COPY --from=client /app/dist ./client/dist
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags="-s -w" -o /melody-api .
+    go build -trimpath \
+      -ldflags="-s -w \
+        -X github.com/KevinBonnoron/melody-manager/api/internal/version.Revision=${VERSION} \
+        -X github.com/KevinBonnoron/melody-manager/api/internal/version.BuiltAt=${BUILT_AT}" \
+      -o /melody-api .
 
 FROM --platform=$BUILDPLATFORM alpine:latest AS ytdlp
 ARG TARGETARCH
