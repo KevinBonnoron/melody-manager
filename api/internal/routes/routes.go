@@ -714,14 +714,20 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 			// the record still says, so it leaves the set rather than being left
 			// in it claiming to make sound.
 			//
-			// But a stream that ended and one that is about to come back look
-			// the same from here. What tells them apart is whether the device
-			// returns, which is known only afterwards, so the answer is given
-			// afterwards: a tab that was closed is out a moment later, and one
-			// whose connection blinked was never out at all. Registering again
-			// takes a new epoch, which is what the delayed reading finds.
+			// Only once the last of its streams has gone, though. A browser can
+			// have two open for a moment, one replacing another or two started
+			// together, and the one that ends is not the device: taking it out
+			// on that would stop the sound coming out of the stream that stayed.
+			//
+			// And not at once. A stream that ended and one that is about to come
+			// back look the same from here; what tells them apart is whether the
+			// device returns, which is known only afterwards, so the answer is
+			// given afterwards.
+			if !deps.Devices.ReleaseClient(owner, device.ID) {
+				return
+			}
 			time.AfterFunc(deviceGrace, func() {
-				if !deps.Devices.UnregisterClient(owner, device.ID, device.Epoch()) {
+				if !deps.Devices.ForgetClient(owner, device.ID) {
 					return
 				}
 				if _, err := deps.Player.Leave(context.Background(), owner, device.ID); err != nil {
