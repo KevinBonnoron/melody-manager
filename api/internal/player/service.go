@@ -377,8 +377,13 @@ func (s *Service) order(ctx context.Context, owner string, apply change, send dr
 	gone, sendErr := send(ctx, state, next, at)
 	for _, device := range gone {
 		next = next.Leave(device)
+		slog.Info("a device was taken out of the playback", "owner", owner, "device", device, "left", len(next.Devices))
 	}
 	if len(next.Devices) == 0 || sendErr != nil {
+		// Written down here rather than left for whoever finds the record
+		// stopped: a listener whose music stops has nothing to read, and this
+		// is the only place that knows it was not asked for.
+		slog.Info("the playback was stopped because an order reached nobody", "owner", owner, "devices", len(next.Devices), "error", sendErr)
 		next = next.Pause(s.now())
 	}
 
