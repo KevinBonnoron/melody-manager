@@ -480,6 +480,11 @@
     "success": "Vous êtes connecté !",
     "unreachable": "Serveur injoignable. Vérifiez son adresse et qu’il est démarré."
   },
+  "NewVersion": {
+    "title": "Une nouvelle version est prête",
+    "description": "Rechargez la page pour l'appliquer. La lecture en cours s'arrêtera.",
+    "reload": "Recharger"
+  },
   "MusicPlayer": {
     "playbackError": "Impossible de lire \"{{title}}\"",
     "playbackErrorGeneric": "Erreur de lecture",

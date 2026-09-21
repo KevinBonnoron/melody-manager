@@ -1,6 +1,7 @@
 import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
 import { PocketBaseProvider } from 'pocketbase-react-hooks';
 import { Toaster } from 'sonner';
+import { NewVersion } from '@/components/atoms/new-version';
 import { AppLayout } from '@/components/layout/app-layout';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -33,6 +34,7 @@ function RootComponent() {
               )}
             </MusicPlayerProvider>
           </TaskProvider>
+          <NewVersion />
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
