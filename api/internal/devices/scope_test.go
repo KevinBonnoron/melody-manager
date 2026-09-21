@@ -82,3 +82,37 @@ func TestAStreamAlreadyReplacedDoesNotTakeTheDeviceWithIt(t *testing.T) {
 		t.Fatal("the current stream could not take its own device away")
 	}
 }
+
+func TestAStreamReplacedDoesNotTakeTheDeviceWithIt(t *testing.T) {
+	svc := New(func() string { return "http://example.test" })
+
+	first, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50)
+	if !ok {
+		t.Fatal("the first stream did not register")
+	}
+
+	second, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50)
+	if !ok {
+		t.Fatal("the stream that replaced it did not register")
+	}
+	if second.ID != first.ID {
+		t.Fatalf("the replacement is a different device: %q then %q", first.ID, second.ID)
+	}
+
+	// The stream being replaced closes after its replacement has registered,
+	// which is what a reconnection looks like from here. Reading that as the
+	// device going away takes it out of the playback and stops the sound.
+	if svc.UnregisterClient("kev", first.ID, first.Epoch()) {
+		t.Fatal("closing the replaced stream was taken for the device going away")
+	}
+	if _, there := svc.GetFor("kev", first.ID); !there {
+		t.Fatal("the device went with the stream it had already been replaced on")
+	}
+
+	if !svc.UnregisterClient("kev", second.ID, second.Epoch()) {
+		t.Fatal("closing the stream that was current did not take the device out")
+	}
+	if _, there := svc.GetFor("kev", second.ID); there {
+		t.Fatal("the device outlived the only stream it had")
+	}
+}
