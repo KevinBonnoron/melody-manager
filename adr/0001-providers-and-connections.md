@@ -6,8 +6,8 @@
 ## Context
 
 A source needs two kinds of configuration that do not belong to the same person. Where the music
-files are, and what application credentials the server holds, are the administrator's. Cookies and
-OAuth tokens are the listener's, and nobody else may read them.
+files are, and what application credentials the server holds, are the administrator's. What
+identifies a listener to a source, an OAuth token, is theirs, and nobody else may read it.
 
 Nothing in the data said which was which. The same source could be configured in two places, both
 were merged into one namespace at runtime, and the only record of what was personal lived in a
@@ -32,6 +32,14 @@ model now says it too.
 
 The two halves are overlaid in one place, and which half a value came from is no longer a guess.
 
-A track is not equally playable by everyone: mine may need my cookies. Anything that caches a
-resolved track, or hands a stream to a speaker, has to carry the user with it. This has been got
-wrong twice already, in a preview cache and in a speaker's stream URL.
+A track is not equally playable by everyone, where a source answers to the listener rather than to
+the server. Anything that caches a resolved address, or hands a stream to a speaker, has to carry
+whoever it was resolved for. This has been got wrong twice already, in a preview cache and in a
+speaker's stream URL.
+
+Which half a credential belongs in follows from what it is for, not from what it is. YouTube
+cookies look personal and are not: YouTube refuses a server it takes for a datacentre, and the
+cookies are what make it answer at all. They are a passport the server carries, the same for
+every listener, so they sit in the administrator's half. Reading them as a permission led to a
+cache split per listener that would have split the library along with it, since a track imported
+with one person's cookies is one record and one file for everybody.
