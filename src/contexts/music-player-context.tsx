@@ -18,7 +18,7 @@ import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { checkAlive, getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
 import { correctionFor } from '@/lib/drift';
-import { apply, refresh } from '@/lib/player-state';
+import { apply, refresh, snapshot } from '@/lib/player-state';
 import type { Playhead } from '@/lib/playhead';
 import { playheadOf } from '@/lib/playhead';
 import { serverNow, whenMeasured } from '@/lib/server-clock';
@@ -107,6 +107,11 @@ const VOLUME_SETTLE_MS = 200;
 
 const IN_STEP_MS = 2000;
 
+// How far a device coming back may be from where the record says it is before
+// it is moved rather than left to close the gap on its own. Below this the
+// difference is not worth a jump the listener would hear.
+const OUT_OF_STEP = 1;
+
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 
 export function MusicPlayerProvider({ children }: { children: ReactNode }) {
@@ -192,7 +197,17 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => subscribeRegistration(() => setDeviceId(getMyDeviceId())), []);
+  // A stream coming up is a device arriving or a device coming back, and the
+  // second has everything that happened while it was away to catch up on.
+  const reconcileRef = useRef<() => void>(() => undefined);
+  useEffect(
+    () =>
+      subscribeRegistration(() => {
+        setDeviceId(getMyDeviceId());
+        reconcileRef.current();
+      }),
+    [],
+  );
 
   // A device obeys the record, and one the record no longer names has nothing
   // to obey: it goes quiet. The order to stop would come down the connection
@@ -416,6 +431,84 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     },
     [audioFormat, startHere],
   );
+
+  // What a device missed while its stream was down cannot be handed to it
+  // afterwards: the orders went out and nobody heard them. So a device coming
+  // back does not ask what happened, it reads what is true and makes itself
+  // match, which is the same thing it would have arrived at had it heard
+  // everything.
+  //
+  // The run it is picking up is the moment the playhead was set, which is what
+  // the record carries and what an order would have named.
+  const reconcile = useCallback(async () => {
+    // Read before anything is waited on, and only read: an order arriving while
+    // the record is being fetched is newer than this one, and taking the epoch
+    // afterwards would invalidate it and then act on what it had replaced.
+    // Taking it here would be worse still, since everything below can decline
+    // to act and would leave that order cancelled by something that did
+    // nothing.
+    const before = orderRef.current;
+
+    if (!(await refresh())) {
+      // The record could not be read, so what is held says nothing about what
+      // happened while the stream was down. Deciding anything on it would be
+      // deciding on the state this was meant to replace.
+      return;
+    }
+
+    if (orderRef.current !== before) {
+      return;
+    }
+
+    const id = getMyDeviceId();
+    const audio = audioRef.current;
+    if (!id || !audio || loadedRef.current === null) {
+      // A page that has loaded nothing has nothing to catch up on. Its stream
+      // registering is it arriving, not it coming back, and making it obey a
+      // record that says it was playing is how a reload starts the music on
+      // its own.
+      return;
+    }
+
+    const record = snapshot();
+    if (!record.devices.includes(id)) {
+      // Not one of the places the sound comes out, and this cannot tell why.
+      // Being dropped for a stream that went away and being taken out from
+      // another device look the same from here, and putting itself back would
+      // undo the second as readily as it repairs the first. Somebody who took
+      // this device out meant it; a device dropped on its own is put back by
+      // the one thing that knows which happened, the record having nowhere left
+      // to play.
+      return;
+    }
+
+    // Now it acts, so now it is an order.
+    const order = ++orderRef.current;
+    const current = () => order === orderRef.current;
+
+    if (!record.playing || !record.track) {
+      audio.pause();
+      return;
+    }
+
+    const at = reached(record.position, record.positionAt, true, serverNow());
+    if (loadedRef.current !== record.track || !audio.src) {
+      void loadHere(record.track, at, 0, Date.parse(record.positionAt) || 0, current);
+      return;
+    }
+
+    cycleRef.current = Date.parse(record.positionAt) || 0;
+    if (Math.abs(audio.currentTime - at) > OUT_OF_STEP) {
+      audio.currentTime = at;
+    }
+    if (audio.paused) {
+      startHere(audio, at, 0, current);
+    }
+  }, [loadHere, startHere]);
+
+  useEffect(() => {
+    reconcileRef.current = () => void reconcile();
+  }, [reconcile]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the audio element must only be created once
   useEffect(() => {
