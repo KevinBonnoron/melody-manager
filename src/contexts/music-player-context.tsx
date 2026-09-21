@@ -630,7 +630,19 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         if (action.startsWith('play:')) {
           const current = takeOver();
           const [, trackId, at, startAt, cycle] = action.split(':');
-          void loadHere(trackId, Number(at) || 0, Number(startAt) || 0, Number(cycle) || 0, current);
+          const from = Number(at) || 0;
+          const when = Number(startAt) || 0;
+          // Already playing this, at about where it is wanted. Loading it again
+          // would take it from the top and land back here, which is a gap the
+          // listener hears, and an order that changes nothing for this device
+          // is sent whenever the set changes: another device joining says
+          // nothing about this one. A moment to start on is different, since
+          // devices starting together have to start together.
+          if (!when && loadedRef.current === trackId && audio.src && !audio.paused && Math.abs(audio.currentTime - from) < OUT_OF_STEP) {
+            cycleRef.current = Number(cycle) || 0;
+            return;
+          }
+          void loadHere(trackId, from, when, Number(cycle) || 0, current);
         } else if (action.startsWith('resume:')) {
           const current = takeOver();
           const [, trackId, at, startAt, cycle] = action.split(':');
