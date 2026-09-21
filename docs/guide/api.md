@@ -38,6 +38,7 @@ handed a URL, and a speaker fetches the URL by itself.
 | `GET /api/share/stream/{token}` | the share link's own token |
 | `GET /api/config` | anyone, but it answers less: one flag without the header, the whole file with an administrator's |
 | `GET /api/health` | nothing: it says only that the server is up |
+| `GET /api/version` | nothing: it says only which build is running |
 
 ## Audio
 
@@ -194,4 +195,14 @@ Long-running work such as scans, imports and downloads, with their progress.
 
 ### `GET /api/health`
 
-`200` once the server is up. The Docker image uses it as its healthcheck.
+`200` once the server is up, PocketBase's own. The Docker image uses it as its
+healthcheck.
+
+### `GET /api/version`
+
+Which build is running: the tag it was made from, or the commit in the short
+form the image carries, and when it was linked. `task docker-image` stamps a
+hand-built one the same way, marking a working copy that had been edited; a
+build that was told nothing and cannot work it out says `unknown`. Asked
+without a token, so that a deployment can be confirmed from wherever it was
+made.

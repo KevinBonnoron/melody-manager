@@ -23,6 +23,7 @@ export function AdminSettings() {
   const { t } = useTranslation();
   const [config, setConfig] = useState<ServerConfig | null>(null);
   const [path, setPath] = useState('');
+  const [build, setBuild] = useState<{ revision: string; builtAt: string } | null>(null);
   const [candidates, setCandidates] = useState<string[]>([]);
   const [listenAddr, setListenAddr] = useState('');
   const [publicUrl, setPublicUrl] = useState('');
@@ -37,6 +38,14 @@ export function AdminSettings() {
           setPath(response.path ?? '');
           setPublicUrl(response.publicUrl);
           setListenAddr(response.listenAddr ?? '');
+        }
+      })
+      .catch(() => undefined);
+    configClient
+      .version()
+      .then((answer) => {
+        if (!cancelled) {
+          setBuild(answer);
         }
       })
       .catch(() => undefined);
@@ -157,6 +166,12 @@ export function AdminSettings() {
       </div>
 
       <p className="text-[12px] text-muted-foreground">{t('AdminSettings.storedAt', { path })}</p>
+      {build && (
+        <p className="text-[12px] text-muted-foreground">
+          {t('AdminSettings.build')} <span className="font-mono">{build.revision}</span>
+          {build.builtAt && ` · ${new Date(build.builtAt).toLocaleString()}`}
+        </p>
+      )}
     </div>
   );
 }

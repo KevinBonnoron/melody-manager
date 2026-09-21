@@ -3,7 +3,12 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: melody-manager:latest
+    # The name it is published under, so that an image built here goes where a
+    # pulled one would rather than beside it under a second name. Naming a
+    # published image is also asking for it, so this file says to build the
+    # checkout it sits in instead, which is what it is for.
+    image: ghcr.io/kevinbonnoron/melody-manager:latest
+    pull_policy: build
     container_name: melody-manager
     ports:
       - "8090:8090"

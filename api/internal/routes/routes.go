@@ -29,6 +29,7 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 	"github.com/KevinBonnoron/melody-manager/api/internal/sonos"
 	"github.com/KevinBonnoron/melody-manager/api/internal/tasks"
+	"github.com/KevinBonnoron/melody-manager/api/internal/version"
 	"github.com/KevinBonnoron/melody-manager/api/internal/ytdlp"
 )
 
@@ -128,6 +129,15 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		}
 
 		return services.StreamTrack(e.Request.Context(), e.App, deps.Registry, deps.Cache, e, link.GetString("track"), e.Request.URL.Query().Get("transcode"), "")
+	})
+
+	// Which build is running. PocketBase owns /api/health and answers it with
+	// its own shape, so this is beside it rather than inside it, and it is
+	// asked without a token: confirming what a deployment landed is worth more
+	// than keeping the revision to ourselves.
+	se.Router.GET("/api/version", func(e *core.RequestEvent) error {
+		revision, builtAt := version.Build()
+		return e.JSON(http.StatusOK, map[string]string{"revision": revision, "builtAt": builtAt})
 	})
 
 	se.Router.GET("/api/config", func(e *core.RequestEvent) error {

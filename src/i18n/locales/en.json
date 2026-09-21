@@ -380,6 +380,7 @@
       "detectError": "Detection failed",
       "loopbackWarning": "This address means \"this machine\" to whatever reads it: no device outside the browser can reach the server. Use its network address."
     },
+    "build": "Build",
     "storedAt": "Configuration stored in {{path}}",
     "saved": "Saved",
     "listenAddr": {
