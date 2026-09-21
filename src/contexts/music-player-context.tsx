@@ -118,6 +118,16 @@ const ABOUT_THERE = 1;
 // difference they never would.
 const LOST_THE_THREAD = 5;
 
+// How many times a device asks for a playback nobody holds, and how long it
+// leaves between asking.
+const CLAIM_ATTEMPTS = 2;
+const CLAIM_AGAIN_MS = 2_000;
+
+// The same, for a page saying it is not the one playing. Sooner, because every
+// moment it is not said is added to the position the playback is stopped at.
+const STEP_BACK_ATTEMPTS = 3;
+const STEP_BACK_AGAIN_MS = 750;
+
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 
 export function MusicPlayerProvider({ children }: { children: ReactNode }) {
@@ -258,10 +268,60 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', back);
   }, []);
 
+  // A page that has just loaded is making no sound, whatever the record says it
+  // is doing here. Reloading in the middle of a track leaves the record playing
+  // on a device that no longer exists, and nothing else finds out: a browser
+  // never reports where it has got to, so the record goes on working the
+  // position out from how long it has supposedly been playing.
+  //
+  // So it says so, by leaving. On its own that stops the playback where it had
+  // got to, which is what an empty set already means; beside a speaker it
+  // leaves the speaker playing and becomes what it now is, something watching.
+  //
+  // At once, because every moment spent claiming to play is added to the
+  // position it is stopped at.
+  // A refusal must not be taken for having said it: the record would go on
+  // counting a silent device as playing, and nothing would ever say otherwise.
+  // So it is done when the server says it is, and until then it is only being
+  // attempted.
+  const steppedBackRef = useRef(false);
+  const steppingBackRef = useRef(false);
+  const [stepBackAttempt, setStepBackAttempt] = useState(0);
+  useEffect(() => {
+    if (!deviceId || !stateRead || !state.playing || !playsHere || loadedRef.current !== null) {
+      return;
+    }
+    if (steppedBackRef.current || steppingBackRef.current) {
+      return;
+    }
+
+    steppingBackRef.current = true;
+    playerClient
+      .leave(deviceId)
+      .then((after) => {
+        steppedBackRef.current = true;
+        apply(after);
+      })
+      .catch((error) => {
+        console.error('this device could not say it had stopped playing', error);
+        if (stepBackAttempt < STEP_BACK_ATTEMPTS) {
+          setTimeout(() => setStepBackAttempt((n) => n + 1), STEP_BACK_AGAIN_MS);
+        }
+      })
+      .finally(() => {
+        steppingBackRef.current = false;
+      });
+  }, [deviceId, stateRead, state.playing, playsHere, stepBackAttempt]);
+
   // Taking the playback on before the record has been read would claim one that
   // is already coming out somewhere else, and a record that still says it is
   // playing would then start the music here on its own.
+  // A refusal is not the end of it. Clearing the guard alone would not bring
+  // the effect back, since none of what it watches has changed, so the attempt
+  // is counted and the count is what brings it back. Twice, because a third
+  // refusal is about something a fourth attempt will not fix.
   const claimedRef = useRef<string | null>(null);
+  const [claimAttempt, setClaimAttempt] = useState(0);
   useEffect(() => {
     if (!deviceId || !stateRead || state.devices.length > 0 || claimedRef.current === deviceId) {
       return;
@@ -271,8 +331,14 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     playerClient
       .devices([deviceId])
       .then(apply)
-      .catch((error) => console.error('this device could not take the playback', error));
-  }, [deviceId, stateRead, state.devices.length]);
+      .catch((error) => {
+        console.error('this device could not take the playback', error);
+        claimedRef.current = null;
+        if (claimAttempt < CLAIM_ATTEMPTS) {
+          setTimeout(() => setClaimAttempt((n) => n + 1), CLAIM_AGAIN_MS);
+        }
+      });
+  }, [deviceId, stateRead, state.devices.length, claimAttempt]);
 
   // A device is taken out of the set when its stream ends, which is right for a
   // tab that was closed and is not what happened to one that is still here. It
