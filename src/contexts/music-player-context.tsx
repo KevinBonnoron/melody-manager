@@ -107,10 +107,16 @@ const VOLUME_SETTLE_MS = 200;
 
 const IN_STEP_MS = 2000;
 
-// How far a device coming back may be from where the record says it is before
-// it is moved rather than left to close the gap on its own. Below this the
-// difference is not worth a jump the listener would hear.
-const OUT_OF_STEP = 1;
+// How near the record a device has to be for an order to play what it is
+// already playing to be nothing new.
+const ABOUT_THERE = 1;
+
+// How far from the record a device has to be for it to have lost the thread
+// rather than merely drifted: a track that changed without it, or a seek it
+// never heard. Below this the element's own time is the better answer, since it
+// is the one making the sound, and moving it is a jump the listener hears for a
+// difference they never would.
+const LOST_THE_THREAD = 5;
 
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 
@@ -488,6 +494,13 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
     if (!record.playing || !record.track) {
       audio.pause();
+      // Where it stopped still matters: the element is what the playhead reads
+      // while it holds the track, so one left behind by a seek it never heard
+      // shows the wrong place for as long as it stays paused.
+      const stopped = reached(record.position, record.positionAt, false, serverNow());
+      if (loadedRef.current === record.track && Math.abs(audio.currentTime - stopped) > LOST_THE_THREAD) {
+        audio.currentTime = stopped;
+      }
       return;
     }
 
@@ -498,7 +511,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
 
     cycleRef.current = Date.parse(record.positionAt) || 0;
-    if (Math.abs(audio.currentTime - at) > OUT_OF_STEP) {
+    if (Math.abs(audio.currentTime - at) > LOST_THE_THREAD) {
       audio.currentTime = at;
     }
     if (audio.paused) {
@@ -638,7 +651,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
           // is sent whenever the set changes: another device joining says
           // nothing about this one. A moment to start on is different, since
           // devices starting together have to start together.
-          if (!when && loadedRef.current === trackId && audio.src && !audio.paused && Math.abs(audio.currentTime - from) < OUT_OF_STEP) {
+          if (!when && loadedRef.current === trackId && audio.src && !audio.paused && Math.abs(audio.currentTime - from) < ABOUT_THERE) {
             cycleRef.current = Number(cycle) || 0;
             return;
           }
