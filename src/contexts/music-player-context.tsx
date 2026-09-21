@@ -16,9 +16,9 @@ import i18n from '@/i18n';
 import { reached } from '@/lib/clock';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
-import { getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
+import { checkAlive, getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
 import { correctionFor } from '@/lib/drift';
-import { apply } from '@/lib/player-state';
+import { apply, refresh } from '@/lib/player-state';
 import type { Playhead } from '@/lib/playhead';
 import { playheadOf } from '@/lib/playhead';
 import { serverNow, whenMeasured } from '@/lib/server-clock';
@@ -194,6 +194,49 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => subscribeRegistration(() => setDeviceId(getMyDeviceId())), []);
 
+  // A device obeys the record, and one the record no longer names has nothing
+  // to obey: it goes quiet. The order to stop would come down the connection
+  // that dropped, which is the one thing that cannot carry it, so a tab taken
+  // out of the set while it was in the background goes on making sound that
+  // nothing can stop and that no playhead describes.
+  useEffect(() => {
+    if (!stateRead || playsHere) {
+      return;
+    }
+
+    // Before anything else, and whether or not there is sound to stop: a start
+    // waiting on a moment, or on the element being ready, obeys nothing but
+    // itself, and one left armed lets the sound back out after the device was
+    // taken out of the set.
+    orderRef.current++;
+    if (waitingRef.current) {
+      clearTimeout(waitingRef.current);
+      waitingRef.current = null;
+    }
+
+    const audio = audioRef.current;
+    if (audio && !audio.paused) {
+      audio.pause();
+    }
+  }, [stateRead, playsHere]);
+
+  // Coming back to a tab that was away. Both connections it listens on, the
+  // record's and this device's orders, can have been dropped while nothing was
+  // watching, and what is held is then behind by everything that happened
+  // since.
+  useEffect(() => {
+    const back = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      checkAlive();
+      void refresh();
+    };
+
+    document.addEventListener('visibilitychange', back);
+    return () => document.removeEventListener('visibilitychange', back);
+  }, []);
+
   // Taking the playback on before the record has been read would claim one that
   // is already coming out somewhere else, and a record that still says it is
   // playing would then start the music here on its own.
@@ -210,6 +253,15 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       .catch((error) => console.error('this device could not take the playback', error));
   }, [deviceId, stateRead, state.devices.length]);
 
+  // A device is taken out of the set when its stream ends, which is right for a
+  // tab that was closed and is not what happened to one that is still here. It
+  // was not told to leave and did not ask to, so it puts itself back once its
+  // stream is up again.
+  //
+  // Only a tab that belonged: one that never did is a remote control, driving
+  // what comes out elsewhere without being part of it, and has no place to
+  // return to. And only until it is taken out on purpose, or this would undo
+  // that the moment the box was unticked.
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = localVolume;
@@ -594,6 +646,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   );
   const removeFromQueue = useCallback((trackId: string) => void send(() => playerClient.remove(trackId), 'MusicPlayer.deviceError'), [send]);
   const clearQueue = useCallback(() => void send(() => playerClient.clear(), 'MusicPlayer.deviceError'), [send]);
+  // Taking this device out on purpose says it no longer belongs, or putting
+  // itself back would undo the order as soon as it was given.
   const playOn = useCallback((next: Device[]) => void send(() => playerClient.devices(next.map((device) => device.id)), 'MusicPlayer.deviceError'), [send]);
   const joinDevice = useCallback((device: Device) => void send(() => playerClient.join(device.id), 'MusicPlayer.deviceError'), [send]);
   const leaveDevice = useCallback((device: Device) => void send(() => playerClient.leave(device.id), 'MusicPlayer.deviceError'), [send]);
