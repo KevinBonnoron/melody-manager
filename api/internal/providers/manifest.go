@@ -76,10 +76,8 @@ var manifests = []Manifest{
 		ConfigSchema: []SchemaField{
 			{Name: "downloadPath", Type: "string", Label: "Download path", Required: true,
 				Description: "Server path where YouTube audio files will be downloaded"},
-		},
-		ConnectionSchema: []SchemaField{
-			{Name: "cookies", Type: "textarea", Label: "Cookies (optional)", Required: false,
-				Description: "YouTube cookies in Netscape format. Only needed if YouTube blocks requests."},
+			{Name: "cookies", Type: "textarea", Label: "Cookies", Required: false,
+				Description: "Cookies in Netscape format, used for everyone who listens. YouTube refuses a server it takes for a datacentre, and these are what make it answer, so they are the server's rather than anyone's. Take them from an account made for this, not from a personal one."},
 		},
 	},
 	{
