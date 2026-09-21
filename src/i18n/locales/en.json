@@ -480,6 +480,11 @@
     "success": "Welcome back!",
     "unreachable": "Server unreachable. Check its address and that it is running."
   },
+  "NewVersion": {
+    "title": "A new version is ready",
+    "description": "Reloading applies it, and stops anything playing here.",
+    "reload": "Reload"
+  },
   "MusicPlayer": {
     "playbackError": "Failed to play \"{{title}}\"",
     "playbackErrorGeneric": "Playback failed",

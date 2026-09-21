@@ -34,7 +34,10 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // Offered rather than taken: applying an update reloads the page, and a
+      // page that is playing music loses the track and the place it had
+      // reached. Whoever is listening decides when that happens.
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Melody Manager',
