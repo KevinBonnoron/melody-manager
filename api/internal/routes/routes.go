@@ -672,6 +672,12 @@ func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestE
 
 const sseKeepAlive = 25 * time.Second
 
+// deviceGrace is how long a device that has lost its stream is given to come
+// back before the playback is told it has gone. One missed keep-alive and the
+// reconnection that follows it fit inside; a tab that was closed does not come
+// back at all, and is out once it has passed.
+const deviceGrace = 30 * time.Second
+
 func writeKeepAlive(w io.Writer, flusher http.Flusher) {
 	fmt.Fprintf(w, "event: %s\ndata: {}\n\n", eventPing)
 	if flusher != nil {
@@ -706,15 +712,22 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 		defer func() {
 			// A device whose stream has ended is not playing any more, whatever
 			// the record still says, so it leaves the set rather than being left
-			// in it claiming to make sound. A stream already replaced by a newer
-			// one for the same session is not that device, and taking it out
-			// would silence the connection that took its place.
-			if !deps.Devices.UnregisterClient(owner, device.ID, device.Epoch()) {
-				return
-			}
-			if _, err := deps.Player.Leave(context.Background(), owner, device.ID); err != nil {
-				slog.Warn("a device that went away could not be taken out of the playback", "device", device.ID, "error", err)
-			}
+			// in it claiming to make sound.
+			//
+			// But a stream that ended and one that is about to come back look
+			// the same from here. What tells them apart is whether the device
+			// returns, which is known only afterwards, so the answer is given
+			// afterwards: a tab that was closed is out a moment later, and one
+			// whose connection blinked was never out at all. Registering again
+			// takes a new epoch, which is what the delayed reading finds.
+			time.AfterFunc(deviceGrace, func() {
+				if !deps.Devices.UnregisterClient(owner, device.ID, device.Epoch()) {
+					return
+				}
+				if _, err := deps.Player.Leave(context.Background(), owner, device.ID); err != nil {
+					slog.Warn("a device that went away could not be taken out of the playback", "device", device.ID, "error", err)
+				}
+			})
 		}()
 		registered = &device
 	}
