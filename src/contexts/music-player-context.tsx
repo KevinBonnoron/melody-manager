@@ -435,7 +435,15 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       if (waitingRef.current) {
         clearTimeout(waitingRef.current);
       }
-      waitingRef.current = setTimeout(() => audio.pause(), when.wait);
+      // Asked again when the moment comes, the way a start is. Clearing the
+      // timer is not enough on its own: an order that supersedes this one may
+      // never touch the element, and this would then stop what that order had
+      // just got playing again.
+      waitingRef.current = setTimeout(() => {
+        if (current()) {
+          audio.pause();
+        }
+      }, when.wait);
     });
   }, []);
 
