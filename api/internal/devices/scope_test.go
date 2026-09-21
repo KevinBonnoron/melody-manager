@@ -67,52 +67,66 @@ func TestTwoAccountsOnOneSessionAreTwoDevices(t *testing.T) {
 	}
 }
 
-func TestAStreamAlreadyReplacedDoesNotTakeTheDeviceWithIt(t *testing.T) {
-	svc := New(func() string { return "http://example.test" })
-	first, _ := svc.RegisterClient("kev", "browser", "tab-1", "A tab", 80)
-	second, _ := svc.RegisterClient("kev", "browser", "tab-1", "A tab", 80)
-
-	if svc.UnregisterClient("kev", first.ID, first.Epoch()) {
-		t.Fatal("the older stream took the device that replaced it")
-	}
-	if _, ok := svc.GetFor("kev", second.ID); !ok {
-		t.Fatal("the device is gone")
-	}
-	if !svc.UnregisterClient("kev", second.ID, second.Epoch()) {
-		t.Fatal("the current stream could not take its own device away")
-	}
-}
-
-func TestAStreamReplacedDoesNotTakeTheDeviceWithIt(t *testing.T) {
+func TestADeviceStaysWhileAnyOfItsStreamsIsOpen(t *testing.T) {
 	svc := New(func() string { return "http://example.test" })
 
 	first, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50)
 	if !ok {
 		t.Fatal("the first stream did not register")
 	}
-
 	second, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50)
 	if !ok {
-		t.Fatal("the stream that replaced it did not register")
+		t.Fatal("the second stream did not register")
 	}
 	if second.ID != first.ID {
-		t.Fatalf("the replacement is a different device: %q then %q", first.ID, second.ID)
+		t.Fatalf("two streams of one session made two devices: %q and %q", first.ID, second.ID)
 	}
 
-	// The stream being replaced closes after its replacement has registered,
-	// which is what a reconnection looks like from here. Reading that as the
-	// device going away takes it out of the playback and stops the sound.
-	if svc.UnregisterClient("kev", first.ID, first.Epoch()) {
-		t.Fatal("closing the replaced stream was taken for the device going away")
+	// Either of them can be the one that ends, and a browser opens two often
+	// enough that both orders happen: one replacing another, or two started
+	// together and one given up. Whichever ends, the device is still being
+	// listened to on the one that stayed.
+	if svc.ReleaseClient("kev", first.ID) {
+		t.Fatal("giving up one stream was taken for the last one")
+	}
+	if svc.ForgetClient("kev", first.ID) {
+		t.Fatal("the device was taken out while a stream was still open")
 	}
 	if _, there := svc.GetFor("kev", first.ID); !there {
-		t.Fatal("the device went with the stream it had already been replaced on")
+		t.Fatal("the device went with a stream that was not its last")
 	}
 
-	if !svc.UnregisterClient("kev", second.ID, second.Epoch()) {
-		t.Fatal("closing the stream that was current did not take the device out")
+	if !svc.ReleaseClient("kev", first.ID) {
+		t.Fatal("giving up the last stream was not taken for the last one")
 	}
-	if _, there := svc.GetFor("kev", second.ID); there {
-		t.Fatal("the device outlived the only stream it had")
+	if !svc.ForgetClient("kev", first.ID) {
+		t.Fatal("the device was kept with no stream left")
+	}
+	if _, there := svc.GetFor("kev", first.ID); there {
+		t.Fatal("the device outlived every stream it had")
+	}
+}
+
+func TestADeviceThatCameBackIsNotForgotten(t *testing.T) {
+	svc := New(func() string { return "http://example.test" })
+
+	device, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50)
+	if !ok {
+		t.Fatal("the stream did not register")
+	}
+	if !svc.ReleaseClient("kev", device.ID) {
+		t.Fatal("giving up the only stream was not taken for the last one")
+	}
+
+	// It is given a moment to come back before the playback is told it has
+	// gone, and it used it.
+	if _, ok := svc.RegisterClient("kev", "browser", "session-1", "a tab", 50); !ok {
+		t.Fatal("coming back did not register")
+	}
+	if svc.ForgetClient("kev", device.ID) {
+		t.Fatal("a device that had come back was taken out anyway")
+	}
+	if _, there := svc.GetFor("kev", device.ID); !there {
+		t.Fatal("the device that came back is gone")
 	}
 }

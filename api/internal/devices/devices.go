@@ -35,8 +35,13 @@ type Device struct {
 	TrackID  string  `json:"trackId"`
 	Position float64 `json:"position"`
 
-	owner      string
-	cycle      int64
+	owner string
+	cycle int64
+	// streams is how many are open for this device. A browser can have more
+	// than one at a time, briefly: one replacing another, or two started
+	// together. The device is here while any of them is, and gone when the last
+	// one closes, which is the only thing that says nobody is listening.
+	streams    int
 	epoch      uint64
 	reportedAt time.Time
 }
@@ -410,6 +415,7 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string, volum
 	device.Name = label
 	device.Status = "available"
 	device.Usable = true
+	device.streams++
 	s.nextEpoch++
 	device.epoch = s.nextEpoch
 	s.devices[id] = device
@@ -424,14 +430,28 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string, volum
 // Epoch identifies the registration a stream owns, to hand back on teardown.
 func (d Device) Epoch() uint64 { return d.epoch }
 
-// UnregisterClient drops a client whose stream has ended, and says whether it
-// did. A stream that has already been replaced by a newer one for the same
-// session is not the device any more, and tearing it down must not be taken for
-// the device going away.
-func (s *Service) UnregisterClient(owner, id string, epoch uint64) bool {
+// ReleaseClient gives up one of a device's streams and says whether it was the
+// last. A device with another stream open is still here, whatever this one was.
+func (s *Service) ReleaseClient(owner, id string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, ok := s.devices[id]
+	if !ok || !clientTypes[d.Type] || d.owner != owner {
+		return false
+	}
+	if d.streams > 0 {
+		d.streams--
+	}
+	s.devices[id] = d
+	return d.streams == 0
+}
+
+// ForgetClient takes out a device that has no stream left, and says whether it
+// did. One that has opened another in the meantime is not gone and stays.
+func (s *Service) ForgetClient(owner, id string) bool {
 	s.mu.Lock()
 	d, ok := s.devices[id]
-	if !ok || !clientTypes[d.Type] || d.owner != owner || d.epoch != epoch {
+	if !ok || !clientTypes[d.Type] || d.owner != owner || d.streams > 0 {
 		s.mu.Unlock()
 		return false
 	}
