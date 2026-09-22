@@ -767,14 +767,21 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // run at quite the same speed. Each one watches its own distance from the
   // record and bends its speed by a thousandth to close it, which is inaudible
   // and needs no leader: they are all following the same written position.
-  // Alone, there is nobody to be in step with and the element is the truth.
+  //
+  // Only while something else is really making sound, and only a speaker, which
+  // is the one kind of device that says where it has got to. Being named in the
+  // set is not making sound, and between devices that never report their
+  // position the record is an estimate rather than an account of anything:
+  // correcting onto it would be leaving what is heard to follow a guess, and
+  // the correction of last resort is a jump.
+  const inStepWith = devices.some((device) => device.id !== deviceId && device.playing);
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
 
-    if (!media || !state.playing || state.devices.length < 2) {
+    if (!media || !state.playing || !inStepWith) {
       audio.playbackRate = 1;
       return;
     }
@@ -796,7 +803,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       clearInterval(timer);
       audio.playbackRate = 1;
     };
-  }, [media, state.playing, state.devices.length]);
+  }, [media, state.playing, inStepWith]);
 
   const play = useCallback(
     (tracks: Track[]) => {
