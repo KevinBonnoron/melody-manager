@@ -107,6 +107,17 @@ const VOLUME_SETTLE_MS = 200;
 
 const IN_STEP_MS = 2000;
 
+// How often a device says where it has got to. Often enough that the record is
+// never far from what is being heard, rarely enough to be nothing next to the
+// audio it is describing.
+const SAY_WHERE_MS = 10_000;
+
+// How long a source is given to produce anything at all before it is asked for
+// again. Generous, because the first play of a track cut out of a video waits
+// for the cut to be made, and that is work rather than a fault.
+const NOTHING_YET_MS = 45_000;
+const ASK_AGAIN = 2;
+
 // How near the record a device has to be for an order to play what it is
 // already playing to be nothing new.
 const ABOUT_THERE = 1;
@@ -174,6 +185,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // already name the run that replaced this one.
   const cycleRef = useRef(0);
   const waitingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stuckRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadHereRef = useRef<(trackId: string, at: number, startAt: number, cycle: number, current: () => boolean, tries?: number) => Promise<void>>(async () => undefined);
   // Starting and stopping on an agreed moment both wait, first for the clock to
   // be measured and then for the moment itself. An order that arrives meanwhile
   // replaces the one waiting, which must then do nothing rather than let the
@@ -448,7 +461,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadHere = useCallback(
-    async (trackId: string, at: number, startAt: number, cycle: number, current: () => boolean) => {
+    async (trackId: string, at: number, startAt: number, cycle: number, current: () => boolean, tries = 0) => {
       const audio = audioRef.current;
       if (!audio) {
         return;
@@ -488,6 +501,26 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       cycleRef.current = cycle;
       setHolding(null);
       audio.src = `${config.server.url}/tracks/${trackId}/stream?${params.toString()}`;
+
+      // An element can sit on a source forever without ever saying anything is
+      // wrong: no error, nothing buffered, nothing playing, while the audio it
+      // is asking for sits on the server perfectly whole. Nothing would ever
+      // notice, because everything that recovers is hung on the error it never
+      // gets. Being asked for it again is what unsticks it.
+      if (stuckRef.current) {
+        clearTimeout(stuckRef.current);
+      }
+      stuckRef.current = setTimeout(() => {
+        stuckRef.current = null;
+        if (request !== loadRequestRef.current || audio.readyState > 0 || audio.buffered.length > 0) {
+          return;
+        }
+        if (tries >= ASK_AGAIN) {
+          console.error('the source never produced anything', audio.src);
+          return;
+        }
+        void loadHereRef.current(trackId, at, startAt, cycle, current, tries + 1);
+      }, NOTHING_YET_MS);
       if (at > 0) {
         // The element is shared, so a listener left behind by a load that has
         // been overtaken would put the next track at this track's position.
@@ -511,6 +544,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     },
     [audioFormat, startHere],
   );
+
+  useEffect(() => {
+    loadHereRef.current = loadHere;
+  }, [loadHere]);
 
   // What a device missed while its stream was down cannot be handed to it
   // afterwards: the orders went out and nobody heard them. So a device coming
@@ -642,6 +679,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     // where it was told to. Before that it reads zero, and a bar following it
     // blinks back to the start on its way to the right place.
     const stopLoading = () => {
+      if (stuckRef.current) {
+        clearTimeout(stuckRef.current);
+        stuckRef.current = null;
+      }
       setIsLoading(false);
       setHolding(loadedRef.current);
     };
@@ -685,6 +726,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       if (waitingRef.current) {
         clearTimeout(waitingRef.current);
         waitingRef.current = null;
+      }
+      if (stuckRef.current) {
+        clearTimeout(stuckRef.current);
+        stuckRef.current = null;
       }
       audio.pause();
     };
@@ -762,6 +807,28 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }),
     [loadHere, startHere, stopHere],
   );
+
+  // A speaker reports where it has got to and a browser did not, so the record
+  // kept the position of the last order and worked the rest out from how long
+  // it had supposedly been playing. That is right until the sound stops without
+  // saying so, and then it runs away: a track of four minutes was found seven
+  // minutes in, with nothing left to resume from.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !playsHere || !state.playing || holding !== state.track || !state.track) {
+      return;
+    }
+
+    const track = state.track;
+    const timer = setInterval(() => {
+      if (audio.paused || loadedRef.current !== track) {
+        return;
+      }
+      void playerClient.position(track, audio.currentTime).catch(() => undefined);
+    }, SAY_WHERE_MS);
+
+    return () => clearInterval(timer);
+  }, [playsHere, state.playing, state.track, holding]);
 
   // Devices told to start together still walk apart, because no two decoders
   // run at quite the same speed. Each one watches its own distance from the
