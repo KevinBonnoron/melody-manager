@@ -260,6 +260,9 @@ func (s *Service) Finished(owner, trackID string, cycle int64) error {
 // lock as every order, because a report landing beside one would otherwise
 // write back the list and the mode it read before that order changed them. A
 // device reporting a track the record is not on is stale and says nothing.
+//
+// It is not an order: it reaches no device, and it does not begin a run, so
+// the end of the run the devices were given is still recognised afterwards.
 func (s *Service) SavePosition(owner, trackID string, position float64) error {
 	defer s.hold(owner)()
 
@@ -271,7 +274,7 @@ func (s *Service) SavePosition(owner, trackID string, position float64) error {
 		return nil
 	}
 
-	return s.store.Save(owner, state.Seek(position, s.now()))
+	return s.store.Save(owner, state.Reached(position, s.now()))
 }
 
 func (s *Service) playing(owner string) drive {

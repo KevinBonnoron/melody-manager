@@ -10,6 +10,7 @@ export interface PlaybackState extends PocketBaseRecord {
   track: Track['id'];
   position: number;
   positionAt: string;
+  beganAt: string;
   playing: boolean;
   devices: string[];
   list: Track['id'][];
@@ -26,6 +27,7 @@ export interface PlayerState {
   track: Track['id'];
   position: number;
   positionAt: string;
+  beganAt: string;
   playing: boolean;
   devices: string[];
   list: Track['id'][];

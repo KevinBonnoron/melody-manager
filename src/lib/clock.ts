@@ -37,3 +37,12 @@ export function reached(position: number, positionAt: string, playing: boolean, 
   }
   return position + since / 1000;
 }
+
+/**
+ * runOf names the run of the track a device was given, which is what the end of
+ * a track is reported against. A record written before runs were named has only
+ * the moment its position was set to offer.
+ */
+export function runOf(record: { beganAt?: string; positionAt: string }): number {
+  return Date.parse(record.beganAt || record.positionAt) || 0;
+}

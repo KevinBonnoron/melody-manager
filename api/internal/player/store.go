@@ -40,6 +40,9 @@ func (s *Store) Load(owner string) (State, error) {
 	if at := record.GetDateTime("positionAt"); !at.IsZero() {
 		state.PositionAt = at.Time()
 	}
+	if at := record.GetDateTime("beganAt"); !at.IsZero() {
+		state.Began = at.Time()
+	}
 	decode(record, "list", &state.List)
 	decode(record, "order", &state.Order)
 	decode(record, "devices", &state.Devices)
@@ -81,6 +84,9 @@ func (s *Store) Save(owner string, state State) error {
 	record.Set("shuffle", state.Shuffle)
 	record.Set("repeat", string(state.Repeat))
 	record.Set("positionAt", stamp(state.PositionAt))
+	// A record written before runs were named has no run to keep, and giving it
+	// one now would name a run no device was given.
+	record.Set("beganAt", moment(state.Began))
 	return s.app.Save(record)
 }
 
@@ -98,6 +104,14 @@ func (s *Store) find(owner string) (*core.Record, error) {
 func stamp(at time.Time) types.DateTime {
 	if at.IsZero() {
 		at = time.Now()
+	}
+	value, _ := types.ParseDateTime(at.UTC())
+	return value
+}
+
+func moment(at time.Time) types.DateTime {
+	if at.IsZero() {
+		return types.DateTime{}
 	}
 	value, _ := types.ParseDateTime(at.UTC())
 	return value
