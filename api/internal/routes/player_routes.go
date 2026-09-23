@@ -246,6 +246,7 @@ func playing(state player.State) map[string]any {
 		"track":      state.Track,
 		"position":   state.Position,
 		"positionAt": moment(state.PositionAt),
+		"beganAt":    moment(state.Began),
 		"playing":    state.Playing,
 		"devices":    devices,
 		"list":       list,

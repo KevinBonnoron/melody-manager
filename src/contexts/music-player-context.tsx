@@ -13,7 +13,7 @@ import { artistNames } from '@/hooks/use-library-index';
 import { usePlayerQueue, usePlayerRead, usePlayerState } from '@/hooks/use-player-state';
 import { usePlayheadTime } from '@/hooks/use-playhead';
 import i18n from '@/i18n';
-import { reached } from '@/lib/clock';
+import { reached, runOf } from '@/lib/clock';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { checkAlive, getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
@@ -580,11 +580,11 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
     const at = reached(record.position, record.positionAt, true, serverNow());
     if (loadedRef.current !== record.track || !audio.src) {
-      void loadHere(record.track, at, 0, Date.parse(record.positionAt) || 0, current);
+      void loadHere(record.track, at, 0, runOf(record), current);
       return;
     }
 
-    cycleRef.current = Date.parse(record.positionAt) || 0;
+    cycleRef.current = runOf(record);
     if (Math.abs(audio.currentTime - at) > LOST_THE_THREAD) {
       audio.currentTime = at;
     }

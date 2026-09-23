@@ -423,6 +423,26 @@ func TestAPositionReportedForTheTrackBeingPlayedMovesThePlayhead(t *testing.T) {
 	}
 }
 
+func TestAPositionReportedDoesNotEndTheRunTheDevicesWereGiven(t *testing.T) {
+	began := epoch.Add(-30 * time.Second)
+	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a", "b"}, Track: "a", PositionAt: began, Began: began, Playing: true})
+	run := store.state.Cycle()
+
+	if err := svc.SavePosition("u1", "a", 30); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Cycle() != run {
+		t.Fatalf("run = %d, want %d", store.state.Cycle(), run)
+	}
+
+	if _, err := svc.Ended(context.Background(), "u1", "a", run); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Track != "b" {
+		t.Fatalf("track = %q, want b", store.state.Track)
+	}
+}
+
 func TestAPositionReportedForAnotherTrackIsIgnored(t *testing.T) {
 	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 5})
 	if err := svc.SavePosition("u1", "b", 61); err != nil {

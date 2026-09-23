@@ -26,13 +26,17 @@ type State struct {
 	Track      string
 	Position   float64
 	PositionAt time.Time
-	Playing    bool
-	Devices    []string
-	List       []string
-	Order      []int
-	Index      int
-	Shuffle    bool
-	Repeat     Repeat
+	// Began is when this run of the track started, which is not when the
+	// position was last true: a device saying where it has got to moves the
+	// position without beginning anything.
+	Began   time.Time
+	Playing bool
+	Devices []string
+	List    []string
+	Order   []int
+	Index   int
+	Shuffle bool
+	Repeat  Repeat
 }
 
 // Sound is what the state settles to, having been repaired if it was stored
@@ -79,10 +83,14 @@ func (s State) Sound() State {
 // that run, so that a track restarted under RepeatOne is not ended a second
 // time by the device that was still finishing the run before it.
 func (s State) Cycle() int64 {
-	if s.PositionAt.IsZero() {
+	began := s.Began
+	if began.IsZero() {
+		began = s.PositionAt
+	}
+	if began.IsZero() {
 		return 0
 	}
-	return s.PositionAt.UnixMilli()
+	return began.UnixMilli()
 }
 
 // Same says whether two states describe the same sound coming out of the same
@@ -164,6 +172,7 @@ func (s State) at(position float64, now time.Time) State {
 	if position < 0 {
 		position = 0
 	}
+	s.Began = now
 	s.Position = position
 	s.PositionAt = now
 	return s
@@ -361,6 +370,19 @@ func (s State) Pause(now time.Time) State {
 // Seek moves the playhead within the track being played.
 func (s State) Seek(position float64, now time.Time) State {
 	return s.Sound().at(position, now)
+}
+
+// Reached is a device saying where it has got to. It moves the playhead
+// without beginning a run: the device is still playing the one it was given,
+// and an end reported against that run has to still be recognised.
+func (s State) Reached(position float64, now time.Time) State {
+	began := s.Began
+	if began.IsZero() {
+		began = s.PositionAt
+	}
+	s = s.Sound().at(position, now)
+	s.Began = began
+	return s
 }
 
 // Next is the listener asking for the track after this one. Repeating one
