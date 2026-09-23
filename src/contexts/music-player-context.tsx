@@ -122,13 +122,6 @@ const ASK_AGAIN = 2;
 // already playing to be nothing new.
 const ABOUT_THERE = 1;
 
-// How far from the record a device has to be for it to have lost the thread
-// rather than merely drifted: a track that changed without it, or a seek it
-// never heard. Below this the element's own time is the better answer, since it
-// is the one making the sound, and moving it is a jump the listener hears for a
-// difference they never would.
-const LOST_THE_THREAD = 5;
-
 // How many times a device asks for a playback nobody holds, and how long it
 // leaves between asking.
 const CLAIM_ATTEMPTS = 2;
@@ -599,6 +592,12 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // An order this device did not hear names a run it is not playing. Being
+    // behind the record without one is being behind the record's estimate of
+    // where this device has got to, and the device is the one making the sound.
+    // Read before the run is taken, since taking it is what loses the answer.
+    const overtaken = runOf(record) !== cycleRef.current;
+
     // Now it acts, so now it is an order.
     const order = ++orderRef.current;
     const current = () => order === orderRef.current;
@@ -609,7 +608,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       // while it holds the track, so one left behind by a seek it never heard
       // shows the wrong place for as long as it stays paused.
       const stopped = reached(record.position, record.positionAt, false, serverNow());
-      if (loadedRef.current === record.track && Math.abs(audio.currentTime - stopped) > LOST_THE_THREAD) {
+      if (loadedRef.current === record.track && overtaken && Math.abs(audio.currentTime - stopped) > ABOUT_THERE) {
         audio.currentTime = stopped;
       }
       return;
@@ -622,7 +621,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
 
     cycleRef.current = runOf(record);
-    if (Math.abs(audio.currentTime - at) > LOST_THE_THREAD) {
+    if (overtaken && Math.abs(audio.currentTime - at) > ABOUT_THERE) {
       audio.currentTime = at;
     }
     if (audio.paused) {
