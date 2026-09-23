@@ -107,6 +107,11 @@ const VOLUME_SETTLE_MS = 200;
 
 const IN_STEP_MS = 2000;
 
+// How often a device says where it has got to. Often enough that the record is
+// never far from what is being heard, rarely enough to be nothing next to the
+// audio it is describing.
+const SAY_WHERE_MS = 10_000;
+
 // How near the record a device has to be for an order to play what it is
 // already playing to be nothing new.
 const ABOUT_THERE = 1;
@@ -762,6 +767,28 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }),
     [loadHere, startHere, stopHere],
   );
+
+  // A speaker reports where it has got to and a browser did not, so the record
+  // kept the position of the last order and worked the rest out from how long
+  // it had supposedly been playing. That is right until the sound stops without
+  // saying so, and then it runs away: a track of four minutes was found seven
+  // minutes in, with nothing left to resume from.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !playsHere || !state.playing || holding !== state.track || !state.track) {
+      return;
+    }
+
+    const track = state.track;
+    const timer = setInterval(() => {
+      if (audio.paused || loadedRef.current !== track) {
+        return;
+      }
+      void playerClient.position(track, audio.currentTime).catch(() => undefined);
+    }, SAY_WHERE_MS);
+
+    return () => clearInterval(timer);
+  }, [playsHere, state.playing, state.track, holding]);
 
   // Devices told to start together still walk apart, because no two decoders
   // run at quite the same speed. Each one watches its own distance from the

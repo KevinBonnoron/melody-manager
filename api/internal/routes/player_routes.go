@@ -76,6 +76,29 @@ func registerPlayer(se *core.ServeEvent, g *router.RouterGroup[*core.RequestEven
 		return service.Ended(e.Request.Context(), owner, body.TrackID, body.Cycle)
 	}))
 
+	// Where a device has actually got to, which is the only thing that keeps the
+	// record honest. Everything else about the position is worked out from how
+	// long it has supposedly been playing, and a device that stops without
+	// saying so leaves that sum running: a track of four minutes was found
+	// seven minutes in, and nothing could be resumed from there.
+	//
+	// It changes nothing anyone has to be told about, so it is not an order and
+	// reaches no device. A report for a track the record has left is stale and
+	// says nothing.
+	g.POST("/player/position", func(e *core.RequestEvent) error {
+		var body struct {
+			TrackID  string  `json:"trackId"`
+			Position float64 `json:"position"`
+		}
+		if err := e.BindBody(&body); err != nil || body.TrackID == "" {
+			return e.BadRequestError("invalid body", nil)
+		}
+		if err := deps.Player.SavePosition(userID(e), body.TrackID, body.Position); err != nil {
+			return e.InternalServerError("the position was not written down", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+
 	g.POST("/player/seek", order(func(e *core.RequestEvent, owner string) (player.State, error) {
 		var body struct {
 			Position float64 `json:"position"`

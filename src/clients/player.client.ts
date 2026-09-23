@@ -18,6 +18,7 @@ export const playerClient = universalClient(
       skip: (trackId: Track['id']) => http.post<PlayerState>('/player/skip', { trackId }),
       ended: (trackId: Track['id'], cycle: number) => http.post<PlayerState>('/player/ended', { trackId, cycle }),
       seek: (position: number) => http.post<PlayerState>('/player/seek', { position }),
+      position: (trackId: Track['id'], position: number) => http.post<{ success: boolean }>('/player/position', { trackId, position }),
       add: (trackId: Track['id']) => http.post<PlayerState>('/player/add', { trackId }),
       remove: (trackId: Track['id']) => http.post<PlayerState>('/player/remove', { trackId }),
       clear: () => http.post<PlayerState>('/player/clear', {}),
