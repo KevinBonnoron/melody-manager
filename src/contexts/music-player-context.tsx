@@ -486,7 +486,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (request !== loadRequestRef.current) {
+      if (!current() || request !== loadRequestRef.current) {
         return;
       }
 
@@ -505,7 +505,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }
       stuckRef.current = setTimeout(() => {
         stuckRef.current = null;
-        if (request !== loadRequestRef.current || audio.readyState > 0 || audio.buffered.length > 0) {
+        if (!current() || request !== loadRequestRef.current || audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA || audio.buffered.length > 0) {
           return;
         }
         if (tries >= ASK_AGAIN) {
@@ -527,7 +527,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }
 
       const userId = userIdRef.current;
-      if (userId) {
+      if (userId && tries === 0) {
         const playId = trackPlayCollection.utils.newId();
         currentPlayIdRef.current = playId;
         trackPlayCollection.insert({ id: playId, user: userId, track: trackId, completed: false } as TrackPlay);
@@ -696,6 +696,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     // the server gave is in a body it never shows. Asking again for the first
     // byte is what turns "format error" into what actually went wrong.
     const onError = () => {
+      if (stuckRef.current) {
+        clearTimeout(stuckRef.current);
+        stuckRef.current = null;
+      }
       setIsLoading(false);
       const src = audio.currentSrc;
       console.error('the stream would not play', audio.error?.code, audio.error?.message, src);

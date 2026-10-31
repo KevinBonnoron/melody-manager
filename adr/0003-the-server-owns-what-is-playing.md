@@ -60,6 +60,10 @@ them can change it.
 
 **A track is played with the credentials of the user who asked for it.** Nothing is ever borrowed.
 
+When a browser source produces no playable or buffered data, it retries the source at most twice.
+These retries belong to the same listening attempt and stop when the playback order is superseded
+or the source reports an error; metadata alone does not count as playable data.
+
 ## Consequences
 
 The local player stops being a special case and becomes one device among others obeying the same
