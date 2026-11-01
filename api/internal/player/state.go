@@ -26,9 +26,8 @@ type State struct {
 	Track      string
 	Position   float64
 	PositionAt time.Time
-	// Began is when this run of the track started, which is not when the
-	// position was last true: a device saying where it has got to moves the
-	// position without beginning anything.
+	// Began identifies the run, separately from the last position report. It
+	// advances by at least a millisecond even when orders share a clock tick.
 	Began   time.Time
 	Playing bool
 	Devices []string
@@ -78,10 +77,8 @@ func (s State) Sound() State {
 	return s
 }
 
-// Cycle names one run of a track: the moment the playhead was set, in
-// milliseconds. A device is given the run it is to play and reports the end of
-// that run, so that a track restarted under RepeatOne is not ended a second
-// time by the device that was still finishing the run before it.
+// Cycle names one run of a track in milliseconds. Devices report the run they
+// were given so stale reports cannot affect a later run of the same track.
 func (s State) Cycle() int64 {
 	began := s.Began
 	if began.IsZero() {
@@ -97,7 +94,7 @@ func (s State) Cycle() int64 {
 // places. An order that changed none of it has nothing to tell a device, and
 // telling it anyway restarts what is already playing.
 func (s State) Same(other State) bool {
-	if s.Track != other.Track || s.Playing != other.Playing || s.Position != other.Position || !s.PositionAt.Equal(other.PositionAt) {
+	if s.Track != other.Track || s.Playing != other.Playing || s.Position != other.Position || !s.PositionAt.Equal(other.PositionAt) || s.Cycle() != other.Cycle() {
 		return false
 	}
 	if len(s.Devices) != len(other.Devices) {
@@ -172,7 +169,11 @@ func (s State) at(position float64, now time.Time) State {
 	if position < 0 {
 		position = 0
 	}
+	previous := s.Cycle()
 	s.Began = now
+	if !now.IsZero() && previous != 0 && now.UnixMilli() <= previous {
+		s.Began = time.UnixMilli(previous + 1)
+	}
 	s.Position = position
 	s.PositionAt = now
 	return s

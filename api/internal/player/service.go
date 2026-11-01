@@ -48,7 +48,7 @@ type Output interface {
 	// Pause takes a moment too: devices that stop as each is told stop apart,
 	// and are then out of step by the difference for the rest of the track.
 	Pause(ctx context.Context, owner, device string, at time.Time) error
-	Seek(ctx context.Context, owner, device string, position float64) error
+	Seek(ctx context.Context, owner, device, trackID string, position float64, cycle int64) error
 }
 
 // Continuation chooses what follows the tracks already in a list, so that
@@ -158,7 +158,7 @@ func (s *Service) Seek(ctx context.Context, owner string, position float64) (Sta
 	return s.order(ctx, owner, func(state State, now time.Time) State {
 		return state.Seek(position, now)
 	}, s.reach(owner, func(ctx context.Context, device string, state State) error {
-		return s.out.Seek(ctx, owner, device, state.Position)
+		return s.out.Seek(ctx, owner, device, state.Track, state.Position, state.Cycle())
 	}))
 }
 
@@ -259,18 +259,19 @@ func (s *Service) Finished(owner, trackID string, cycle int64) error {
 // SavePosition is a device reporting where it has got to. It takes the same
 // lock as every order, because a report landing beside one would otherwise
 // write back the list and the mode it read before that order changed them. A
-// device reporting a track the record is not on is stale and says nothing.
+// device reporting a different track or an earlier run, or reporting while
+// playback is paused, is stale and says nothing.
 //
 // It is not an order: it reaches no device, and it does not begin a run, so
 // the end of the run the devices were given is still recognised afterwards.
-func (s *Service) SavePosition(owner, trackID string, position float64) error {
+func (s *Service) SavePosition(owner, trackID string, position float64, cycle int64) error {
 	defer s.hold(owner)()
 
 	state, err := s.store.Load(owner)
 	if err != nil {
 		return err
 	}
-	if state.Track == "" || state.Track != trackID {
+	if !state.Playing || state.Track == "" || state.Track != trackID || cycle == 0 || state.Cycle() != cycle {
 		return nil
 	}
 

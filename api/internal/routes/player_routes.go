@@ -83,17 +83,17 @@ func registerPlayer(se *core.ServeEvent, g *router.RouterGroup[*core.RequestEven
 	// seven minutes in, and nothing could be resumed from there.
 	//
 	// It changes nothing anyone has to be told about, so it is not an order and
-	// reaches no device. A report for a track the record has left is stale and
-	// says nothing.
+	// reaches no device. Reports from paused or superseded runs are ignored.
 	g.POST("/player/position", func(e *core.RequestEvent) error {
 		var body struct {
 			TrackID  string  `json:"trackId"`
 			Position float64 `json:"position"`
+			Cycle    int64   `json:"cycle"`
 		}
-		if err := e.BindBody(&body); err != nil || body.TrackID == "" {
+		if err := e.BindBody(&body); err != nil || body.TrackID == "" || body.Cycle == 0 {
 			return e.BadRequestError("invalid body", nil)
 		}
-		if err := deps.Player.SavePosition(userID(e), body.TrackID, body.Position); err != nil {
+		if err := deps.Player.SavePosition(userID(e), body.TrackID, body.Position, body.Cycle); err != nil {
 			return e.InternalServerError("the position was not written down", err)
 		}
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
