@@ -97,3 +97,63 @@ func TestRefreshSpeakerAddsUnknown(t *testing.T) {
 		t.Errorf("unexpected new speaker: %+v", got)
 	}
 }
+
+type positionReport struct {
+	owner, track string
+	position     float64
+	cycle        int64
+}
+
+type positionRecorder struct {
+	reports []positionReport
+}
+
+func (r *positionRecorder) SavePosition(owner, track string, position float64, cycle int64) error {
+	r.reports = append(r.reports, positionReport{owner, track, position, cycle})
+	return nil
+}
+
+func (*positionRecorder) Finished(string, string, int64) error { return nil }
+
+func TestSpeakerPollKeepsTheRunCapturedBeforeNetworkIO(t *testing.T) {
+	service := New(func() string { return "" })
+	recorder := &positionRecorder{}
+	service.SetPlaybackStore(recorder)
+	service.devices["speaker"] = Device{ID: "speaker", Type: "stub", TrackID: "a", Position: 20, owner: "u1", cycle: 101}
+	speaker := stubPlayer{onVolume: func() {
+		service.SetSpeakerTrack("speaker", "u1", "a", 102)
+	}}
+	service.SetPlayers(players.Registry{"stub": speaker})
+
+	sample, _, ok := service.pollSpeaker("speaker")
+	if !ok {
+		t.Fatal("speaker disappeared")
+	}
+	service.saveSpeakerPosition(sample)
+	if len(recorder.reports) != 1 || recorder.reports[0] != (positionReport{"u1", "a", 0, 101}) {
+		t.Fatalf("report was relabelled: %+v", recorder.reports)
+	}
+	if got := service.devices["speaker"]; got.cycle != 102 || got.Position != 20 {
+		t.Fatalf("old poll replaced the new run: %+v", got)
+	}
+
+	service.SetPlayers(players.Registry{"stub": stubPlayer{}})
+	current, _, ok := service.pollSpeaker("speaker")
+	if !ok {
+		t.Fatal("speaker disappeared")
+	}
+	service.saveSpeakerPosition(current)
+	if len(recorder.reports) != 2 || recorder.reports[1].cycle != 102 {
+		t.Fatalf("current run was not reported: %+v", recorder.reports)
+	}
+}
+
+func TestSpeakerDoesNotReportAnUnidentifiedRun(t *testing.T) {
+	service := New(func() string { return "" })
+	recorder := &positionRecorder{}
+	service.SetPlaybackStore(recorder)
+	service.saveSpeakerPosition(Device{ID: "speaker", owner: "u1", TrackID: "a", Position: 42})
+	if len(recorder.reports) != 0 {
+		t.Fatalf("unidentified report: %+v", recorder.reports)
+	}
+}

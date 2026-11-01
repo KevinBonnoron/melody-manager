@@ -102,7 +102,8 @@ func (o *output) Pause(_ context.Context, _, device string, stop time.Time) erro
 	return o.record(call{kind: "pause", device: device, start: stop})
 }
 
-func (o *output) Seek(_ context.Context, _, device string, position float64) error {
+func (o *output) Seek(_ context.Context, _, device, _ string, position float64, cycle int64) error {
+	o.run(cycle)
 	return o.record(call{kind: "seek", device: device, position: position})
 }
 
@@ -414,8 +415,8 @@ func TestSkipMovesThePlayheadAndTellsTheDevices(t *testing.T) {
 }
 
 func TestAPositionReportedForTheTrackBeingPlayedMovesThePlayhead(t *testing.T) {
-	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 5, Playing: true})
-	if err := svc.SavePosition("u1", "a", 61); err != nil {
+	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 5, Playing: true, Began: epoch.Add(-time.Second)})
+	if err := svc.SavePosition("u1", "a", 61, store.state.Cycle()); err != nil {
 		t.Fatal(err)
 	}
 	if store.state.Position != 61 || !store.state.PositionAt.Equal(epoch) {
@@ -428,7 +429,7 @@ func TestAPositionReportedDoesNotEndTheRunTheDevicesWereGiven(t *testing.T) {
 	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a", "b"}, Track: "a", PositionAt: began, Began: began, Playing: true})
 	run := store.state.Cycle()
 
-	if err := svc.SavePosition("u1", "a", 30); err != nil {
+	if err := svc.SavePosition("u1", "a", 30, run); err != nil {
 		t.Fatal(err)
 	}
 	if store.state.Cycle() != run {
@@ -444,12 +445,89 @@ func TestAPositionReportedDoesNotEndTheRunTheDevicesWereGiven(t *testing.T) {
 }
 
 func TestAPositionReportedForAnotherTrackIsIgnored(t *testing.T) {
-	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 5})
-	if err := svc.SavePosition("u1", "b", 61); err != nil {
+	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 5, Playing: true, Began: epoch.Add(-time.Second)})
+	if err := svc.SavePosition("u1", "b", 61, store.state.Cycle()); err != nil {
 		t.Fatal(err)
 	}
 	if store.state.Position != 5 || store.saves != 0 {
 		t.Fatalf("stored = %+v after %d saves", store.state, store.saves)
+	}
+}
+
+func TestPositionReportsMustMatchThePlayingRun(t *testing.T) {
+	for _, change := range []struct {
+		name  string
+		apply func(*Service) (State, error)
+	}{
+		{"seek", func(s *Service) (State, error) { return s.Seek(context.Background(), "u1", 70) }},
+		{"pause", func(s *Service) (State, error) { return s.Pause(context.Background(), "u1") }},
+		{"repeat", func(s *Service) (State, error) { return s.Ended(context.Background(), "u1", "a", epoch.UnixMilli()) }},
+	} {
+		t.Run(change.name, func(t *testing.T) {
+			svc, store, out, _ := service(State{Devices: []string{"browser"}, List: []string{"a"}, Track: "a", Position: 5, PositionAt: epoch, Began: epoch, Playing: true, Repeat: RepeatOne})
+			oldRun := store.state.Cycle()
+			current, err := change.apply(svc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if change.name == "seek" {
+				if cycles := out.cycles(); len(cycles) != 1 || cycles[0] != current.Cycle() {
+					t.Fatalf("seek did not carry its run: %v", cycles)
+				}
+			}
+			saves := store.saves
+			if err := svc.SavePosition("u1", "a", 123, oldRun); err != nil {
+				t.Fatal(err)
+			}
+			if store.saves != saves || store.state.Position != current.Position {
+				t.Fatalf("stale report saved: %+v", store.state)
+			}
+			if current.Playing {
+				if current.Cycle() == oldRun {
+					t.Fatal("new run reused the old cycle")
+				}
+				if err := svc.SavePosition("u1", "a", 42, current.Cycle()); err != nil {
+					t.Fatal(err)
+				}
+				if store.state.Position != 42 {
+					t.Fatalf("current report ignored: %+v", store.state)
+				}
+			} else {
+				if err := svc.SavePosition("u1", "a", 42, current.Cycle()); err != nil {
+					t.Fatal(err)
+				}
+				if store.saves != saves {
+					t.Fatal("paused run accepted a report")
+				}
+				resumed, err := svc.Resume(context.Background(), "u1")
+				if err != nil {
+					t.Fatal(err)
+				}
+				saves = store.saves
+				if err := svc.SavePosition("u1", "a", 123, oldRun); err != nil {
+					t.Fatal(err)
+				}
+				if store.saves != saves {
+					t.Fatal("pre-pause report replaced the resumed position")
+				}
+				if err := svc.SavePosition("u1", "a", 42, resumed.Cycle()); err != nil {
+					t.Fatal(err)
+				}
+				if store.state.Position != 42 {
+					t.Fatalf("resumed report ignored: %+v", store.state)
+				}
+			}
+		})
+	}
+}
+
+func TestPositionReportsWithoutARunAreIgnored(t *testing.T) {
+	svc, store, _, _ := service(State{Track: "a", Position: 5, Playing: true, Began: epoch})
+	if err := svc.SavePosition("u1", "a", 42, 0); err != nil {
+		t.Fatal(err)
+	}
+	if store.saves != 0 || store.state.Position != 5 {
+		t.Fatalf("unidentified report saved: %+v", store.state)
 	}
 }
 
@@ -606,8 +684,8 @@ func TestPlayingNowhereOnPurposeIsStoppingRatherThanFailing(t *testing.T) {
 }
 
 func TestAPositionReportedFromBeforeTheStartIsNotKept(t *testing.T) {
-	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 30, Playing: true})
-	if err := svc.SavePosition("u1", "a", -12); err != nil {
+	svc, store, _, _ := service(State{List: []string{"a"}, Track: "a", Position: 30, Playing: true, Began: epoch.Add(-time.Second)})
+	if err := svc.SavePosition("u1", "a", -12, store.state.Cycle()); err != nil {
 		t.Fatal(err)
 	}
 	if store.state.Position != 0 {

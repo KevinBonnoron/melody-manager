@@ -67,29 +67,35 @@ func (s *Service) WatchSpeaker(id string) {
 	go func() {
 		defer s.watching.Delete(id)
 		idle, wasPlaying, lastSaved, left := 0, false, time.Time{}, 0.0
+		var previous Device
 		for {
-			playing, remaining, ok := s.pollSpeaker(id)
+			sample, remaining, ok := s.pollSpeaker(id)
 			if !ok {
 				return
+			}
+			playing := sample.Playing
+			if sample.owner != previous.owner || sample.TrackID != previous.TrackID || sample.cycle != previous.cycle {
+				wasPlaying, lastSaved, left = false, time.Time{}, 0
 			}
 
 			if playing && (!wasPlaying || time.Since(lastSaved) >= speakerSaveInterval) {
 				lastSaved = time.Now()
-				s.saveSpeakerPosition(id)
+				s.saveSpeakerPosition(sample)
 			} else if !playing && wasPlaying {
-				s.saveSpeakerPosition(id)
+				s.saveSpeakerPosition(sample)
 				// A speaker plays with no browser watching it, so the end of its
 				// track is nobody's to report but this loop's. It stopped near
 				// the end because it reached it; it stopped anywhere else
 				// because somebody asked it to.
 				if left <= speakerEndTolerance {
-					s.speakerFinished(id)
+					s.speakerFinished(sample)
 				}
 			}
 			if playing {
 				left = remaining
 			}
 			wasPlaying = playing
+			previous = sample
 
 			if playing {
 				idle = 0
@@ -184,16 +190,16 @@ func (s *Service) SetSpeakerTrack(id, owner, trackID string, cycle int64) {
 	s.notify(snapshot)
 }
 
-func (s *Service) pollSpeaker(id string) (playing bool, remaining float64, ok bool) {
+func (s *Service) pollSpeaker(id string) (Device, float64, bool) {
 	s.mu.RLock()
 	device, known := s.devices[id]
 	s.mu.RUnlock()
 	if !known {
-		return false, 0, false
+		return Device{}, 0, false
 	}
 	player, speaks := s.playerFor(device)
 	if !speaks {
-		return false, 0, false
+		return Device{}, 0, false
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), speakerPollTimeout)
@@ -202,26 +208,40 @@ func (s *Service) pollSpeaker(id string) (playing bool, remaining float64, ok bo
 	position, duration := player.Position(ctx, device.IPAddress)
 	volume := player.Volume(ctx, device.IPAddress)
 
-	playing = state != "STOPPED" && state != "PAUSED_PLAYBACK" && state != "UNKNOWN"
+	playing := state != "STOPPED" && state != "PAUSED_PLAYBACK" && state != "UNKNOWN"
+	discoveredTrack := ""
 	if playing && device.TrackID == "" {
-		s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)), 0)
+		discoveredTrack = trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress))
 	}
 
-	s.reportSpeaker(id, playing, float64(position), volume)
-	return playing, float64(duration - position), true
+	s.reportSpeaker(device, playing, float64(position), volume, discoveredTrack)
+	device.Playing = playing
+	device.Position = float64(position)
+	return device, float64(duration - position), true
 }
 
 const speakerPollTimeout = 5 * time.Second
 
-func (s *Service) reportSpeaker(id string, playing bool, position float64, volume int) {
+func (s *Service) reportSpeaker(sample Device, playing bool, position float64, volume int, discoveredTrack string) {
 	s.mu.Lock()
-	device, ok := s.devices[id]
+	device, ok := s.devices[sample.ID]
 	if !ok || !s.speaks(device.Type) {
 		s.mu.Unlock()
 		return
 	}
+	// A network poll may have started before a newer play or seek was sent.
+	// Its position belongs to the identity captured before that I/O, not the
+	// identity now held by the registry.
+	if device.owner != sample.owner || device.TrackID != sample.TrackID || device.cycle != sample.cycle {
+		s.mu.Unlock()
+		return
+	}
+	if device.TrackID == "" && discoveredTrack != "" {
+		device.TrackID = discoveredTrack
+		device.cycle = 0
+	}
 
-	changed := device.Playing != playing || device.Volume != volume || positionJumped(device, position)
+	changed := device.TrackID != sample.TrackID || device.Playing != playing || device.Volume != volume || positionJumped(device, position)
 	device.Playing = playing
 	device.Position = position
 	device.reportedAt = time.Now()
@@ -230,7 +250,7 @@ func (s *Service) reportSpeaker(id string, playing bool, position float64, volum
 	if playing {
 		device.Status = "playing"
 	}
-	s.devices[id] = device
+	s.devices[sample.ID] = device
 	snapshot := s.listLocked()
 	s.mu.Unlock()
 	if changed {
@@ -242,31 +262,29 @@ const speakerSaveInterval = 15 * time.Second
 
 const speakerEndTolerance = 3.0
 
-func (s *Service) speakerFinished(id string) {
+func (s *Service) speakerFinished(device Device) {
 	s.mu.RLock()
-	device, ok := s.devices[id]
 	store := s.playback
 	s.mu.RUnlock()
-	if !ok || store == nil || device.owner == "" || device.TrackID == "" {
+	if store == nil || device.owner == "" || device.TrackID == "" {
 		return
 	}
 
 	if err := store.Finished(device.owner, device.TrackID, device.cycle); err != nil {
-		slog.Warn("the end of a track on a speaker was not acted on", "device", id, "error", err)
+		slog.Warn("the end of a track on a speaker was not acted on", "device", device.ID, "error", err)
 	}
 }
 
-func (s *Service) saveSpeakerPosition(id string) {
+func (s *Service) saveSpeakerPosition(device Device) {
 	s.mu.RLock()
-	device, ok := s.devices[id]
 	store := s.playback
 	s.mu.RUnlock()
-	if !ok || store == nil || device.owner == "" || device.TrackID == "" {
+	if store == nil || device.owner == "" || device.TrackID == "" || device.cycle == 0 {
 		return
 	}
 
-	if err := store.SavePosition(device.owner, device.TrackID, device.Position); err != nil {
-		slog.Warn("playback position not saved", "device", id, "error", err)
+	if err := store.SavePosition(device.owner, device.TrackID, device.Position, device.cycle); err != nil {
+		slog.Warn("playback position not saved", "device", device.ID, "error", err)
 	}
 }
 
@@ -286,7 +304,7 @@ type Command struct {
 
 // PlaybackStore records where a user's playback got to.
 type PlaybackStore interface {
-	SavePosition(owner, trackID string, position float64) error
+	SavePosition(owner, trackID string, position float64, cycle int64) error
 	Finished(owner, trackID string, cycle int64) error
 }
 
@@ -591,7 +609,21 @@ func (s *Service) adopt(id string) {
 		return
 	}
 
-	s.SetSpeakerTrack(id, "", trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress)), 0)
+	trackID := trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress))
+	s.mu.Lock()
+	current, exists := s.devices[id]
+	changed := exists && current.owner == device.owner && current.TrackID == device.TrackID && current.cycle == device.cycle && current.TrackID == "" && trackID != ""
+	var snapshot []Device
+	if changed {
+		current.TrackID = trackID
+		current.cycle = 0
+		s.devices[id] = current
+		snapshot = s.listLocked()
+	}
+	s.mu.Unlock()
+	if changed {
+		s.notify(snapshot)
+	}
 	s.WatchSpeaker(id)
 }
 

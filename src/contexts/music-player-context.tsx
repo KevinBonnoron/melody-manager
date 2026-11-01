@@ -510,6 +510,12 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         }
         if (tries >= ASK_AGAIN) {
           console.error('the source never produced anything', audio.src);
+          setIsLoading(false);
+          toast.error(i18n.t('MusicPlayer.playbackErrorGeneric'));
+          playerClient
+            .pause()
+            .then(apply)
+            .catch(() => undefined);
           return;
         }
         void loadHereRef.current(trackId, at, startAt, cycle, current, tries + 1);
@@ -803,7 +809,9 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
           }
           stopHere(audio, action === 'stop' ? 0 : Number(action.slice(6)) || 0, current);
         } else if (action.startsWith('seek:')) {
-          audio.currentTime = Number(action.slice(5)) || 0;
+          const [, position, cycle] = action.split(':');
+          audio.currentTime = Number(position) || 0;
+          cycleRef.current = Number(cycle) || 0;
         } else if (action.startsWith('volume:')) {
           setLocalVolume(Number(action.slice(7)) / 100);
         }
@@ -827,7 +835,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       if (audio.paused || loadedRef.current !== track) {
         return;
       }
-      void playerClient.position(track, audio.currentTime).catch(() => undefined);
+      void playerClient.position(track, audio.currentTime, cycleRef.current).catch(() => undefined);
     }, SAY_WHERE_MS);
 
     return () => clearInterval(timer);

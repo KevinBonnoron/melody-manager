@@ -81,10 +81,10 @@ func (p *playout) Resume(ctx context.Context, owner, device, trackID string, pos
 	if !p.holdsStream(ctx, speaker, dev, trackID) {
 		return p.load(ctx, dev, speaker, owner, trackID, position, cycle)
 	}
-	p.deps.Devices.SetSpeakerTrack(dev.ID, owner, trackID, cycle)
 	if err := speaker.Play(ctx, dev.IPAddress); err != nil {
 		return err
 	}
+	p.deps.Devices.SetSpeakerTrack(dev.ID, owner, trackID, cycle)
 	p.deps.Devices.WatchSpeaker(dev.ID)
 	return nil
 }
@@ -104,17 +104,18 @@ func (p *playout) Pause(ctx context.Context, owner, device string, stop time.Tim
 	return nil
 }
 
-func (p *playout) Seek(ctx context.Context, owner, device string, position float64) error {
+func (p *playout) Seek(ctx context.Context, owner, device, trackID string, position float64, cycle int64) error {
 	dev, speaker, err := p.target(owner, device)
 	if err != nil {
 		return err
 	}
 	if speaker == nil {
-		return p.command(dev, fmt.Sprintf("seek:%s", at(position)))
+		return p.command(dev, fmt.Sprintf("seek:%s:%d", at(position), cycle))
 	}
 	if err := speaker.Seek(ctx, dev.IPAddress, rounded(position)); err != nil {
 		return err
 	}
+	p.deps.Devices.SetSpeakerTrack(dev.ID, owner, trackID, cycle)
 	p.deps.Devices.WatchSpeaker(dev.ID)
 	return nil
 }

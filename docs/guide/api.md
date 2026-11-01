@@ -89,12 +89,13 @@ nothing to act on, and `502` when it cannot be reached at all.
 
 One record per user says what should be playing, and it exists whether or not
 anything is, and whether or not a client is open. Clients draw it and ask for
-changes; the server tells the devices. Every endpoint here answers with the
-whole record, so a client never has to work out what its own order did.
+changes; the server tells the devices. Orders answer with the whole record, so a
+client never has to work out what its own order did.
 
 ```json
 {
   "track": "...", "position": 61.5, "positionAt": "2026-09-20T17:31:02.412Z",
+  "beganAt": "2026-09-20T17:30:01.000Z",
   "playing": true, "devices": ["..."], "list": ["..."], "order": [2, 0, 1],
   "index": 0, "shuffle": true, "repeat": "none", "now": "2026-09-20T17:31:04.118Z"
 }
@@ -135,6 +136,16 @@ reaches its end and says so; the run is what tells one report from several.
 ### `POST /api/player/seek`
 
 Move within the track. `{"position": 61.5}`, in seconds.
+
+### `POST /api/player/position`
+
+A device reports its actual playhead with
+`{"trackId": "...", "position": 61.5, "cycle": 1758389462412}`. The cycle is
+the run the device is actually playing, from its play, resume or seek order;
+it must not be inferred from a newer record while the device is still obeying
+an older one. Reports for a different track, a superseded run or paused
+playback are ignored. The response is `{"success": true}` even for an ignored
+report. A missing or zero cycle is invalid.
 
 ### `POST /api/player/add` · `remove`
 

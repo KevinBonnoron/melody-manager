@@ -20,6 +20,9 @@ The browsers come from the Nix dev shell (`PLAYWRIGHT_BROWSERS_PATH`), so
 do not run on NixOS. `@playwright/test` is pinned to the same version as the
 driver in `flake.nix`, and the two have to be bumped together.
 
+CI pins the E2E runner to Ubuntu 24.04 because Playwright 1.57 does not support
+installing Chromium's system dependencies on Ubuntu 26.04.
+
 ## How a test starts
 
 The `setup` project seeds a small library through the PocketBase REST API as a

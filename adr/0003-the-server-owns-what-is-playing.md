@@ -62,7 +62,8 @@ them can change it.
 
 When a browser source produces no playable or buffered data, it retries the source at most twice.
 These retries belong to the same listening attempt and stop when the playback order is superseded
-or the source reports an error; metadata alone does not count as playable data.
+or the source reports an error; metadata alone does not count as playable data. If the retries are
+exhausted, the browser reports the failure to the listener and pauses the server's playback record.
 
 ## Consequences
 
