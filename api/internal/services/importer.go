@@ -206,6 +206,11 @@ func getOrCreate(app core.App, collection, filter string, params dbx.Params, set
 	rec := core.NewRecord(col)
 	set(rec)
 	if err := app.Save(rec); err != nil {
+		// A concurrent import may have won the insert after our first lookup.
+		// Reuse its record; otherwise preserve the original save error.
+		if existing, findErr := app.FindFirstRecordByFilter(collection, filter, params); findErr == nil {
+			return existing, nil
+		}
 		return nil, err
 	}
 	return rec, nil
