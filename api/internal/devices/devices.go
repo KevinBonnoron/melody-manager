@@ -409,7 +409,7 @@ func (s *Service) refreshUsable() {
 
 const positionJumpTolerance = 2.0
 
-var clientTypes = map[string]bool{"browser": true, "mobile": true, "desktop": true}
+var clientTypes = map[string]bool{"browser": true, "mobile": true, "desktop": true, "cli": true}
 
 // RegisterClient declares one open client of a user.
 func (s *Service) RegisterClient(owner, deviceType, session, label string, volume int) (Device, bool) {

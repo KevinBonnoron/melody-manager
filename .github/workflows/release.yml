@@ -152,8 +152,101 @@ jobs:
             melody-api-checksums.txt
           retention-days: 90
 
+  cli:
+    needs: from-main
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - name: Build CLI binaries
+        working-directory: cli
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags='-s -w' -o "../melody-cli-$GOOS-$GOARCH" .
+          done
+      - name: Checksums
+        run: |
+          sha256sum \
+            melody-cli-linux-amd64 \
+            melody-cli-linux-arm64 \
+            melody-cli-darwin-amd64 \
+            melody-cli-darwin-arm64 \
+            > melody-cli-checksums.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cli-binaries
+          path: |
+            melody-cli-linux-amd64
+            melody-cli-linux-arm64
+            melody-cli-darwin-amd64
+            melody-cli-darwin-arm64
+            melody-cli-checksums.txt
+          retention-days: 90
+
+  desktop:
+    needs: from-main
+    if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.10
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: desktop/go.sum
+      - name: Install Wails system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+      - run: bun install --frozen-lockfile
+      - name: Build desktop frontend
+        run: bun run build:desktop
+      - name: Build desktop client
+        working-directory: desktop
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          mkdir -p ../package/bin
+          go build -trimpath -ldflags='-s -w' -o ../package/bin/melody-manager .
+      - name: Package desktop client
+        run: |
+          install -Dm644 desktop/melody-manager.desktop package/share/applications/melody-manager.desktop
+          install -Dm644 public/pwa-512x512.png package/share/icons/hicolor/512x512/apps/melody-manager.png
+          install -Dm644 public/pwa-192x192.png package/share/icons/hicolor/192x192/apps/melody-manager.png
+          tar -czf "melody-desktop-linux-${{ matrix.arch }}.tar.gz" -C package \
+            bin/melody-manager \
+            share/applications/melody-manager.desktop \
+            share/icons/hicolor/512x512/apps/melody-manager.png \
+            share/icons/hicolor/192x192/apps/melody-manager.png
+          sha256sum "melody-desktop-linux-${{ matrix.arch }}.tar.gz" > "melody-desktop-linux-${{ matrix.arch }}.tar.gz.sha256"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-linux-${{ matrix.arch }}
+          path: |
+            melody-desktop-linux-${{ matrix.arch }}.tar.gz
+            melody-desktop-linux-${{ matrix.arch }}.tar.gz.sha256
+          retention-days: 90
+
   android:
-    needs: [from-main, binaries]
+    needs: [from-main, binaries, cli, desktop]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     # Write: this job also creates the GitHub release the builds are attached to.
@@ -220,6 +313,18 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: server-binaries
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-binaries
+          path: cli-artifacts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: desktop-linux-amd64
+          path: desktop-artifacts/amd64
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: desktop-linux-arm64
+          path: desktop-artifacts/arm64
       - name: Create GitHub release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
@@ -227,6 +332,15 @@ jobs:
             melody-api-linux-amd64
             melody-api-linux-arm64
             melody-api-checksums.txt
+            cli-artifacts/melody-cli-linux-amd64
+            cli-artifacts/melody-cli-linux-arm64
+            cli-artifacts/melody-cli-darwin-amd64
+            cli-artifacts/melody-cli-darwin-arm64
+            cli-artifacts/melody-cli-checksums.txt
+            desktop-artifacts/amd64/melody-desktop-linux-amd64.tar.gz
+            desktop-artifacts/amd64/melody-desktop-linux-amd64.tar.gz.sha256
+            desktop-artifacts/arm64/melody-desktop-linux-arm64.tar.gz
+            desktop-artifacts/arm64/melody-desktop-linux-arm64.tar.gz.sha256
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/bundle/release/app-release.aab
           draft: false

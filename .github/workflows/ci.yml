@@ -39,14 +39,16 @@ jobs:
         with:
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
-      # Both Go trees, from the root: the desktop client is its own module and
-      # nothing was checking it.
+      # Each Go module is checked independently.
       - name: Formatting
         working-directory: .
-        run: test -z "$(gofmt -l api desktop)" || { gofmt -l api desktop; exit 1; }
+        run: test -z "$(gofmt -l api desktop cli)" || { gofmt -l api desktop cli; exit 1; }
       - name: Vet
         run: go vet ./...
       - name: Test
+        run: go test ./...
+      - name: Test CLI
+        working-directory: cli
         run: go test ./...
 
   e2e:
@@ -90,6 +92,80 @@ jobs:
         run: bash -n install.sh
       - name: Shellcheck
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck && shellcheck install.sh
+      - name: Build local client release fixtures
+        run: |
+          mkdir -p /tmp/melody-release /tmp/melody-stub
+          mkdir -p /tmp/melody-desktop/bin /tmp/melody-desktop/share/applications
+          mkdir -p /tmp/melody-desktop/share/icons/hicolor/512x512/apps
+          mkdir -p /tmp/melody-desktop/share/icons/hicolor/192x192/apps
+          printf '#!/bin/sh\necho melody cli\n' > /tmp/melody-release/melody-cli-linux-amd64
+          printf '#!/bin/sh\necho melody desktop\n' > /tmp/melody-desktop/bin/melody-manager
+          cat > /tmp/melody-desktop/share/applications/melody-manager.desktop <<'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=Melody Manager
+          Exec=__EXEC__
+          Icon=melody-manager
+          DESKTOP
+          printf '512px icon\n' > /tmp/melody-desktop/share/icons/hicolor/512x512/apps/melody-manager.png
+          printf '192px icon\n' > /tmp/melody-desktop/share/icons/hicolor/192x192/apps/melody-manager.png
+          tar -czf /tmp/melody-release/melody-desktop-linux-amd64.tar.gz -C /tmp/melody-desktop bin share
+          cd /tmp/melody-release
+          sha256sum melody-cli-linux-amd64 > melody-cli-checksums.txt
+          sha256sum melody-desktop-linux-amd64.tar.gz > melody-desktop-linux-amd64.tar.gz.sha256
+          cat > /tmp/melody-stub/curl <<'STUB'
+          #!/bin/sh
+          set -eu
+          output=""
+          url=""
+          while [ $# -gt 0 ]; do
+            case "$1" in
+              --output) output="$2"; shift 2 ;;
+              --fail | --location | --silent | --show-error) shift ;;
+              *) url="$1"; shift ;;
+            esac
+          done
+          case "$url" in
+            https://github.com/KevinBonnoron/melody-manager/releases/download/v1.2.3/*) ;;
+            *) echo "unexpected download URL: $url" >&2; exit 1 ;;
+          esac
+          asset="${url##*/}"
+          cp "/tmp/melody-release/$asset" "$output"
+          printf '%s\n' "$asset" >> /tmp/melody-downloads
+          STUB
+          chmod +x /tmp/melody-stub/curl
+      - name: Install the CLI without a network
+        run: |
+          PATH=/tmp/melody-stub:$PATH ./install.sh --cli --prefix /tmp/melody-cli --release v1.2.3
+          test -x /tmp/melody-cli/bin/melody
+          /tmp/melody-cli/bin/melody | grep -q 'melody cli'
+          grep -q '^melody-cli-linux-amd64$' /tmp/melody-downloads
+          grep -q '^melody-cli-checksums.txt$' /tmp/melody-downloads
+          if PATH=/tmp/melody-stub:$PATH ./install.sh --cli --prefix /tmp/melody-cli --release v1.2.3; then
+            echo 'the installer replaced an existing CLI without --yes' >&2
+            exit 1
+          fi
+          PATH=/tmp/melody-stub:$PATH ./install.sh --cli --prefix /tmp/melody-cli --release v1.2.3 --yes
+      - name: Reject a CLI with a bad checksum
+        run: |
+          cp /tmp/melody-release/melody-cli-checksums.txt /tmp/melody-release/melody-cli-checksums.txt.valid
+          printf '0000000000000000000000000000000000000000000000000000000000000000  melody-cli-linux-amd64\n' > /tmp/melody-release/melody-cli-checksums.txt
+          if PATH=/tmp/melody-stub:$PATH ./install.sh --cli --prefix /tmp/melody-cli-bad --release v1.2.3; then
+            echo 'the installer accepted a CLI with a bad checksum' >&2
+            exit 1
+          fi
+          test ! -e /tmp/melody-cli-bad/bin/melody
+          mv /tmp/melody-release/melody-cli-checksums.txt.valid /tmp/melody-release/melody-cli-checksums.txt
+      - name: Install the desktop application without a network
+        run: |
+          PATH=/tmp/melody-stub:$PATH ./install.sh --desktop --prefix /tmp/melody-desktop-prefix --release v1.2.3
+          test -x /tmp/melody-desktop-prefix/bin/melody-manager
+          /tmp/melody-desktop-prefix/bin/melody-manager | grep -q 'melody desktop'
+          grep -q '^Exec=/tmp/melody-desktop-prefix/bin/melody-manager$' /tmp/melody-desktop-prefix/share/applications/melody-manager.desktop
+          test -f /tmp/melody-desktop-prefix/share/icons/hicolor/512x512/apps/melody-manager.png
+          test -f /tmp/melody-desktop-prefix/share/icons/hicolor/192x192/apps/melody-manager.png
+          grep -q '^melody-desktop-linux-amd64.tar.gz$' /tmp/melody-downloads
+          grep -q '^melody-desktop-linux-amd64.tar.gz.sha256$' /tmp/melody-downloads
       - name: On a network of its own
         run: |
           mkdir -p /tmp/music /tmp/bridge

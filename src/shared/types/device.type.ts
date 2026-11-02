@@ -1,4 +1,4 @@
-export const CLIENT_DEVICE_TYPES = ['browser', 'mobile', 'desktop'] as const;
+export const CLIENT_DEVICE_TYPES = ['browser', 'mobile', 'desktop', 'cli'] as const;
 
 export type ClientDeviceType = (typeof CLIENT_DEVICE_TYPES)[number];
 export type DeviceType = ClientDeviceType | (string & {});
