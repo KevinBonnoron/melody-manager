@@ -1,4 +1,4 @@
-import { Cast, Check, Laptop, Minus, Monitor, Plus, Smartphone, Speaker } from 'lucide-react';
+import { Cast, Check, Laptop, Minus, Monitor, Plus, Smartphone, Speaker, Terminal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { deviceClient } from '@/clients/device.client';
@@ -19,6 +19,7 @@ const deviceIcons: Partial<Record<DeviceType, typeof Monitor>> = {
   browser: Monitor,
   desktop: Laptop,
   mobile: Smartphone,
+  cli: Terminal,
   sonos: Speaker,
   chromecast: Cast,
 };

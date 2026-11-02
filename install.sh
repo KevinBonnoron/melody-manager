@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Sets up Melody Manager with Docker. It asks four things, writes a compose file
-# and a configuration next to it, and starts nothing without being told to.
+# Installs the Docker server, the terminal client, or the Linux desktop client.
+# The server setup writes a compose file and configuration and starts nothing;
+# client setup downloads and verifies a GitHub release beneath the user's prefix.
 set -euo pipefail
 
 IMAGE="ghcr.io/kevinbonnoron/melody-manager:latest"
@@ -13,14 +14,25 @@ port=""
 public_url=""
 discovery=""
 assume_yes=""
+component=""
+prefix="$HOME/.local"
+release="latest"
+work=""
+staged=""
+interactive=""
 
 usage() {
   cat <<'USAGE'
 Usage: install.sh [options]
 
-Without options it asks. With them it does not, which is what a script calling
-this one wants.
+Without options it asks which component to install. Without a terminal it
+installs the server, as before.
 
+  --server            install the Docker server (the default)
+  --cli               install the melody command-line client
+  --desktop           install the Linux desktop application
+  --prefix PATH       client installation root (default: ~/.local)
+  --release TAG       client release tag (default: latest)
   --dir PATH          where to write docker-compose.yml and config/ (default: .)
   --music PATH        the directory your music is in
   --port N            the port to publish, when speakers are not discovered
@@ -155,8 +167,173 @@ ask_yes_no() {
   esac
 }
 
+cleanup_client_install() {
+  if [ -n "$staged" ]; then
+    rm -f "$staged"
+  fi
+  if [ -n "$work" ]; then
+    rm -rf "$work"
+  fi
+}
+
+client_platform() {
+  local system machine
+  system=$(uname -s)
+  machine=$(uname -m)
+  case "$system" in
+    Linux) client_os="linux" ;;
+    Darwin) client_os="darwin" ;;
+    *) die "unsupported operating system $system; the CLI is available for Linux and macOS, and the desktop application for Linux" ;;
+  esac
+  case "$machine" in
+    x86_64 | amd64) client_arch="amd64" ;;
+    arm64 | aarch64) client_arch="arm64" ;;
+    *) die "unsupported architecture $machine; available architectures are amd64 and arm64" ;;
+  esac
+}
+
+prepare_client_install() {
+  ! controlled "$prefix" || die "the installation prefix has a tab or a newline in its name"
+  ! controlled "$release" || die "the release tag has a tab or a newline in it"
+  mkdir -p "$prefix"
+  prefix=$(cd "$prefix" && pwd)
+  if [ "$release" = "latest" ]; then
+    download_base="https://github.com/KevinBonnoron/melody-manager/releases/latest/download"
+  else
+    download_base="https://github.com/KevinBonnoron/melody-manager/releases/download/$release"
+  fi
+  command -v curl >/dev/null 2>&1 || die "curl is required to download Melody Manager"
+  work=$(mktemp -d "${TMPDIR:-/tmp}/melody-manager-install.XXXXXX")
+  trap cleanup_client_install EXIT
+  trap 'exit 1' HUP INT TERM
+}
+
+download() {
+  local url="$1" destination="$2"
+  curl --fail --location --silent --show-error --output "$destination" "$url" || die "could not download $url"
+}
+
+checksum_of() {
+  local file="$1" sum
+  if command -v sha256sum >/dev/null 2>&1; then
+    sum=$(sha256sum "$file")
+  elif command -v shasum >/dev/null 2>&1; then
+    sum=$(shasum -a 256 "$file")
+  else
+    die "sha256sum or shasum is required to verify the download"
+  fi
+  printf '%s' "${sum%% *}" | tr '[:upper:]' '[:lower:]'
+}
+
+expected_checksum() {
+  local sums="$1" asset="$2" sum name expected=""
+  while read -r sum name; do
+    name="${name#\*}"
+    if [ "$name" = "$asset" ]; then
+      expected="$sum"
+      break
+    fi
+  done < "$sums"
+  [ -n "$expected" ] || die "the checksum file has no entry for $asset"
+  case "$expected" in
+    *[!0-9a-fA-F]*) die "the checksum for $asset is not a SHA-256 sum" ;;
+  esac
+  [ "${#expected}" -eq 64 ] || die "the checksum for $asset is not a SHA-256 sum"
+  printf '%s' "$expected" | tr '[:upper:]' '[:lower:]'
+}
+
+verify_download() {
+  local file="$1" sums="$2" asset="$3" expected actual
+  expected=$(expected_checksum "$sums" "$asset")
+  actual=$(checksum_of "$file")
+  [ "$actual" = "$expected" ] || die "$asset does not match its SHA-256 checksum"
+}
+
+check_destinations() {
+  local destination
+  for destination in "$@"; do
+    if { [ -e "$destination" ] || [ -L "$destination" ]; } && [ -z "$assume_yes" ]; then
+      [ -n "$interactive" ] || die "$destination is already there; pass --yes to replace it"
+      [ "$(ask_yes_no "Replace $destination?" "no")" = "yes" ] || die "leaving $destination alone"
+    fi
+  done
+}
+
+# cp and chmod happen beside the destination, so the final rename is atomic and
+# never leaves a half-written executable, launcher, or icon behind.
+install_file() {
+  local source="$1" destination="$2" mode="$3" directory
+  directory="${destination%/*}"
+  staged=$(mktemp "$directory/.melody-manager.XXXXXX")
+  cp "$source" "$staged"
+  chmod "$mode" "$staged"
+  mv -f "$staged" "$destination"
+  staged=""
+}
+
+install_cli() {
+  local asset destination
+  client_platform
+  prepare_client_install
+  asset="melody-cli-$client_os-$client_arch"
+  destination="$prefix/bin/melody"
+  check_destinations "$destination"
+  download "$download_base/$asset" "$work/$asset"
+  download "$download_base/melody-cli-checksums.txt" "$work/melody-cli-checksums.txt"
+  verify_download "$work/$asset" "$work/melody-cli-checksums.txt" "$asset"
+  mkdir -p "$prefix/bin"
+  install_file "$work/$asset" "$destination" 755
+  printf '\nInstalled the Melody Manager CLI:\n  %s\n' "$destination"
+}
+
+install_desktop() {
+  local asset archive launcher binary desktop icon512 icon192 line
+  client_platform
+  [ "$client_os" = "linux" ] || die "the desktop application is only available for Linux; use --cli on macOS"
+  prepare_client_install
+  command -v tar >/dev/null 2>&1 || die "tar is required to unpack the desktop application"
+  asset="melody-desktop-linux-$client_arch.tar.gz"
+  archive="$work/$asset"
+  binary="$prefix/bin/melody-manager"
+  desktop="$prefix/share/applications/melody-manager.desktop"
+  icon512="$prefix/share/icons/hicolor/512x512/apps/melody-manager.png"
+  icon192="$prefix/share/icons/hicolor/192x192/apps/melody-manager.png"
+  check_destinations "$binary" "$desktop" "$icon512" "$icon192"
+  download "$download_base/$asset" "$archive"
+  download "$download_base/$asset.sha256" "$work/$asset.sha256"
+  verify_download "$archive" "$work/$asset.sha256" "$asset"
+  mkdir -p "$work/unpacked"
+  tar -xzf "$archive" -C "$work/unpacked"
+  launcher="$work/unpacked/share/applications/melody-manager.desktop"
+  [ -f "$work/unpacked/bin/melody-manager" ] && [ -f "$launcher" ] &&
+    [ -f "$work/unpacked/share/icons/hicolor/512x512/apps/melody-manager.png" ] &&
+    [ -f "$work/unpacked/share/icons/hicolor/192x192/apps/melody-manager.png" ] ||
+    die "the desktop archive does not contain the expected application files"
+  grep -q '^Exec=__EXEC__$' "$launcher" || die "the desktop archive has no executable placeholder in its launcher"
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      Exec=__EXEC__) printf 'Exec=%s\n' "$binary" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < "$launcher" > "$work/melody-manager.desktop"
+  mkdir -p "$prefix/bin" "$prefix/share/applications" \
+    "$prefix/share/icons/hicolor/512x512/apps" "$prefix/share/icons/hicolor/192x192/apps"
+  install_file "$work/unpacked/bin/melody-manager" "$binary" 755
+  install_file "$work/melody-manager.desktop" "$desktop" 644
+  install_file "$work/unpacked/share/icons/hicolor/512x512/apps/melody-manager.png" "$icon512" 644
+  install_file "$work/unpacked/share/icons/hicolor/192x192/apps/melody-manager.png" "$icon192" 644
+  printf '\nInstalled the Melody Manager desktop application:\n  %s\n  %s\n' "$binary" "$desktop"
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
+    --server | --cli | --desktop)
+      [ -z "$component" ] || die "choose only one of --server, --cli, or --desktop"
+      component="${1#--}"
+      shift
+      ;;
+    --prefix) prefix="${2:?--prefix needs a path}"; shift 2 ;;
+    --release) release="${2:?--release needs a tag}"; shift 2 ;;
     --dir) target="${2:?--dir needs a path}"; shift 2 ;;
     --music) music="${2:?--music needs a path}"; shift 2 ;;
     --port) port="${2:?--port needs a number}"; shift 2 ;;
@@ -168,21 +345,40 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-! controlled "$target" || die "the installation directory has a tab or a newline in its name"
-
-interactive=""
-if [ -z "$music" ] && [ -t 0 ]; then
+if [ -t 0 ]; then
   interactive=1
 fi
-
-command -v docker >/dev/null 2>&1 || die "docker is not installed, and this installs with Docker. See https://docs.docker.com/engine/install/"
-docker compose version >/dev/null 2>&1 || die "this needs the docker compose plugin (docker compose version)"
 
 if [ -n "$interactive" ]; then
   echo
   echo "Melody Manager"
   echo
 fi
+
+if [ -z "$component" ]; then
+  if [ -n "$interactive" ]; then
+    component=$(ask "What would you like to install? (server/cli/desktop)" "server" | tr '[:upper:]' '[:lower:]')
+  else
+    component="server"
+  fi
+fi
+case "$component" in
+  server | cli | desktop) ;;
+  *) die "choose server, cli, or desktop, not $component" ;;
+esac
+
+if [ "$component" = "cli" ]; then
+  install_cli
+  exit 0
+elif [ "$component" = "desktop" ]; then
+  install_desktop
+  exit 0
+fi
+
+! controlled "$target" || die "the installation directory has a tab or a newline in its name"
+
+command -v docker >/dev/null 2>&1 || die "docker is not installed, and this installs with Docker. See https://docs.docker.com/engine/install/"
+docker compose version >/dev/null 2>&1 || die "this needs the docker compose plugin (docker compose version)"
 
 # 1. The music.
 if [ -z "$music" ]; then

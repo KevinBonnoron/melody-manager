@@ -48,7 +48,8 @@ NoCopyrightSounds.</sub>
 
 ## Install
 
-You need Docker. The installer asks four questions and writes the two files the
+You need Docker for the server. The installer first asks which component to
+install. For the server, it asks four questions and writes the two files the
 answers belong in. It starts nothing by itself, so read it first if you like:
 
 ```bash
@@ -96,19 +97,77 @@ and sign-ups are closed after it unless you open them again from the settings.
 Melody Manager runs on `linux/amd64` and `linux/arm64`, so a Raspberry Pi 4 or
 newer will do.
 
+The same installer can install a released client instead of the server. The
+terminal player is available for Linux and macOS; the desktop client is
+available for Linux on `amd64` and `arm64`:
+
+```bash
+bash install.sh --cli       # installs ~/.local/bin/melody
+bash install.sh --desktop   # installs the app and its application-menu entry
+```
+
+Both default to the latest GitHub release. Use `--release vX.Y.Z` to choose a
+release and `--prefix PATH` to change `~/.local`. The terminal needs `mpv` or
+`ffplay`; the desktop uses the system WebKitGTK.
+
 ## First run
 
 1. **Create your account.** The first one becomes the administrator.
 2. **Point the local source at your music.** The welcome screen lists every
    source; open **Local** and give it the path inside the container, `/music` in
    the compose file above. The folder is scanned straight away, and again
-   whenever a file appears in it.
+   whenever a file appears in it. Each file path has at most one local track,
+   including when scans overlap; upgrading removes duplicate records for the
+   same path and keeps the oldest one.
 3. **Connect the sources you use.** YouTube, SoundCloud and Bandcamp need
    nothing but to be switched on. Spotify needs an application of your own; the
    [configuration guide](https://kevinbonnoron.github.io/melody-manager/guide/configuration)
    says where to get the credentials.
 
 That is enough to listen. Everything else can wait until you want it.
+
+## Listening from a terminal
+
+The terminal player needs Go 1.25 or newer, [Task](https://taskfile.dev/), and
+either `mpv` or `ffplay` installed on the listening machine. From the repository:
+
+```bash
+task cli
+```
+
+On first launch, enter your Melody Manager server URL, account email and password.
+The session is saved under `$XDG_CONFIG_HOME/melody-manager/session.json` (or
+`~/.config/melody-manager/session.json`) with permissions restricted to your user.
+Use `task cli -- login https://your-server` to change accounts or servers and
+`task cli -- logout` to remove the saved session.
+
+Browse albums and tracks with the arrow keys or `h`/`j`/`k`/`l`; Enter opens an album or
+plays a track; selecting the current track pauses or resumes it instead of
+restarting it. Use `/` to open a fresh search modal by album, artist or track
+without disturbing the current screen. Right plays the selected search result
+without closing the modal; Enter validates it and closes the search.
+Matching albums appear before tracks; arrow keys navigate while typing, Enter
+opens or plays the selection, and Esc restores the previous screen. On a selected
+track, `f` toggles like and `d` toggles dislike; use `F` and `D` while typing in
+the search modal so lowercase letters remain part of the query. The current
+rating is shown next to the title. Album tracks follow disc and track numbers or chapter start times,
+as in the web player.
+The playback card shows the current album cover as coloured cells; set
+`MELODY_IMAGES=none` to disable it. Press `?` at any time to open the complete
+keyboard shortcuts panel, and Esc to close it. During playback, Space pauses or
+resumes, `,` and `.` seek five seconds backward or forward (hold to repeat),
+`n`/`p` skip once to the next/previous track when released, `s` stops, `r`
+cycles repeat off/all/one and `q` quits immediately, without Enter; `s` makes
+this terminal leave shared playback.
+The terminal appears in the web player's device selector. Starting or resuming
+from the terminal selects only that terminal, as starting in a browser does;
+other devices can be added afterward from the web selector. Playback, the queue
+and repeat state then remain shared instead of running an independent
+terminal-only session.
+
+MP4/M4A tracks, and tracks started away from the beginning, are downloaded to a
+temporary file because seeking requires a seekable input. This can delay their
+start and requires temporary disk space. The file is removed after playback.
 
 ## Playing on a speaker
 

@@ -30,6 +30,13 @@ tasks:
     cmds:
       - bun run dev
 
+  cli:
+    desc: 'Run the terminal player (task cli -- login <server> or logout)'
+    dir: cli
+    interactive: true
+    cmds:
+      - go run . {{.CLI_ARGS}}
+
   superuser:
     desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
     dir: api
