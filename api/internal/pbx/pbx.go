@@ -24,7 +24,11 @@ func EffectiveConfig(app core.App, userID, providerType string) providers.Config
 	if userID != "" {
 		if rec, err := app.FindFirstRecordByFilter("connections",
 			"user = {:u} && type = {:t}", dbx.Params{"u": userID, "t": providerType}); err == nil {
-			merge(cfg, recordConfig(rec))
+			connectionConfig := recordConfig(rec)
+			if providerType == "youtube" {
+				delete(connectionConfig, "cookies")
+			}
+			merge(cfg, connectionConfig)
 		}
 	}
 
