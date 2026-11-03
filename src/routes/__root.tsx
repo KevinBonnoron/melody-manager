@@ -14,26 +14,30 @@ function RootComponent() {
   const location = useLocation();
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/setup') || location.pathname.startsWith('/onboarding');
   const showAppLayout = !isAuthPage && pb.authStore.isValid;
+  const page = showAppLayout ? (
+    <AppLayout>
+      <Outlet />
+    </AppLayout>
+  ) : (
+    <div className="relative min-h-screen">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      <Outlet />
+    </div>
+  );
+
   return (
     <PocketBaseProvider pocketBase={pb}>
       <ThemeProvider defaultTheme="dark" storageKey="melody-manager-theme">
         <TooltipProvider>
-          <TaskProvider>
-            <MusicPlayerProvider>
-              {showAppLayout ? (
-                <AppLayout>
-                  <Outlet />
-                </AppLayout>
-              ) : (
-                <div className="relative min-h-screen">
-                  <div className="absolute top-4 right-4 z-50">
-                    <ThemeToggle />
-                  </div>
-                  <Outlet />
-                </div>
-              )}
-            </MusicPlayerProvider>
-          </TaskProvider>
+          {pb.authStore.isValid ? (
+            <TaskProvider>
+              <MusicPlayerProvider>{page}</MusicPlayerProvider>
+            </TaskProvider>
+          ) : (
+            page
+          )}
           <NewVersion />
           <Toaster />
         </TooltipProvider>
