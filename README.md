@@ -143,6 +143,11 @@ macOS only asks for this override on the first launch.
 
 ## First run
 
+On Android and desktop, first enter your Melody Manager server address. Then
+sign in, or create an account when registration is open, and complete the
+onboarding steps. Library and playback synchronization require an active
+session; the server-selection screen does not need an existing connection.
+
 1. **Create your account.** The first one becomes the administrator.
 2. **Point the local source at your music.** The welcome screen lists every
    source; open **Local** and give it the path inside the container, `/music` in
