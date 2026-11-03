@@ -97,9 +97,10 @@ and sign-ups are closed after it unless you open them again from the settings.
 Melody Manager runs on `linux/amd64` and `linux/arm64`, so a Raspberry Pi 4 or
 newer will do.
 
-The same installer can install a released client instead of the server. The
-terminal player is available for Linux and macOS; the desktop client is
-available for Linux on `amd64` and `arm64`:
+The same installer can install a released client instead of the server: the
+terminal player on Linux and macOS, or the desktop client on Linux (`amd64` and
+`arm64`). Windows (`amd64`) and macOS (`amd64` and `arm64`) desktop archives are
+attached directly to each release:
 
 ```bash
 bash install.sh --cli       # installs ~/.local/bin/melody
@@ -108,7 +109,12 @@ bash install.sh --desktop   # installs the app and its application-menu entry
 
 Both default to the latest GitHub release. Use `--release vX.Y.Z` to choose a
 release and `--prefix PATH` to change `~/.local`. The terminal needs `mpv` or
-`ffplay`; the desktop requires system GTK 4 and WebKitGTK 6.0 runtime libraries.
+`ffplay`; the Linux desktop requires system GTK 4 and WebKitGTK 6.0 runtime libraries.
+
+macOS desktop archives are unsigned and unnotarized. Verify the downloaded
+archive with `shasum -a 256 -c <checksum-file>` and extract it. In Finder,
+Control-click `melody-manager`, choose **Open**, then confirm with **Open**.
+macOS only asks for this override on the first launch.
 
 ## First run
 
