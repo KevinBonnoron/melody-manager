@@ -108,7 +108,7 @@ bash install.sh --desktop   # installs the app and its application-menu entry
 
 Both default to the latest GitHub release. Use `--release vX.Y.Z` to choose a
 release and `--prefix PATH` to change `~/.local`. The terminal needs `mpv` or
-`ffplay`; the desktop uses the system WebKitGTK 6.0.
+`ffplay`; the desktop requires system GTK 4 and WebKitGTK 6.0 runtime libraries.
 
 ## First run
 
