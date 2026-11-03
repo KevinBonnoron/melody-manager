@@ -98,9 +98,10 @@ Melody Manager runs on `linux/amd64` and `linux/arm64`, so a Raspberry Pi 4 or
 newer will do.
 
 The same installer can install a released client instead of the server: the
-terminal player on Linux and macOS, or the desktop client on Linux (`amd64` and
-`arm64`). Windows (`amd64`) and macOS (`amd64` and `arm64`) desktop archives are
-attached directly to each release:
+terminal player on Linux and macOS (`amd64` and `arm64`), or the desktop client
+on Linux (`amd64` and `arm64`). Each release also includes Windows terminal
+binaries (`amd64` and `arm64`), a Windows desktop archive (`amd64`), and macOS
+desktop archives (`amd64` and `arm64`):
 
 ```bash
 bash install.sh --cli       # installs ~/.local/bin/melody
@@ -110,6 +111,30 @@ bash install.sh --desktop   # installs the app and its application-menu entry
 Both default to the latest GitHub release. Use `--release vX.Y.Z` to choose a
 release and `--prefix PATH` to change `~/.local`. The terminal needs `mpv` or
 `ffplay`; the Linux desktop requires system GTK 4 and WebKitGTK 6.0 runtime libraries.
+
+On Windows, install the terminal player from PowerShell. Use
+`melody-cli-windows-arm64.exe` instead on an ARM64 machine:
+
+```powershell
+$asset = "melody-cli-windows-amd64.exe"
+$base = "https://github.com/KevinBonnoron/melody-manager/releases/latest/download"
+Invoke-WebRequest "$base/$asset" -OutFile $asset
+Invoke-WebRequest "$base/melody-cli-checksums.txt" -OutFile "melody-cli-checksums.txt"
+$expected = ((Get-Content "melody-cli-checksums.txt" |
+  Where-Object { $_.EndsWith(" $asset") }) -split " ")[0]
+$actual = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLower()
+if ($actual -ne $expected) { throw "CLI checksum mismatch" }
+$installDir = "$env:LOCALAPPDATA\Programs\Melody Manager"
+New-Item -ItemType Directory -Force $installDir | Out-Null
+Move-Item -Force $asset "$installDir\melody.exe"
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if (($userPath -split ";") -notcontains $installDir) {
+  [Environment]::SetEnvironmentVariable("Path", "$userPath;$installDir", "User")
+}
+```
+
+Open a new terminal and run `melody`. To install a specific release, replace
+`latest/download` in `$base` with `download/vX.Y.Z`.
 
 macOS desktop archives are unsigned and unnotarized. Verify the downloaded
 archive with `shasum -a 256 -c <checksum-file>` and extract it. In Finder,

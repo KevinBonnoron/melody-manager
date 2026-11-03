@@ -183,7 +183,7 @@ client_platform() {
   case "$system" in
     Linux) client_os="linux" ;;
     Darwin) client_os="darwin" ;;
-    *) die "unsupported operating system $system; the CLI is available for Linux and macOS, and the desktop application for Linux" ;;
+    *) die "unsupported operating system $system; this installer supports the CLI on Linux and macOS, and the desktop application for Linux" ;;
   esac
   case "$machine" in
     x86_64 | amd64) client_arch="amd64" ;;

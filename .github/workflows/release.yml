@@ -176,10 +176,12 @@ jobs:
         env:
           CGO_ENABLED: '0'
         run: |
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
             GOOS="${target%/*}"
             GOARCH="${target#*/}"
-            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags='-s -w' -o "../melody-cli-$GOOS-$GOARCH" .
+            suffix=""
+            if [ "$GOOS" = windows ]; then suffix=".exe"; fi
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags='-s -w' -o "../melody-cli-$GOOS-$GOARCH$suffix" .
           done
       - name: Checksums
         run: |
@@ -188,6 +190,8 @@ jobs:
             melody-cli-linux-arm64 \
             melody-cli-darwin-amd64 \
             melody-cli-darwin-arm64 \
+            melody-cli-windows-amd64.exe \
+            melody-cli-windows-arm64.exe \
             > melody-cli-checksums.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -197,6 +201,8 @@ jobs:
             melody-cli-linux-arm64
             melody-cli-darwin-amd64
             melody-cli-darwin-arm64
+            melody-cli-windows-amd64.exe
+            melody-cli-windows-arm64.exe
             melody-cli-checksums.txt
           retention-days: 90
 
@@ -406,6 +412,8 @@ jobs:
             cli-artifacts/melody-cli-linux-arm64
             cli-artifacts/melody-cli-darwin-amd64
             cli-artifacts/melody-cli-darwin-arm64
+            cli-artifacts/melody-cli-windows-amd64.exe
+            cli-artifacts/melody-cli-windows-arm64.exe
             cli-artifacts/melody-cli-checksums.txt
             desktop-artifacts/*
             android-artifacts/app-release.apk
