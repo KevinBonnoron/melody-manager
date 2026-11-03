@@ -90,6 +90,7 @@ jobs:
 
   docs:
     needs: from-main
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -215,7 +216,7 @@ jobs:
       - name: Install Wails system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install --yes build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
       - run: bun install --frozen-lockfile
       - name: Build desktop frontend
         run: bun run build:desktop
