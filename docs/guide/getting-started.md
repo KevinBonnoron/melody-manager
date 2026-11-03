@@ -100,7 +100,7 @@ bug.
 
 | Source | What it needs |
 |---|---|
-| YouTube | Switch it on. Optionally your cookies, for anything age-restricted or private. |
+| YouTube | Switch it on. For age-restricted or private content, an administrator can optionally add shared cookies in server settings. Use a dedicated account, not a personal one. |
 | SoundCloud | Switch it on. |
 | Bandcamp | Switch it on. |
 | Spotify | A Spotify application of your own: its client ID and secret, set once by an administrator. |
