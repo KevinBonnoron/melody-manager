@@ -10,6 +10,20 @@ test.describe('signed out', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
+  test('does not open the authenticated event stream on the sign-in screen', async ({ page }) => {
+    const eventRequests: string[] = [];
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/events') {
+        eventRequests.push(request.url());
+      }
+    });
+
+    await page.goto('/login');
+
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    expect(eventRequests).toEqual([]);
+  });
+
   test('refuses the wrong password without losing the form', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Email').fill('e2e@melody.test');
