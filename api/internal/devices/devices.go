@@ -448,28 +448,34 @@ func (s *Service) RegisterClient(owner, deviceType, session, label string, volum
 // Epoch identifies the registration a stream owns, to hand back on teardown.
 func (d Device) Epoch() uint64 { return d.epoch }
 
-// ReleaseClient gives up one of a device's streams and says whether it was the
-// last. A device with another stream open is still here, whatever this one was.
-func (s *Service) ReleaseClient(owner, id string) bool {
+// ReleaseClient gives up one of a device's streams. When it was the last, the
+// returned epoch identifies the registration whose grace may take it away. A
+// device with another stream open is still here, whatever this one was.
+func (s *Service) ReleaseClient(owner, id string) (uint64, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d, ok := s.devices[id]
 	if !ok || !clientTypes[d.Type] || d.owner != owner {
-		return false
+		return 0, false
 	}
 	if d.streams > 0 {
 		d.streams--
 	}
 	s.devices[id] = d
-	return d.streams == 0
+	if d.streams > 0 {
+		return 0, false
+	}
+	return d.epoch, true
 }
 
 // ForgetClient takes out a device that has no stream left, and says whether it
-// did. One that has opened another in the meantime is not gone and stays.
-func (s *Service) ForgetClient(owner, id string) bool {
+// did. One that has opened another in the meantime is not gone and stays. The
+// epoch also keeps an older stream's grace timer from taking out a newer one
+// during its own chance to reconnect.
+func (s *Service) ForgetClient(owner, id string, epoch uint64) bool {
 	s.mu.Lock()
 	d, ok := s.devices[id]
-	if !ok || !clientTypes[d.Type] || d.owner != owner || d.streams > 0 {
+	if !ok || !clientTypes[d.Type] || d.owner != owner || d.streams > 0 || d.epoch != epoch {
 		s.mu.Unlock()
 		return false
 	}

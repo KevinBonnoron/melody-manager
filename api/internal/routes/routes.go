@@ -689,11 +689,12 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 			// back look the same from here; what tells them apart is whether the
 			// device returns, which is known only afterwards, so the answer is
 			// given afterwards.
-			if !deps.Devices.ReleaseClient(owner, device.ID) {
+			epoch, last := deps.Devices.ReleaseClient(owner, device.ID)
+			if !last {
 				return
 			}
 			time.AfterFunc(deviceGrace, func() {
-				if !deps.Devices.ForgetClient(owner, device.ID) {
+				if !deps.Devices.ForgetClient(owner, device.ID, epoch) {
 					return
 				}
 				if _, err := deps.Player.Leave(context.Background(), owner, device.ID); err != nil {
