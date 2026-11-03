@@ -65,21 +65,25 @@ environment do nothing.
 A source is configured in two halves, which never overlap.
 
 **Server settings**, one row per source type, hold what belongs to the
-installation: the local library path, the YouTube download path, the Spotify
-application credentials. They also carry a server-wide on/off switch, and only
-an administrator can read them.
+installation: the local library path, the YouTube download path and shared
+cookies, the Spotify application credentials. They also carry a server-wide
+on/off switch, and only an administrator can read them.
 
 **Connections**, one per person per source, hold what belongs to that person:
-their YouTube cookies, their Spotify token. An empty connection is simply an
-opt-in, which is all SoundCloud and Bandcamp need. Nobody reads anyone else's.
+their Spotify token. An empty connection is simply an opt-in, which is all
+YouTube, SoundCloud and Bandcamp need. Nobody reads anyone else's.
 
 | Source | Server settings | Personal connection |
 |---|---|---|
 | Local | `path`, required | none: it is the server's own library |
-| YouTube | `downloadPath` | opt-in, optional cookies |
+| YouTube | `downloadPath`, optional shared `cookies` | opt-in |
 | SoundCloud | none | opt-in |
 | Bandcamp | none | opt-in |
 | Spotify | `clientId`, `clientSecret` | opt-in, OAuth token |
+
+For YouTube, an administrator can paste cookies in Netscape format into the
+server settings. They are used for every listener; take them from an account
+dedicated to the server, not from a personal one.
 
 A source is usable when it is enabled server-wide and, where a person can
 connect to it, when that person has.
