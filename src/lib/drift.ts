@@ -1,3 +1,9 @@
+import { type Device, isNetworkDevice } from '@/shared';
+
+export function hasPlayingSpeaker(devices: Device[], currentID: string | null): boolean {
+  return devices.some((device) => device.id !== currentID && isNetworkDevice(device) && device.playing);
+}
+
 /** What a device does about being ahead of or behind where it should be. */
 export interface Correction {
   rate: number;

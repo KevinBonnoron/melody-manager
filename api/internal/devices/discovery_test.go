@@ -11,6 +11,7 @@ import (
 type stubPlayer struct {
 	found    []players.Found
 	onVolume func()
+	state    string
 }
 
 func (stubPlayer) Kind() string { return "stub" }
@@ -36,11 +37,16 @@ func (stubPlayer) Next(context.Context, string) error                   { return
 func (stubPlayer) Previous(context.Context, string) error               { return nil }
 func (stubPlayer) Seek(context.Context, string, int) error              { return nil }
 func (stubPlayer) SetVolume(context.Context, string, int) error         { return nil }
-func (stubPlayer) Transport(context.Context, string) string             { return "STOPPED" }
-func (stubPlayer) Position(context.Context, string) (int, int)          { return 0, 0 }
-func (stubPlayer) CurrentURL(context.Context, string) string            { return "" }
-func (stubPlayer) Accepts(context.Context, string, string) bool         { return true }
-func (stubPlayer) Decodes(int, int) bool                                { return true }
+func (p stubPlayer) Transport(context.Context, string) string {
+	if p.state == "" {
+		return "STOPPED"
+	}
+	return p.state
+}
+func (stubPlayer) Position(context.Context, string) (int, int)  { return 0, 0 }
+func (stubPlayer) CurrentURL(context.Context, string) string    { return "" }
+func (stubPlayer) Accepts(context.Context, string, string) bool { return true }
+func (stubPlayer) Decodes(int, int) bool                        { return true }
 
 // Asking a speaker for its volume is a network round trip, and one speaker that
 // has stopped answering takes the full timeout to say so. Under the registry's

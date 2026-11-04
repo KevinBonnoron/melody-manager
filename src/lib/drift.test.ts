@@ -1,5 +1,20 @@
-import { correctionFor } from './drift';
+import type { Device } from '@/shared';
+import { correctionFor, hasPlayingSpeaker } from './drift';
 import { describe, expect, it } from 'bun:test';
+
+describe('hasPlayingSpeaker', () => {
+  const device = (id: string, type: Device['type'], playing: boolean) => ({ id, type, playing }) as Device;
+
+  it('ignores client devices and silent speakers', () => {
+    expect(hasPlayingSpeaker([device('current', 'browser', true), device('other', 'desktop', true)], 'current')).toBe(false);
+    expect(hasPlayingSpeaker([device('current', 'browser', true), device('speaker', 'sonos', false)], 'current')).toBe(false);
+  });
+
+  it('accepts a playing speaker and excludes the current device', () => {
+    expect(hasPlayingSpeaker([device('current', 'browser', true), device('speaker', 'sonos', true)], 'current')).toBe(true);
+    expect(hasPlayingSpeaker([device('current', 'sonos', true)], 'current')).toBe(false);
+  });
+});
 
 describe('correctionFor', () => {
   it('leaves a device that is in step alone', () => {
