@@ -208,7 +208,7 @@ func (s *Service) pollSpeaker(id string) (Device, float64, bool) {
 	position, duration := player.Position(ctx, device.IPAddress)
 	volume := player.Volume(ctx, device.IPAddress)
 
-	playing := state != "STOPPED" && state != "PAUSED_PLAYBACK" && state != "UNKNOWN"
+	playing := state == "PLAYING"
 	discoveredTrack := ""
 	if playing && device.TrackID == "" {
 		discoveredTrack = trackFromStreamURL(player.CurrentURL(ctx, device.IPAddress))

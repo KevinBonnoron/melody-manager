@@ -115,6 +115,23 @@ func (r *positionRecorder) SavePosition(owner, track string, position float64, c
 
 func (*positionRecorder) Finished(string, string, int64) error { return nil }
 
+func TestPollSpeakerTreatsOnlyPlayingAsActive(t *testing.T) {
+	for _, state := range []string{"PLAYING", "TRANSITIONING", "BUFFERING", "PAUSED_PLAYBACK", "STOPPED", "UNKNOWN"} {
+		t.Run(state, func(t *testing.T) {
+			service := New(func() string { return "" })
+			service.devices["speaker"] = Device{ID: "speaker", Type: "stub"}
+			service.SetPlayers(players.Registry{"stub": stubPlayer{state: state}})
+			sample, _, ok := service.pollSpeaker("speaker")
+			if !ok {
+				t.Fatal("speaker disappeared")
+			}
+			if got, want := sample.Playing, state == "PLAYING"; got != want {
+				t.Fatalf("playing = %v for transport %q, want %v", got, state, want)
+			}
+		})
+	}
+}
+
 func TestSpeakerPollKeepsTheRunCapturedBeforeNetworkIO(t *testing.T) {
 	service := New(func() string { return "" })
 	recorder := &positionRecorder{}

@@ -17,7 +17,7 @@ import { reached, runOf } from '@/lib/clock';
 import { config } from '@/lib/config';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { checkAlive, getDevices, getMyDeviceId, subscribeCommands, subscribeDevices, subscribeRegistration } from '@/lib/device-presence';
-import { correctionFor } from '@/lib/drift';
+import { correctionFor, hasPlayingSpeaker } from '@/lib/drift';
 import { apply, refresh, snapshot } from '@/lib/player-state';
 import type { Playhead } from '@/lib/playhead';
 import { playheadOf } from '@/lib/playhead';
@@ -845,14 +845,15 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // run at quite the same speed. Each one watches its own distance from the
   // record and bends its speed by a thousandth to close it, which is inaudible
   // and needs no leader: they are all following the same written position.
-  // Alone, there is nobody to be in step with and the element is the truth.
+  // Being listed is not playing: a lone device has no peer to correct against.
+  const inStepWith = hasPlayingSpeaker(devices, deviceId);
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
 
-    if (!media || !state.playing || state.devices.length < 2) {
+    if (!media || !state.playing || !inStepWith) {
       audio.playbackRate = 1;
       return;
     }
@@ -874,7 +875,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       clearInterval(timer);
       audio.playbackRate = 1;
     };
-  }, [media, state.playing, state.devices.length]);
+  }, [media, state.playing, inStepWith]);
 
   const play = useCallback(
     (tracks: Track[]) => {
