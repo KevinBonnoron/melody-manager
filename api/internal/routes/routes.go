@@ -65,6 +65,7 @@ func isAppShellOrigin(origin string) bool {
 }
 
 func Register(se *core.ServeEvent, deps *app.Deps) {
+	bindAuthSessionMiddleware(se)
 	se.Router.Bind(appShellCORS())
 
 	se.Router.GET("/api/tracks/{id}/stream", func(e *core.RequestEvent) error {
@@ -155,6 +156,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 	g.Bind(apis.RequireAuth())
 
 	registerPlayer(se, g, deps)
+
+	g.DELETE("/sessions/current", signOutCurrentSession)
+	g.DELETE("/sessions/{id}", revokeAuthSession)
 
 	g.GET("/stream-token", func(e *core.RequestEvent) error {
 		trackID := e.Request.URL.Query().Get("track")
@@ -652,15 +656,18 @@ func writeKeepAlive(w io.Writer, flusher http.Flusher) {
 }
 
 const (
-	eventRegistered = "registered" // this client's own device, once, on connect
-	eventDevices    = "devices"    // the user's device list, whenever it changes
-	eventCommand    = "command"    // a transport action aimed at one device
-	eventTask       = "task"       // progress of a background job
-	eventPing       = "ping"       // proof of life, on a fixed schedule
+	eventRegistered  = "registered"   // this client's own device, once, on connect
+	eventDevices     = "devices"      // the user's device list, whenever it changes
+	eventCommand     = "command"      // a transport action aimed at one device
+	eventTask        = "task"         // progress of a background job
+	eventPing        = "ping"         // proof of life, on a fixed schedule
+	eventAuthRevoked = "auth-revoked" // this stream's authentication is no longer valid
 )
 
 func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	owner := userID(e)
+	revoked, unwatchAuth := watchAuthRevocation(e.App, e.Auth, currentSessionID(e))
+	defer unwatchAuth()
 	var identity struct {
 		Type    string `json:"type"`
 		Session string `json:"session"`
@@ -723,6 +730,13 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 		}
 	}
 
+	select {
+	case <-revoked:
+		write(eventAuthRevoked, struct{}{})
+		return nil
+	default:
+	}
+
 	if registered != nil {
 		write(eventRegistered, *registered)
 	}
@@ -739,7 +753,18 @@ func streamEvents(e *core.RequestEvent, deps *app.Deps) error {
 	defer keepAlive.Stop()
 	ctx := e.Request.Context()
 	for {
+		// Prefer revocation to queued subscription events, including when
+		// cancellation and a committed token change happen together.
 		select {
+		case <-revoked:
+			write(eventAuthRevoked, struct{}{})
+			return nil
+		default:
+		}
+		select {
+		case <-revoked:
+			write(eventAuthRevoked, struct{}{})
+			return nil
 		case <-ctx.Done():
 			return nil
 		case <-keepAlive.C:

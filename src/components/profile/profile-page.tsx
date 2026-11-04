@@ -13,6 +13,7 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { pb } from '@/lib/pocketbase';
 import { AppearanceSettings } from './appearance-settings';
+import { SessionSecurity } from './session-security';
 
 type Section = 'account' | 'security' | 'appearance';
 
@@ -155,27 +156,30 @@ export function ProfilePage() {
       )}
 
       {section === 'security' && (
-        <Card className="p-4">
-          <form onSubmit={handleUpdatePassword} className="space-y-3">
-            <h3 className="font-semibold">{t('ProfilePage.changePassword')}</h3>
-            <div className="space-y-2">
-              <Label htmlFor="oldPassword">{t('ProfilePage.currentPassword')}</Label>
-              <Input id="oldPassword" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} disabled={isUpdatingPassword} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">{t('ProfilePage.newPassword')}</Label>
-              <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isUpdatingPassword} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t('ProfilePage.confirmPassword')}</Label>
-              <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isUpdatingPassword} />
-            </div>
-            <Button type="submit" size="sm" disabled={isUpdatingPassword || !oldPassword || !newPassword || !confirmPassword}>
-              {isUpdatingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
-              {t('ProfilePage.updatePassword')}
-            </Button>
-          </form>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-4">
+            <form onSubmit={handleUpdatePassword} className="space-y-3">
+              <h3 className="font-semibold">{t('ProfilePage.changePassword')}</h3>
+              <div className="space-y-2">
+                <Label htmlFor="oldPassword">{t('ProfilePage.currentPassword')}</Label>
+                <Input id="oldPassword" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} disabled={isUpdatingPassword} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">{t('ProfilePage.newPassword')}</Label>
+                <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isUpdatingPassword} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">{t('ProfilePage.confirmPassword')}</Label>
+                <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isUpdatingPassword} />
+              </div>
+              <Button type="submit" size="sm" disabled={isUpdatingPassword || !oldPassword || !newPassword || !confirmPassword}>
+                {isUpdatingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t('ProfilePage.updatePassword')}
+              </Button>
+            </form>
+          </Card>
+          <SessionSecurity />
+        </div>
       )}
 
       {section === 'appearance' && <AppearanceSettings />}

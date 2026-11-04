@@ -109,6 +109,11 @@ func logout(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if session, loadErr := loadSession(); loadErr == nil {
+		if err := newClient(session).send(http.MethodDelete, "/api/sessions/current", nil, nil); err != nil {
+			return fmt.Errorf("server sign-out failed: %w", err)
+		}
+	}
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

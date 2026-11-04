@@ -1,6 +1,7 @@
 {
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "signOutError": "Could not sign out. Check your connection and try again."
   },
   "forms": {
     "errors": {
@@ -807,6 +808,19 @@
     "passwordsMismatch": "Passwords do not match",
     "avatarUpdated": "Avatar updated successfully",
     "avatarUpdateError": "Failed to update avatar",
+    "connectedDevices": "Connected devices",
+    "connectedDevicesDescription": "Review your active sessions and sign out another device without interrupting this one.",
+    "sessionsLoading": "Loading sessions...",
+    "sessionsLoadError": "Could not load sessions.",
+    "thisDevice": "This device",
+    "unknownDevice": "Unknown device",
+    "sessionConnectedAt": "Connected on {{date}}",
+    "revokeSession": "Sign out",
+    "revokeSessionFor": "Sign out {{device}}",
+    "revokeSessionConfirmTitle": "Sign out this device?",
+    "revokeSessionConfirmDescription": "{{device}} will need to sign in again. Your current session will stay active.",
+    "sessionRevoked": "{{device}} has been signed out.",
+    "sessionRevokeError": "Could not sign out this device. Please try again.",
     "sections": {
       "account": "Account",
       "security": "Security",

@@ -82,6 +82,16 @@ the first start, create a PocketBase superuser instead. That account is for the
 database admin UI at `/_/`, not for listening, and it does not close the window
 above.
 
+To review sessions you left open elsewhere, go to **Profile → Security →
+Connected devices**. The current session is marked **This device** and cannot
+be revoked from this list. Each other device has its own **Sign out** action;
+confirming it signs out only that device. Your password does not change.
+Ordinary sign-out deletes the current server-side session as well as the local
+credential.
+
+On upgrade, restarting the server applies the owner-only read rules needed by
+this list to existing installations.
+
 ## Point it at your music
 
 The welcome screen lists every source. Open **Local**, and give it the path

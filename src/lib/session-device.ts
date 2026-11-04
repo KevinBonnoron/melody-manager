@@ -22,14 +22,14 @@ export function getDeviceType(): DeviceType {
   return clientDeviceType();
 }
 
-export function getDeviceLabel(): string {
-  const host = (globalThis as { __MELODY_HOST__?: string }).__MELODY_HOST__;
+export function getDeviceLabel(userAgent?: string): string {
+  const host = userAgent === undefined && (globalThis as { __MELODY_HOST__?: string }).__MELODY_HOST__;
   if (host) {
     return host;
   }
 
-  const ua = navigator.userAgent;
-  const browser = clientDeviceType() !== 'browser' ? 'Melody Manager' : /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
+  const ua = userAgent ?? navigator.userAgent;
+  const browser = userAgent === undefined && clientDeviceType() !== 'browser' ? 'Melody Manager' : /Edg\/|EdgiOS\/|EdgA\//.test(ua) ? 'Edge' : /OPR\/|OPiOS\//.test(ua) ? 'Opera' : /Firefox\/|FxiOS\//.test(ua) ? 'Firefox' : /Chrome\/|CriOS\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
   const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
-  return os ? `${browser} · ${os}` : browser;
+  return browser && os ? `${browser} · ${os}` : browser || os;
 }

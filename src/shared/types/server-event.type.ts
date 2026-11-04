@@ -10,6 +10,8 @@ export const SERVER_EVENTS = {
   command: 'command',
   /** Progress of a background job. */
   task: 'task',
+  /** The stream's own session was revoked. */
+  authRevoked: 'auth-revoked',
   /** Proof the stream is still alive, so a client can tell silence from death. */
   ping: 'ping',
 } as const;
@@ -21,5 +23,6 @@ export interface ServerEventPayloads {
   devices: Device[];
   command: DeviceCommand;
   task: Task;
+  'auth-revoked': Record<string, never>;
   ping: Record<string, never>;
 }

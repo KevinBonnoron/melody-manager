@@ -253,6 +253,14 @@ configuration.
 
 Plays, listening time, top tracks, artists, albums and genres.
 
+### `DELETE /api/sessions/current` · `DELETE /api/sessions/{id}`
+
+`current` terminates the session identified by the caller's bearer token during
+ordinary sign-out. The id form revokes another session individually. Revoking
+the current session through that second form is refused; the ordinary sign-out
+action owns that operation. The `user_sessions` collection is readable in
+realtime by its owner, which keeps the security screen updated.
+
 ### `POST /api/events`
 
 A server-sent event stream: playback, devices, tasks. A `POST` rather than a
