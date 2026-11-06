@@ -37,6 +37,15 @@ func sessionTestApp(t *testing.T) (*tests.TestApp, *core.Record) {
 	if err := pb.Save(user.Collection()); err != nil {
 		t.Fatal(err)
 	}
+	ensureUserSessions(t, pb, user)
+	RegisterAuthSessions(pb)
+	return pb, user
+}
+
+// ensureUserSessions creates the owner-scoped user_sessions collection the
+// session hooks and routes attach to, for tests that sign tokens in.
+func ensureUserSessions(t *testing.T, pb core.App, user *core.Record) {
+	t.Helper()
 	collection := core.NewBaseCollection(userSessionsCollection)
 	collection.Fields.Add(
 		&core.RelationField{Name: "user", Required: true, CollectionId: user.Collection().Id, CascadeDelete: true, MaxSelect: 1},
@@ -51,8 +60,6 @@ func sessionTestApp(t *testing.T) (*tests.TestApp, *core.Record) {
 	if err := pb.Save(collection); err != nil {
 		t.Fatal(err)
 	}
-	RegisterAuthSessions(pb)
-	return pb, user
 }
 
 func sessionHandler(t *testing.T, pb core.App) http.Handler {
