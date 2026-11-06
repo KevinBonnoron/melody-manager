@@ -68,7 +68,7 @@ jobs:
           cache-dependency-path: apps/api/go.sum
       - run: bun install --frozen-lockfile
       - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+        run: cd apps/client && bunx playwright install --with-deps chromium
       - name: Test
         run: bun run test:e2e
       - if: failure()
