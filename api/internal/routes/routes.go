@@ -615,6 +615,8 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 // comments too, which is slow, but a request the caller is waiting on cannot hang for ever.
 const previewTimeout = 2 * time.Minute
 
+// importHandler accepts a URL and runs its import as a background task, refusing
+// up front when the URL's provider is not usable for this user.
 func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		var body struct {
@@ -624,6 +626,12 @@ func importHandler(deps *app.Deps, kind services.ImportKind) func(*core.RequestE
 			return e.BadRequestError("missing url", err)
 		}
 		uid := userID(e)
+		// Refuse before the task exists, so the caller hears 403 providerUnavailable
+		// instead of finding a failed task later; the service checks again for the
+		// state at execution time.
+		if providerID := providers.DetectFromURL(body.URL); providerID != "" && !pbx.ProviderUsable(e.App, uid, providerID, "import") {
+			return e.ForbiddenError("providerUnavailable", fmt.Errorf("%w: %s", services.ErrProviderUnavailable, providerID))
+		}
 		task := deps.Tasks.Create("import", body.URL)
 		go func() {
 			deps.Tasks.Update(task.ID, func(t *tasks.Task) { t.Status = tasks.Running; t.Progress = 10 })
