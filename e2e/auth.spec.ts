@@ -90,7 +90,9 @@ test('updates sessions live and revokes only the selected other session', async 
     expect(await other.evaluate(() => localStorage.getItem('pb_auth_melody-manager'))).toBeTruthy();
     await other.unroute('**/api/sessions/current');
 
-    await other.getByRole('button', { name: /E2E/ }).click();
+    // Radix drops a dropdown opened by pointer in the same input burst that
+    // closed it (radix-ui/primitives#3977), so reopen this one by keyboard.
+    await other.getByRole('button', { name: /E2E/ }).press('Enter');
     await expect(other.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
     const signedOut = other.waitForResponse((response) => response.url().endsWith('/api/sessions/current') && response.request().method() === 'DELETE');
     await other.getByRole('menuitem', { name: 'Log out' }).click();

@@ -1,5 +1,6 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { ChartNoAxesColumn, History, Home, Library, PanelLeft, Search, Share2, SlidersHorizontal, User, UserCircle, Users } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupConte
 import { useAuthUser } from '@/hooks/use-auth-user';
 import { config } from '@/lib/config';
 import { cn, getModifierKey } from '@/lib/utils';
-import { ChangeServerMenuItem } from './change-server-menu-item';
+import { ChangeServerFallbackDialog, ChangeServerMenuItem } from './change-server-menu-item';
 import { SidebarDevices } from './sidebar-devices';
 import { SidebarPlatforms } from './sidebar-platforms';
 import { SignOutDropdownMenuItem } from './sign-out-dropdown-menu-item';
@@ -18,6 +19,7 @@ export function AppSidebar() {
   const { toggleSidebar } = useSidebar();
   const location = useLocation();
   const user = useAuthUser();
+  const [confirmLocalServerSwitch, setConfirmLocalServerSwitch] = useState(false);
   const navItems = [
     { title: t('AppSidebar.home'), href: '/', icon: Home },
     { title: t('AppSidebar.library'), href: '/library', icon: Library },
@@ -186,12 +188,13 @@ export function AppSidebar() {
                   </DropdownMenuItem>
                 </Link>
                 <DropdownMenuSeparator />
-                <ChangeServerMenuItem />
+                <ChangeServerMenuItem onRevocationFailed={() => setConfirmLocalServerSwitch(true)} />
                 <SignOutDropdownMenuItem />
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
+        <ChangeServerFallbackDialog open={confirmLocalServerSwitch} onOpenChange={setConfirmLocalServerSwitch} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

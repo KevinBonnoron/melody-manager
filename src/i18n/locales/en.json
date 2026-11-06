@@ -879,7 +879,10 @@
     "notMelodyManager": "{{origin}} answers, but it is not a Melody Manager server."
   },
   "ChangeServerMenuItem": {
-    "label": "Change server"
+    "label": "Change server",
+    "localFallbackTitle": "Change server anyway?",
+    "localFallbackDescription": "The server session could not be revoked and may stay signed in. Continuing only removes the saved server from this device.",
+    "localFallbackConfirm": "Change server"
   },
   "RenameDialog": {
     "cancel": "Cancel",

@@ -879,7 +879,10 @@
     "notMelodyManager": "{{origin}} répond, mais ce n’est pas un serveur Melody Manager."
   },
   "ChangeServerMenuItem": {
-    "label": "Changer de serveur"
+    "label": "Changer de serveur",
+    "localFallbackTitle": "Changer de serveur quand même ?",
+    "localFallbackDescription": "Impossible de révoquer la session du serveur, qui restera peut-être connectée. Continuer ne fait que supprimer le serveur enregistré de cet appareil.",
+    "localFallbackConfirm": "Changer de serveur"
   },
   "RenameDialog": {
     "cancel": "Annuler",
