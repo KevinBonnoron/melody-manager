@@ -61,8 +61,12 @@ export function shownPreviews(expanded: ReadonlySet<string>, candidates: Iterabl
 
 // The names the API is allowed to give a failure. Anything else, including a reason the server
 // could not name, says only that the read failed: a word nobody wrote here is not shown.
-const PREVIEW_CAUSES = ['private', 'unavailable', 'signIn', 'membersOnly', 'geoBlocked', 'unsupportedUrl'];
+const PREVIEW_CAUSES = ['private', 'unavailable', 'signIn', 'membersOnly', 'geoBlocked', 'unsupportedUrl'] as const;
+
+// The API answers with the word capitalized and punctuated ("UnsupportedUrl."), so the
+// lookup is case-insensitive and ignores the trailing period.
+const PREVIEW_CAUSE_KEYS = new Map(PREVIEW_CAUSES.map((cause) => [cause.toLowerCase(), `SearchPage.previewCause.${cause}`]));
 
 export function previewCauseKey(cause: string): string | undefined {
-  return PREVIEW_CAUSES.includes(cause) ? `SearchPage.previewCause.${cause}` : undefined;
+  return PREVIEW_CAUSE_KEYS.get(cause.trim().toLowerCase().replace(/\.$/, ''));
 }
