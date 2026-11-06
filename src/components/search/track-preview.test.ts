@@ -80,6 +80,12 @@ describe('track preview', () => {
     expect(previewCauseKey('signIn')).toBe('SearchPage.previewCause.signIn');
   });
 
+  it('recognizes the word however the API formatted it', () => {
+    expect(previewCauseKey('UnsupportedUrl.')).toBe('SearchPage.previewCause.unsupportedUrl');
+    expect(previewCauseKey('SignIn.')).toBe('SearchPage.previewCause.signIn');
+    expect(previewCauseKey(' GeoBlocked. ')).toBe('SearchPage.previewCause.geoBlocked');
+  });
+
   it('shows nothing rather than a word nobody wrote here', () => {
     expect(previewCauseKey('')).toBeUndefined();
     expect(previewCauseKey('preview failed')).toBeUndefined();
