@@ -109,6 +109,27 @@ environment variables. They are not read any more. Carry the values over into
 One port, `8090`, and the binary serves everything on it. Behind Traefik, Caddy
 or nginx, proxy to that port and nothing else.
 
+### Real client IP addresses
+
+Sessions shown under **Profile → Security** include the IP seen at sign-in.
+Traefik and Caddy normally forward the client address in `X-Forwarded-For`.
+For nginx, set it explicitly:
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+Then, in the PocketBase dashboard at `/_/`, open **Settings → Application** and
+add `X-Forwarded-For` to **Trusted IP proxy headers**. Keep the rightmost IP
+priority unless you control every proxy in the chain.
+
+::: warning
+Enable this only when the application is reachable exclusively through your
+reverse proxy. If clients can reach port `8090` directly, they can spoof this
+header. Otherwise, leaving the setting empty is safe: sessions show the proxy's
+address instead of the client's.
+:::
+
 The entrypoint passes `--http=0.0.0.0:8090`, so the `listenAddr` key has no
 effect inside the container.
 

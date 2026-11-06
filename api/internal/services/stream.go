@@ -559,7 +559,18 @@ func localRoots(app core.App) []string {
 	return roots
 }
 
+// localLookupCache lives for one library check; later checks see renames and
+// metadata changes rather than reusing a process-wide snapshot.
+type localLookupCache struct {
+	albums  map[string]*core.Record
+	artists map[string]string
+}
+
 func localFile(app core.App, track *core.Record, roots []string) string {
+	return localFileCached(app, track, roots, nil)
+}
+
+func localFileCached(app core.App, track *core.Record, roots []string, cache *localLookupCache) string {
 	if origin := track.GetString("origin"); strings.HasPrefix(origin, "file://") {
 		path := strings.TrimPrefix(origin, "file://")
 		for _, root := range roots {
@@ -570,10 +581,37 @@ func localFile(app core.App, track *core.Record, roots []string) string {
 		return ""
 	}
 
-	album, err := app.FindRecordById("albums", track.GetString("album"))
-	if err != nil {
+	if len(roots) == 0 {
 		return ""
 	}
+
+	albumID := track.GetString("album")
+	var album *core.Record
+	if cache != nil {
+		album = cache.albums[albumID]
+	}
+	if album == nil {
+		var err error
+		album, err = app.FindRecordById("albums", albumID)
+		if err != nil {
+			return ""
+		}
+		if cache != nil {
+			if cache.albums == nil {
+				cache.albums = make(map[string]*core.Record)
+			}
+			cache.albums[albumID] = album
+		}
+	}
+
+	var artists map[string]string
+	if cache != nil {
+		if cache.artists == nil {
+			cache.artists = make(map[string]string)
+		}
+		artists = cache.artists
+	}
+	artist := artistNameCached(app, track, album, artists)
 
 	suffix := " - " + sanitizeFilename(track.GetString("title"))
 	for _, root := range roots {
@@ -581,7 +619,7 @@ func localFile(app core.App, track *core.Record, roots []string) string {
 			continue
 		}
 
-		dir := filepath.Join(root, sanitizeFilename(artistName(app, track, album)), sanitizeFilename(album.GetString("name")))
+		dir := filepath.Join(root, sanitizeFilename(artist), sanitizeFilename(album.GetString("name")))
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

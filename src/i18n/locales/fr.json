@@ -1,6 +1,7 @@
 {
   "common": {
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "signOutError": "Impossible de se déconnecter. Vérifiez votre connexion et réessayez."
   },
   "forms": {
     "errors": {
@@ -807,6 +808,19 @@
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "avatarUpdated": "Avatar mis à jour avec succès",
     "avatarUpdateError": "Impossible de mettre à jour l'avatar",
+    "connectedDevices": "Appareils connectés",
+    "connectedDevicesDescription": "Consultez vos sessions actives et déconnectez un autre appareil sans interrompre celle-ci.",
+    "sessionsLoading": "Chargement des sessions...",
+    "sessionsLoadError": "Impossible de charger les sessions.",
+    "thisDevice": "Cet appareil",
+    "unknownDevice": "Appareil inconnu",
+    "sessionConnectedAt": "Connecté le {{date}}",
+    "revokeSession": "Déconnecter",
+    "revokeSessionFor": "Déconnecter {{device}}",
+    "revokeSessionConfirmTitle": "Déconnecter cet appareil ?",
+    "revokeSessionConfirmDescription": "{{device}} devra se reconnecter. Votre session actuelle restera active.",
+    "sessionRevoked": "{{device}} a été déconnecté.",
+    "sessionRevokeError": "Impossible de déconnecter cet appareil. Veuillez réessayer.",
     "sections": {
       "account": "Compte",
       "security": "Sécurité",
@@ -865,7 +879,10 @@
     "notMelodyManager": "{{origin}} répond, mais ce n’est pas un serveur Melody Manager."
   },
   "ChangeServerMenuItem": {
-    "label": "Changer de serveur"
+    "label": "Changer de serveur",
+    "localFallbackTitle": "Changer de serveur quand même ?",
+    "localFallbackDescription": "Impossible de révoquer la session du serveur, qui restera peut-être connectée. Continuer ne fait que supprimer le serveur enregistré de cet appareil.",
+    "localFallbackConfirm": "Changer de serveur"
   },
   "RenameDialog": {
     "cancel": "Annuler",

@@ -1,4 +1,5 @@
-import { withDelegate, withInterceptor, withSseDelegate as withServerSentEventDelegate } from 'universal-client';
+import { HttpError, withDelegate, withInterceptor, withSseDelegate as withServerSentEventDelegate } from 'universal-client';
+import { handleRevokedSession } from './auth-session';
 import { pb } from './pocketbase';
 
 export const withHttpDelegate = (baseURL: string) =>
@@ -19,6 +20,11 @@ export const withHttpDelegate = (baseURL: string) =>
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         };
+      },
+      onError: (_method, _url, error) => {
+        if (error instanceof HttpError && error.status === 401) {
+          handleRevokedSession();
+        }
       },
     }),
   );

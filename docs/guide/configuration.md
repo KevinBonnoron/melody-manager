@@ -109,6 +109,9 @@ The folder is scanned when you save it, and watched afterwards: a file that
 appears is imported on its own. Titles, artists, albums, years, genres and
 covers all come from the tags in the files.
 
+At server startup the library is also checked for locally available audio;
+album and artist metadata is reused within that pass.
+
 ## Cache
 
 Audio fetched from YouTube, SoundCloud and Bandcamp is kept on disk so it is

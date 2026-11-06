@@ -2,7 +2,21 @@
 // an operator does not have to go looking for them.
 package netaddr
 
-import "net"
+import (
+	"net"
+	"net/netip"
+)
+
+// Canonical formats an address for people: IPv6 is compressed and an IPv4
+// mapped into IPv6 is shown as the IPv4 it represents. Unknown values are kept
+// verbatim rather than being replaced with a misleading placeholder.
+func Canonical(raw string) string {
+	addr, err := netip.ParseAddr(raw)
+	if err != nil {
+		return raw
+	}
+	return addr.Unmap().String()
+}
 
 // Candidates lists the addresses this machine could plausibly be reached at, private ranges
 // first.

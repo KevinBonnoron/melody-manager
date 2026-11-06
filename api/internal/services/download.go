@@ -32,14 +32,27 @@ func sanitizeFilename(name string) string {
 }
 
 func artistName(app core.App, track, album *core.Record) string {
+	return artistNameCached(app, track, album, nil)
+}
+
+func artistNameCached(app core.App, track, album *core.Record, cache map[string]string) string {
 	for _, ids := range [][]string{track.GetStringSlice("artists"), album.GetStringSlice("artists")} {
 		if len(ids) == 0 {
 			continue
 		}
-		if a, err := app.FindRecordById("artists", ids[0]); err == nil {
-			if n := a.GetString("name"); n != "" {
-				return n
+		name, ok := cache[ids[0]]
+		if !ok {
+			artist, err := app.FindRecordById("artists", ids[0])
+			if err != nil {
+				continue
 			}
+			name = artist.GetString("name")
+			if cache != nil {
+				cache[ids[0]] = name
+			}
+		}
+		if name != "" {
+			return name
 		}
 	}
 	return "Unknown Artist"

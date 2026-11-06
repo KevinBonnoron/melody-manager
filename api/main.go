@@ -62,6 +62,7 @@ func main() {
 	}
 
 	hooks.Register(app, deps.Config)
+	routes.RegisterAuthSessions(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		if err := deps.Config.Reload(); err != nil {

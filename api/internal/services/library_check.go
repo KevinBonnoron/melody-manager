@@ -43,13 +43,14 @@ func CheckAlbum(ctx context.Context, app core.App, albumID string) (CheckResult,
 func checkTracks(ctx context.Context, app core.App, records []*core.Record) (CheckResult, error) {
 	var result CheckResult
 	roots := localRoots(app)
+	var cache localLookupCache
 	for _, rec := range records {
 		if err := ctx.Err(); err != nil {
 			return result, err
 		}
 
 		result.Checked++
-		next := availabilityOf(app, rec, roots)
+		next := availabilityOf(app, rec, roots, &cache)
 		if next == rec.GetString("availability") {
 			continue
 		}
@@ -68,8 +69,8 @@ func checkTracks(ctx context.Context, app core.App, records []*core.Record) (Che
 	return result, nil
 }
 
-func availabilityOf(app core.App, track *core.Record, roots []string) string {
-	if localFile(app, track, roots) != "" {
+func availabilityOf(app core.App, track *core.Record, roots []string, cache *localLookupCache) string {
+	if localFileCached(app, track, roots, cache) != "" {
 		return AvailabilityFile
 	}
 	if track.GetString("source") == localSource {

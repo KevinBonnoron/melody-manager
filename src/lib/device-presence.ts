@@ -1,4 +1,5 @@
 import { deviceClient } from '@/clients/device.client';
+import { handleRevokedSession } from '@/lib/auth-session';
 import { getDeviceLabel, getDeviceType, getSessionId } from '@/lib/session-device';
 import { storedVolume } from '@/lib/volume';
 import type { Device, DeviceCommand, Task } from '@/shared';
@@ -88,6 +89,7 @@ function start() {
           handler(task);
         }
       },
+      'auth-revoked': handleRevokedSession,
     },
     reconnect,
   );
