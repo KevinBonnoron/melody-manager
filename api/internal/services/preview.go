@@ -15,6 +15,9 @@ import (
 // ErrNoProvider says the URL belongs to no known provider, so nothing can resolve it.
 var ErrNoProvider = errors.New("no provider matches URL")
 
+// ErrProviderUnavailable says the source is disabled, unconfigured or not linked to the user.
+var ErrProviderUnavailable = errors.New("provider is not configured")
+
 // PreviewTracks resolves a URL the way Import does and returns the tracks an import would
 // create, without persisting anything: a long video cut on its chapters comes back as one
 // entry per chapter, so the caller can show what it is about to add.
@@ -22,6 +25,9 @@ func PreviewTracks(ctx context.Context, app core.App, reg *providers.Registry, u
 	providerID := providers.DetectFromURL(url)
 	if providerID == "" {
 		return nil, fmt.Errorf("%w: %s", ErrNoProvider, url)
+	}
+	if !pbx.ProviderUsable(app, userID, providerID, "import") {
+		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, providerID)
 	}
 	cfg := pbx.EffectiveConfig(app, userID, providerID)
 

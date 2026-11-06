@@ -32,6 +32,9 @@ func Import(ctx context.Context, app core.App, reg *providers.Registry, url stri
 	if providerID == "" {
 		return nil, fmt.Errorf("no provider matches URL: %s", url)
 	}
+	if !pbx.ProviderUsable(app, userID, providerID, "import") {
+		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, providerID)
+	}
 	cfg := pbx.EffectiveConfig(app, userID, providerID)
 
 	resolver := reg.TrackResolver(providerID)
