@@ -29,6 +29,9 @@ export function isSourceInUse(status: SourceStatus): boolean {
   return status !== 'unlinked' && status !== 'unconfigured';
 }
 
+// canSearchSource reports whether a source can answer a search right now: the
+// local library is searchable whenever it is in use, a remote source only when
+// its manifest declares search and it is linked or server-wide.
 export function canSearchSource(type: string, manifests: PluginManifest[], status: SourceStatus): boolean {
   if (type === 'local') {
     return isSourceInUse(status);
@@ -42,6 +45,8 @@ export function canSearchSource(type: string, manifests: PluginManifest[], statu
   return status === 'linked' || status === 'server';
 }
 
+// canImportSource reports whether a source can start a new import: its manifest
+// declares import and it is linked to the user or available server-wide.
 export function canImportSource(type: string, manifests: PluginManifest[], status: SourceStatus): boolean {
   const manifest = manifests.find((m) => m.id === type);
   return manifest?.features.includes('import') === true && (status === 'linked' || status === 'server');
