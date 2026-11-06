@@ -92,9 +92,10 @@ var manifests = []Manifest{
 		UserConnectable: true, // opt-in
 	},
 	{
-		ID: "bandcamp", Name: "Bandcamp", Icon: "bandcamp", Scope: "personal", Version: "1.1.0",
-		Description:     "Stream music from Bandcamp",
-		Features:        []string{"stream", "import"},
+		ID: "bandcamp", Name: "Bandcamp", Icon: "bandcamp", Scope: "personal", Version: "1.2.0",
+		Description:     "Search, stream and import music from Bandcamp",
+		Features:        []string{"search", "stream", "import"},
+		SearchTypes:     []string{"track", "album", "artist"},
 		ImportTypes:     []string{"track", "album", "artist"},
 		URLPatterns:     []string{"bandcamp.com", "bandcamp:"},
 		Category:        CategoryTrack,
