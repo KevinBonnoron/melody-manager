@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { IFuseOptions } from 'fuse.js';
 import Fuse from 'fuse.js';
-import { ArrowRight, Clock, ExternalLink, Library, Link as LinkIcon, ListMusic, Loader2, Music2, Plus, Search, X } from 'lucide-react';
+import { ArrowRight, Clock, ExternalLink, Library, Link as LinkIcon, ListMusic, Loader2, Music2, Plug, Plus, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -9,6 +9,8 @@ import { albumsClient } from '@/clients/albums.client';
 import { artistsClient } from '@/clients/artists.client';
 import { playlistsClient } from '@/clients/playlists.client';
 import { tracksClient } from '@/clients/tracks.client';
+import { ProviderConnectDialog } from '@/components/providers/provider-connect-dialog';
+import { canImportSource, canSearchSource, isUserConnectable } from '@/components/sources/source-status';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/music-player-context';
 import { cachedValue } from '@/hooks/timed-cache';
@@ -21,6 +23,7 @@ import { useExternalSearch } from '@/hooks/use-external-search';
 import { artistNames, resolveAll, useArtistsById } from '@/hooks/use-library-index';
 import { usePlugins } from '@/hooks/use-plugins';
 import { useRecordSearch, useSearchHistory } from '@/hooks/use-search-history';
+import { useSourceScope } from '@/hooks/use-source-scope';
 import { useTrackPreviews } from '@/hooks/use-track-previews';
 import { useTracks } from '@/hooks/use-tracks';
 import { getAlbumCoverUrl, getArtistCoverUrl } from '@/lib/cover-url';
@@ -89,12 +92,12 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   const { data: tracks = [] } = useTracks();
   const { data: albums = [] } = useAlbums();
   const { data: artists = [] } = useArtists();
-  const { trackProviders } = useActiveSources();
+  const { trackProviders, statusOf } = useActiveSources();
   const { manifests } = usePlugins();
   const capability = useCapability();
-  const importableNames = useMemo(() => trackProviders.filter((p) => p.type !== 'local' && manifests.find((m) => m.id === p.type)?.features.includes('import')).map((p) => manifests.find((m) => m.id === p.type)?.name ?? p.type), [trackProviders, manifests]);
+  const importableNames = useMemo(() => trackProviders.filter((p) => p.type !== 'local' && canImportSource(p.type, manifests, statusOf(p.type)) && capability(p.type, 'import').available).map((p) => manifests.find((m) => m.id === p.type)?.name ?? p.type), [trackProviders, manifests, statusOf, capability]);
 
-  const searchableProviders = useMemo(() => trackProviders.filter((p) => p.type !== 'local' && manifests.find((m) => m.id === p.type)?.features.includes('search') && capability(p.type, 'search').available), [trackProviders, manifests, capability]);
+  const searchableProviders = useMemo(() => trackProviders.filter((p) => canSearchSource(p.type, manifests, statusOf(p.type)) && capability(p.type, 'search').available), [trackProviders, manifests, statusOf, capability]);
 
   const searchableTypes = useMemo(() => searchableProviders.map((p) => p.type).join(','), [searchableProviders]);
 
@@ -115,30 +118,46 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
   const [addingUrls, setAddingUrls] = useState<Set<string>>(new Set());
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
+  const [connectingProviderId, setConnectingProviderId] = useState<string | null>(null);
   const { previews, expanded: openPreviews, lastChanged: lastPreview, toggle: togglePreview, retry: retryPreview } = useTrackPreviews();
   const previewIdPrefix = useId();
 
   const trimmedQuery = query.trim();
+  const isLocalScope = scope === 'local';
+  const { albumIds: localAlbumIds, artistIds: localArtistIds } = useSourceScope(isLocalScope ? 'local' : undefined);
   const urlMatch = useMemo(() => detectUrlSource(trimmedQuery), [trimmedQuery]);
+  const urlImportable = urlMatch !== null && trackProviders.some((p) => p.type === urlMatch && canImportSource(p.type, manifests, statusOf(p.type)) && capability(p.type, 'import').available);
+  const urlProvider = trackProviders.find((p) => p.type === urlMatch);
+  const canConnectUrl = !urlImportable && urlProvider !== undefined && isUserConnectable(urlProvider.type, manifests);
+  const connectingProvider = trackProviders.find((p) => p.id === connectingProviderId);
   const urlPreviewId = `${previewIdPrefix}-url`;
-  const isUrlPreviewOpen = urlMatch !== null && supportsTrackPreview(urlMatch) && openPreviews.has(trimmedQuery);
+  const isUrlPreviewOpen = urlImportable && supportsTrackPreview(urlMatch) && openPreviews.has(trimmedQuery);
   useRecordSearch(query, !urlMatch);
 
   const libraryResults = useMemo(() => {
-    if (!trimmedQuery || urlMatch || (scope !== ALL && scope !== 'library')) {
+    if (!trimmedQuery || urlMatch || (scope !== ALL && scope !== 'library' && !isLocalScope)) {
       return { tracks: [] as Track[], albums: [] as Album[], artists: [] as Artist[] };
     }
 
-    return {
+    const results = {
       tracks: trackFuse.search(trimmedQuery, { limit: 10 }).map((r) => r.item),
       albums: albumFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item),
       artists: artistFuse.search(trimmedQuery, { limit: 5 }).map((r) => r.item),
     };
-  }, [trimmedQuery, urlMatch, scope, trackFuse, albumFuse, artistFuse]);
+    if (!isLocalScope) {
+      return results;
+    }
+
+    return {
+      tracks: results.tracks.filter((track) => track.source === 'local'),
+      albums: results.albums.filter((album) => localAlbumIds?.has(album.id)),
+      artists: results.artists.filter((artist) => localArtistIds?.has(artist.id)),
+    };
+  }, [trimmedQuery, urlMatch, scope, isLocalScope, localAlbumIds, localArtistIds, trackFuse, albumFuse, artistFuse]);
 
   const libraryCount = libraryResults.tracks.length + libraryResults.albums.length + libraryResults.artists.length;
 
-  const { results: externalResults, isSearching: isSearchingExternal } = useExternalSearch(trimmedQuery, searchableTypes, !urlMatch && scope !== 'library');
+  const { results: externalResults, isSearching: isSearchingExternal } = useExternalSearch(trimmedQuery, searchableTypes, !urlMatch && scope !== 'library' && !isLocalScope);
 
   const handleAdd = useCallback(
     async (result: SearchResult) => {
@@ -170,7 +189,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
   );
 
   const handleAddUrl = async () => {
-    if (!trimmedQuery) {
+    if (!trimmedQuery || !urlImportable) {
       return;
     }
 
@@ -334,6 +353,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
 
             {searchableProviders.map((p) => {
               const isActive = scope === p.type;
+              const label = manifests.find((m) => m.id === p.type)?.name ?? p.type.charAt(0).toUpperCase() + p.type.slice(1);
               return (
                 <button
                   type="button"
@@ -345,7 +365,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
                   onClick={() => setScope(isActive ? ALL : p.type)}
                 >
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getSourceColor(p.type) }} />
-                  {p.type.charAt(0).toUpperCase() + p.type.slice(1)}
+                  {label}
                 </button>
               );
             })}
@@ -370,22 +390,32 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
               <Music2 className="h-5 w-5 text-foreground/90" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm">{t('SearchPage.readyToImport')}</div>
+              <div className="font-semibold text-sm">{t(urlImportable ? 'SearchPage.readyToImport' : 'SearchPage.sourceUnavailable')}</div>
               <div className="text-xs text-muted-foreground truncate mt-0.5">{trimmedQuery.length > 60 ? `${trimmedQuery.slice(0, 60)}…` : trimmedQuery}</div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={handleAddUrl}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              {t('SearchPage.addToLibrary')}
-            </Button>
-            {supportsTrackPreview(urlMatch) && (
-              <Button size="sm" variant="outline" aria-expanded={isUrlPreviewOpen} aria-controls={isUrlPreviewOpen ? urlPreviewId : undefined} onClick={() => togglePreview(trimmedQuery)}>
-                <ListMusic className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                {t('SearchPage.previewTracks')}
+          {urlImportable && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleAddUrl}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                {t('SearchPage.addToLibrary')}
               </Button>
-            )}
-          </div>
+              {supportsTrackPreview(urlMatch) && (
+                <Button size="sm" variant="outline" aria-expanded={isUrlPreviewOpen} aria-controls={isUrlPreviewOpen ? urlPreviewId : undefined} onClick={() => togglePreview(trimmedQuery)}>
+                  <ListMusic className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                  {t('SearchPage.previewTracks')}
+                </Button>
+              )}
+            </div>
+          )}
+          {canConnectUrl && urlProvider && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => setConnectingProviderId(urlProvider.id)}>
+                <Plug className="h-3.5 w-3.5 mr-1.5" />
+                {t('SearchPage.connectSource', { source: manifests.find((m) => m.id === urlProvider.type)?.name ?? urlProvider.type })}
+              </Button>
+            </div>
+          )}
           {isUrlPreviewOpen && <TrackPreviewPanel id={urlPreviewId} label={t('SearchPage.previewRegionLink')} state={cachedValue(previews, trimmedQuery)} onRetry={() => retryPreview(trimmedQuery)} />}
         </div>
       )}
@@ -431,14 +461,16 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
             </div>
           )}
 
-          <div className="flex items-center gap-2 px-3 py-2 text-[11.5px] text-muted-foreground italic">
-            <LinkIcon className="h-3.5 w-3.5 shrink-0" />
-            {t('SearchPage.urlHint', { sources: importableNames.join(', ') })}
-          </div>
+          {importableNames.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 text-[11.5px] text-muted-foreground italic">
+              <LinkIcon className="h-3.5 w-3.5 shrink-0" />
+              {t('SearchPage.urlHint', { sources: importableNames.join(', ') })}
+            </div>
+          )}
         </div>
       )}
 
-      {trimmedQuery && !urlMatch && (scope === ALL || scope === 'library') && (
+      {trimmedQuery && !urlMatch && (scope === ALL || scope === 'library' || isLocalScope) && (
         <div className="space-y-4">
           {libraryResults.artists.length > 0 && (
             <div className="space-y-2">
@@ -532,7 +564,7 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
         </div>
       )}
 
-      {trimmedQuery && !urlMatch && scope !== 'library' && (
+      {trimmedQuery && !urlMatch && scope !== 'library' && !isLocalScope && (
         <div className="space-y-2">
           <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">{t('SearchPage.externalResults')}</div>
           {isSearchingExternal && (
@@ -620,6 +652,17 @@ export function SearchExperience({ variant = 'page', initialQuery = '', onNaviga
       <output aria-live="polite" className="sr-only">
         {spokenPreview}
       </output>
+      {connectingProvider && (
+        <ProviderConnectDialog
+          providerId={connectingProvider.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setConnectingProviderId(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

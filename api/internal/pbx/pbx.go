@@ -45,6 +45,27 @@ func ProviderEnabled(app core.App, providerType string) bool {
 	return rec.GetBool("enabled")
 }
 
+// ProviderUsable reports whether a user may start a new remote operation with a provider.
+// Existing library content is deliberately unrelated to this check.
+func ProviderUsable(app core.App, userID, providerType, capability string) bool {
+	if !ProviderEnabled(app, providerType) || !CapabilityAvailable(app, providerType, capability) {
+		return false
+	}
+	manifest, ok := providers.ManifestFor(providerType)
+	if !ok {
+		return false
+	}
+	if manifest.Scope != "personal" {
+		return true
+	}
+	if userID == "" {
+		return false
+	}
+	_, err := app.FindFirstRecordByFilter("connections",
+		"user = {:u} && type = {:t}", dbx.Params{"u": userID, "t": providerType})
+	return err == nil
+}
+
 func recordConfig(rec *core.Record) map[string]any {
 	var m map[string]any
 	if err := rec.UnmarshalJSONField("config", &m); err != nil || m == nil {

@@ -292,6 +292,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			if errors.Is(err, services.ErrNoProvider) {
 				return e.BadRequestError("unsupportedUrl", err)
 			}
+			if errors.Is(err, services.ErrProviderUnavailable) {
+				return e.ForbiddenError("providerUnavailable", err)
+			}
 			// Why a video could not be read decides what the caller does about it, so it
 			// travels, but as a word this server chose: yt-dlp's own line is whatever
 			// YouTube wrote, and it goes to the log where a name for it is worked out.

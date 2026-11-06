@@ -29,6 +29,24 @@ export function isSourceInUse(status: SourceStatus): boolean {
   return status !== 'unlinked' && status !== 'unconfigured';
 }
 
+export function canSearchSource(type: string, manifests: PluginManifest[], status: SourceStatus): boolean {
+  if (type === 'local') {
+    return isSourceInUse(status);
+  }
+
+  const manifest = manifests.find((m) => m.id === type);
+  if (!manifest?.features.includes('search')) {
+    return false;
+  }
+
+  return status === 'linked' || status === 'server';
+}
+
+export function canImportSource(type: string, manifests: PluginManifest[], status: SourceStatus): boolean {
+  const manifest = manifests.find((m) => m.id === type);
+  return manifest?.features.includes('import') === true && (status === 'linked' || status === 'server');
+}
+
 export function getTrackProviders(providers: Provider[]): Provider[] {
   return providers.filter((p) => p.category === 'track');
 }

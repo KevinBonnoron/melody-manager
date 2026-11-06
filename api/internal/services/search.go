@@ -57,7 +57,7 @@ func SearchProviders(ctx context.Context, app core.App, reg *providers.Registry,
 	var out []domain.SearchResult
 	errs := make([]ProviderError, 0)
 	for _, mf := range providers.Manifests() {
-		if !slices.Contains(mf.Features, "search") || !pbx.ProviderEnabled(app, mf.ID) || !pbx.CapabilityAvailable(app, mf.ID, "search") {
+		if !slices.Contains(mf.Features, "search") || !pbx.ProviderUsable(app, userID, mf.ID, "search") {
 			continue
 		}
 		s := reg.Searcher(mf.ID)

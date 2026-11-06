@@ -1,12 +1,9 @@
-import { eq, useLiveQuery } from '@tanstack/react-db';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { providerCollection } from '@/collections/provider.collection';
-import { trackCollection } from '@/collections/track.collection';
+import { useActiveSources } from '@/hooks/use-active-sources';
 import { usePlugins } from '@/hooks/use-plugins';
 import { getSourceColor } from '@/lib/source-colors';
 import { cn } from '@/lib/utils';
-import type { Provider } from '@/shared';
 import { getProviderInfoFromManifests } from '../providers/provider-info';
 
 interface Props {
@@ -17,23 +14,8 @@ interface Props {
 export function SourceFilterBar({ value, onChange }: Props) {
   const { t } = useTranslation();
   const { manifests } = usePlugins();
-  const { data: providers = [] } = useLiveQuery({ query: (q) => q.from({ providers: providerCollection }).where(({ providers }) => eq(providers.enabled, true)) });
-  const { data: tracks = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
+  const { active: activeProviders } = useActiveSources();
   const providerInfo = useMemo(() => getProviderInfoFromManifests(t, manifests), [t, manifests]);
-
-  const trackProviders = useMemo(() => (providers as Provider[]).filter((p) => p.category === 'track'), [providers]);
-
-  const trackCountByProvider = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const track of tracks) {
-      const type = (track as { source: string }).source;
-      counts.set(type, (counts.get(type) ?? 0) + 1);
-    }
-
-    return counts;
-  }, [tracks]);
-
-  const activeProviders = useMemo(() => trackProviders.filter((p) => (trackCountByProvider.get(p.type) ?? 0) > 0), [trackProviders, trackCountByProvider]);
 
   if (activeProviders.length <= 1) {
     return null;

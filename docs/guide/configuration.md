@@ -86,7 +86,11 @@ server settings. They are used for every listener; take them from an account
 dedicated to the server, not from a personal one.
 
 A source is usable when it is enabled server-wide and, where a person can
-connect to it, when that person has.
+connect to it, when that person has. Library filters show active sources even
+when they have no tracks yet. Search filters show the configured local library
+and connected personal sources. URL previews and imports follow the same rule:
+a source that is disabled, unconfigured or unlinked cannot start a new external
+operation, while its existing library content remains available.
 
 ### Spotify
 

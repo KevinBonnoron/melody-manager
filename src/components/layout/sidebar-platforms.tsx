@@ -20,7 +20,7 @@ export function SidebarPlatforms() {
   const { pathname } = useLocation();
   const { trackProviders, statusOf, countByType, totalTracks } = useActiveSources();
   const providerInfo = useMemo(() => getProviderInfoFromManifests(t, manifests), [t, manifests]);
-  const connectedProviders = useMemo(() => trackProviders.filter((p) => isSourceInUse(statusOf(p.type))), [trackProviders, statusOf]);
+  const activeProviders = useMemo(() => trackProviders.filter((p) => isSourceInUse(statusOf(p.type))), [trackProviders, statusOf]);
   const availableProviders = useMemo(() => trackProviders.filter((p) => !isSourceInUse(statusOf(p.type))), [trackProviders, statusOf]);
 
   if (trackProviders.length === 0) {
@@ -31,14 +31,14 @@ export function SidebarPlatforms() {
     <SidebarGroup>
       <SidebarGroupLabel className="justify-between">
         <span>{t('AppSidebar.platforms')}</span>
-        <span className="text-[10px] text-muted-foreground/60 font-normal">{t('AppSidebar.platformsConnected', { count: connectedProviders.length })}</span>
+        <span className="text-[10px] text-muted-foreground/60 font-normal">{t('AppSidebar.platformsActive', { count: activeProviders.length })}</span>
       </SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton asChild tooltip={t('AppSidebar.allSources')} isActive={pathname === '/sources'}>
             <Link to="/sources">
               <div className="flex items-center justify-center w-[18px] h-[18px] shrink-0">
-                {connectedProviders.slice(0, 3).map((p, i) => (
+                {activeProviders.slice(0, 3).map((p, i) => (
                   <span key={p.id} className={cn('w-[7px] h-[7px] shrink-0 rounded-full shadow-[0_0_0_1.5px_var(--sidebar)]', i > 0 && '-ml-[3px]')} style={{ backgroundColor: getSourceColor(p.type) }} />
                 ))}
               </div>
@@ -48,7 +48,7 @@ export function SidebarPlatforms() {
           </SidebarMenuButton>
         </SidebarMenuItem>
 
-        {connectedProviders.map((p) => {
+        {activeProviders.map((p) => {
           const info = providerInfo[p.type];
           const Icon = info?.icon ?? Music2;
           const count = countByType.get(p.type) ?? 0;
