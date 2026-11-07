@@ -147,7 +147,7 @@ jobs:
           GOOS: linux
         run: |
           for arch in amd64 arm64; do
-            GOARCH="$arch" go build -trimpath -ldflags="-s -w" -o "../melody-api-linux-$arch" .
+            GOARCH="$arch" go build -trimpath -ldflags="-s -w" -o "../../melody-api-linux-$arch" .
           done
       - name: Checksums
         run: sha256sum melody-api-linux-* > melody-api-checksums.txt
@@ -181,7 +181,7 @@ jobs:
             GOARCH="${target#*/}"
             suffix=""
             if [ "$GOOS" = windows ]; then suffix=".exe"; fi
-            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags='-s -w' -o "../melody-cli-$GOOS-$GOARCH$suffix" .
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags='-s -w' -o "../../melody-cli-$GOOS-$GOARCH$suffix" .
           done
       - name: Checksums
         run: |
@@ -274,8 +274,8 @@ jobs:
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
         run: |
-          mkdir -p ../package/bin
-          go build -trimpath -ldflags='${{ matrix.ldflags }}' -o "../package/bin/${{ matrix.executable }}" .
+          mkdir -p ../../package/bin
+          go build -trimpath -ldflags='${{ matrix.ldflags }}' -o "../../package/bin/${{ matrix.executable }}" .
       - name: Package desktop client for Linux
         if: runner.os == 'Linux'
         run: |
