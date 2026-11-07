@@ -20,7 +20,7 @@ tasks:
 
   api:
     desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
-    dir: api
+    dir: apps/api
     cmds:
       # The listen address comes from config/config.json; pass --http to override.
       - go run . serve
@@ -32,14 +32,14 @@ tasks:
 
   cli:
     desc: 'Run the terminal player (task cli -- login <server> or logout)'
-    dir: cli
+    dir: apps/cli
     interactive: true
     cmds:
       - go run . {{.CLI_ARGS}}
 
   superuser:
     desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
-    dir: api
+    dir: apps/api
     silent: true
     cmds:
       - |
@@ -56,11 +56,11 @@ tasks:
   build:api:
     desc: Build the Go API binary into bin/melody-api, client compiled in
     deps: [build:client]
-    dir: api
+    dir: apps/api
     cmds:
       # The client is embedded, and go:embed only reaches under the module.
-      - rm -rf client/dist && cp -r ../dist client/dist
-      - go build -o ../bin/melody-api .
+      - rm -rf client/dist && cp -r ../client/dist client/dist
+      - go build -o ../../bin/melody-api .
 
   build:client:
     desc: Type-check and build the client bundle
@@ -82,7 +82,7 @@ tasks:
     cmds:
       # The client is embedded in the binary, so it is built first.
       - bun run build:desktop
-      - cd desktop && go build -o ../bin/melody-manager-desktop .
+      - cd apps/desktop && go build -o ../../bin/melody-manager-desktop .
 
   desktop:install:
     desc: 'Install the desktop client for the current user (PREFIX=~/.local by default)'
@@ -93,12 +93,12 @@ tasks:
       # A user-level XDG install: no root, no package manager, and it works the
       # same on a distribution that has one and on a system that does not.
       - install -Dm755 bin/melody-manager-desktop "{{.PREFIX}}/bin/melody-manager"
-      - install -Dm644 public/pwa-512x512.png "{{.PREFIX}}/share/icons/hicolor/512x512/apps/melody-manager.png"
-      - install -Dm644 public/pwa-192x192.png "{{.PREFIX}}/share/icons/hicolor/192x192/apps/melody-manager.png"
+      - install -Dm644 apps/client/public/pwa-512x512.png "{{.PREFIX}}/share/icons/hicolor/512x512/apps/melody-manager.png"
+      - install -Dm644 apps/client/public/pwa-192x192.png "{{.PREFIX}}/share/icons/hicolor/192x192/apps/melody-manager.png"
       # The launcher names the binary by its full path: ~/.local/bin is not on
       # every session's PATH, and a menu entry that does nothing is worse than
       # none.
-      - sed 's|__EXEC__|{{.PREFIX}}/bin/melody-manager|' desktop/melody-manager.desktop | install -Dm644 /dev/stdin "{{.PREFIX}}/share/applications/melody-manager.desktop"
+      - sed 's|__EXEC__|{{.PREFIX}}/bin/melody-manager|' apps/desktop/melody-manager.desktop | install -Dm644 /dev/stdin "{{.PREFIX}}/share/applications/melody-manager.desktop"
       - update-desktop-database "{{.PREFIX}}/share/applications" 2>/dev/null || true
       - echo "Installed in {{.PREFIX}}"
 
@@ -137,8 +137,8 @@ tasks:
   test:
     desc: Run Go and client tests
     cmds:
-      - cd api && go test ./...
-      - bun test src
+      - cd apps/api && go test ./...
+      - cd apps/client && bun test src
 
   test:e2e:
     desc: 'Run the Playwright suite against a throwaway server on :8099 (never touches :8090)'
@@ -147,7 +147,7 @@ tasks:
 
   tidy:
     desc: go mod tidy for the API module
-    dir: api
+    dir: apps/api
     cmds:
       - go mod tidy
 

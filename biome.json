@@ -8,11 +8,11 @@
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "src/**/*.ts*",
-      "!src/routeTree.gen.ts",
-      "!!src/components/ui",
-      "e2e/**/*.ts",
-      "*.ts"
+      "apps/client/src/**/*.ts*",
+      "!apps/client/src/routeTree.gen.ts",
+      "!!apps/client/src/components/ui",
+      "apps/client/e2e/**/*.ts",
+      "apps/client/*.ts"
     ]
   },
   "formatter": {
