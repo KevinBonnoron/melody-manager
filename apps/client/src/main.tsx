@@ -2,12 +2,14 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { installSessionRevocation } from '@/lib/auth-session';
+import { installNativeBackHandler } from '@/services';
 import './i18n';
 import './index.css';
 import { routeTree } from './routeTree.gen';
 
 async function initializeApp() {
   installSessionRevocation();
+  installNativeBackHandler();
   const router = createRouter({ routeTree });
   const rootElement = document.getElementById('root');
   if (!rootElement) {

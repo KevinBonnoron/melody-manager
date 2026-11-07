@@ -1,7 +1,8 @@
 {
   "common": {
     "cancel": "Cancel",
-    "signOutError": "Could not sign out. Check your connection and try again."
+    "signOutError": "Could not sign out. Check your connection and try again.",
+    "backAgainToExit": "Press back again to exit"
   },
   "forms": {
     "errors": {

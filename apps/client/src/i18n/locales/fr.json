@@ -1,7 +1,8 @@
 {
   "common": {
     "cancel": "Annuler",
-    "signOutError": "Impossible de se déconnecter. Vérifiez votre connexion et réessayez."
+    "signOutError": "Impossible de se connecter. Vérifiez votre connexion et réessayez.",
+    "backAgainToExit": "Appuyez à nouveau pour quitter"
   },
   "forms": {
     "errors": {

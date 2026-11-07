@@ -132,6 +132,12 @@ const CLAIM_AGAIN_MS = 2_000;
 const STEP_BACK_ATTEMPTS = 3;
 const STEP_BACK_AGAIN_MS = 750;
 
+// How long a page that finds itself named in a playing record waits before
+// saying it is not the one playing: long enough for a command it was just
+// given to reach the element, short enough to add almost nothing to the
+// position the playback is stopped at.
+const STEP_BACK_WAIT_MS = 1_000;
+
 const MusicPlayerContext = createContext<MusicPlayerContextValue | undefined>(undefined);
 
 export function MusicPlayerProvider({ children }: { children: ReactNode }) {
@@ -187,6 +193,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const orderRef = useRef(0);
   const [holding, setHolding] = useState<string | null>(null);
   const loadRequestRef = useRef(0);
+  // The load request still short of the element, from the order's acceptance
+  // to the track actually held: the step-back waits it out, or a slow stream
+  // token would look like a page making no sound. Zero means none pending.
+  const pendingLoadRef = useRef(0);
 
   const devices = state.devices.map((id) => known.find((device) => device.id === id)).filter((device): device is Device => device !== undefined);
   const playsHere = deviceId !== null && state.devices.includes(deviceId);
@@ -222,10 +232,22 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // A stream coming up is a device arriving or a device coming back, and the
   // second has everything that happened while it was away to catch up on.
   const reconcileRef = useRef<() => void>(() => undefined);
+  // The claim guard and the marker for leaving on purpose. Being dropped from
+  // the set and being unticked look the same from here; what separates them is
+  // who gave the order, so only this device's own orders raise keptOut.
+  const claimedRef = useRef<string | null>(null);
+  const keptOutRef = useRef(false);
+  // Counts registrations: each one brings the claim back below, because a
+  // device whose stream has just come up is one the record can reach again.
+  const [registeredAt, setRegisteredAt] = useState(0);
   useEffect(
     () =>
       subscribeRegistration(() => {
         setDeviceId(getMyDeviceId());
+        if (!keptOutRef.current) {
+          claimedRef.current = null;
+        }
+        setRegisteredAt((n) => n + 1);
         reconcileRef.current();
       }),
     [],
@@ -290,33 +312,59 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // counting a silent device as playing, and nothing would ever say otherwise.
   // So it is done when the server says it is, and until then it is only being
   // attempted.
+  //
+  // Not at once: an order this page gave is answered with the record naming
+  // this device before the command carrying it to the element has landed, and
+  // stepping back inside that gap would undo the order it gave. A page that
+  // reloaded onto a record that was already playing is sent no such command:
+  // nothing arrives, the moment passes, and it says so.
   const steppedBackRef = useRef(false);
-  const steppingBackRef = useRef(false);
+  // The step-back's leave request while the server has not answered. An order
+  // this device gives waits for it, or the two race and undo each other
+  // whichever reaches the server last.
+  const stepBackPendingRef = useRef<Promise<void> | null>(null);
   const [stepBackAttempt, setStepBackAttempt] = useState(0);
   useEffect(() => {
     if (!deviceId || !stateRead || !state.playing || !playsHere || loadedRef.current !== null) {
       return;
     }
-    if (steppedBackRef.current || steppingBackRef.current) {
+    if (steppedBackRef.current) {
       return;
     }
 
-    steppingBackRef.current = true;
-    playerClient
-      .leave(deviceId)
-      .then((after) => {
-        steppedBackRef.current = true;
-        apply(after);
-      })
-      .catch((error) => {
-        console.error('this device could not say it had stopped playing', error);
-        if (stepBackAttempt < STEP_BACK_ATTEMPTS) {
-          setTimeout(() => setStepBackAttempt((n) => n + 1), STEP_BACK_AGAIN_MS);
-        }
-      })
-      .finally(() => {
-        steppingBackRef.current = false;
-      });
+    const timer = setInterval(() => {
+      if (steppedBackRef.current || loadedRef.current !== null) {
+        clearInterval(timer);
+        return;
+      }
+      // A load on its way to the element — accepted, not held yet — is this
+      // device carrying the record all the same. One that failed before
+      // reaching the element leaves the marker clear and is waited out no
+      // longer.
+      if (pendingLoadRef.current !== 0) {
+        return;
+      }
+
+      const leave = playerClient
+        .leave(deviceId)
+        .then((after) => {
+          steppedBackRef.current = true;
+          apply(after);
+        })
+        .catch((error) => {
+          console.error('this device could not say it had stopped playing', error);
+          if (stepBackAttempt < STEP_BACK_ATTEMPTS) {
+            setTimeout(() => setStepBackAttempt((n) => n + 1), STEP_BACK_AGAIN_MS);
+          }
+        });
+      // Only one leave is in flight; the retry above brings this effect back.
+      clearInterval(timer);
+      stepBackPendingRef.current = leave.then(
+        () => undefined,
+        () => undefined,
+      );
+    }, STEP_BACK_WAIT_MS);
+    return () => clearInterval(timer);
   }, [deviceId, stateRead, state.playing, playsHere, stepBackAttempt]);
 
   // Taking the playback on before the record has been read would claim one that
@@ -326,10 +374,15 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // the effect back, since none of what it watches has changed, so the attempt
   // is counted and the count is what brings it back. Twice, because a third
   // refusal is about something a fourth attempt will not fix.
-  const claimedRef = useRef<string | null>(null);
+  //
+  // The guard is also cleared at each registration of this device's stream,
+  // a moment or two after the kind of outage that takes a device out of the
+  // set, and only then: a removal decided on another client is answered by
+  // nothing here, and an order this device gives joins it again below.
   const [claimAttempt, setClaimAttempt] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: registeredAt is a pulse — each registration brings the claim back even though the effect reads nothing that changed.
   useEffect(() => {
-    if (!deviceId || !stateRead || state.devices.length > 0 || claimedRef.current === deviceId) {
+    if (!deviceId || !stateRead || state.devices.length > 0 || keptOutRef.current || claimedRef.current === deviceId) {
       return;
     }
 
@@ -344,17 +397,32 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
           setTimeout(() => setClaimAttempt((n) => n + 1), CLAIM_AGAIN_MS);
         }
       });
-  }, [deviceId, stateRead, state.devices.length, claimAttempt]);
+  }, [deviceId, stateRead, state.devices.length, claimAttempt, registeredAt]);
 
-  // A device is taken out of the set when its stream ends, which is right for a
-  // tab that was closed and is not what happened to one that is still here. It
-  // was not told to leave and did not ask to, so it puts itself back once its
-  // stream is up again.
-  //
-  // Only a tab that belonged: one that never did is a remote control, driving
-  // what comes out elsewhere without being part of it, and has no place to
-  // return to. And only until it is taken out on purpose, or this would undo
-  // that the moment the box was unticked.
+  /**
+   * ensurePlayingHere answers an order that wants sound with nowhere to play:
+   * the order came from this device, so the sound is this device's. It goes
+   * before the order itself rather than beside it, or the order reaches nobody
+   * first, pauses the record and reads as a failure.
+   */
+  const ensurePlayingHere = useCallback(async () => {
+    // A step-back leave this page has in flight settles first: reading the set
+    // beside it would see what the leave is about to change, and the two
+    // orders would undo each other whichever reached the server last.
+    const pending = stepBackPendingRef.current;
+    stepBackPendingRef.current = null;
+    if (pending) {
+      await pending;
+    }
+
+    const mine = getMyDeviceId();
+    if (!mine || stateRef.current.devices.length > 0) {
+      return;
+    }
+    keptOutRef.current = false;
+    await playerClient.devices([mine]);
+  }, []);
+
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = localVolume;
@@ -461,6 +529,9 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }
 
       const request = ++loadRequestRef.current;
+      // The order has been accepted and the element is about to carry it; the
+      // step-back reads this as sound on the way rather than none.
+      pendingLoadRef.current = request;
       setIsLoading(true);
       listenedRef.current = 0;
       lastTimeRef.current = 0;
@@ -476,6 +547,9 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Stream token failed:', error);
         setIsLoading(false);
+        if (pendingLoadRef.current === request) {
+          pendingLoadRef.current = 0;
+        }
         // A start scheduled by the order before this one obeys nothing but its
         // timer, so leaving it armed lets the track this load was replacing
         // come back on its own.
@@ -487,10 +561,14 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }
 
       if (!current() || request !== loadRequestRef.current) {
+        if (pendingLoadRef.current === request) {
+          pendingLoadRef.current = 0;
+        }
         return;
       }
 
       loadedRef.current = trackId;
+      pendingLoadRef.current = 0;
       cycleRef.current = cycle;
       setHolding(null);
       audio.src = `${config.server.url}/tracks/${trackId}/stream?${params.toString()}`;
@@ -882,18 +960,51 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       if (tracks.length === 0) {
         return;
       }
-      void send(() => playerClient.play(tracks.map((track) => track.id)), 'MusicPlayer.playbackErrorGeneric');
+      keptOutRef.current = false;
+      void send(async () => {
+        await ensurePlayingHere();
+        return playerClient.play(tracks.map((track) => track.id));
+      }, 'MusicPlayer.playbackErrorGeneric');
     },
-    [send],
+    [send, ensurePlayingHere],
   );
 
   const togglePlayPause = useCallback(() => {
-    void send(() => (stateRef.current.playing ? playerClient.pause() : playerClient.resume()), 'MusicPlayer.deviceError');
-  }, [send]);
+    keptOutRef.current = false;
+    void send(async () => {
+      if (!stateRef.current.playing) {
+        await ensurePlayingHere();
+      }
+      return stateRef.current.playing ? playerClient.pause() : playerClient.resume();
+    }, 'MusicPlayer.deviceError');
+  }, [send, ensurePlayingHere]);
 
-  const playNext = useCallback(() => void send(() => playerClient.next(), 'MusicPlayer.deviceError'), [send]);
-  const playPrevious = useCallback(() => void send(() => playerClient.previous(), 'MusicPlayer.deviceError'), [send]);
-  const skipTo = useCallback((track: Track) => void send(() => playerClient.skip(track.id), 'MusicPlayer.deviceError'), [send]);
+  const playNext = useCallback(() => {
+    keptOutRef.current = false;
+    void send(async () => {
+      await ensurePlayingHere();
+      return playerClient.next();
+    }, 'MusicPlayer.deviceError');
+  }, [send, ensurePlayingHere]);
+
+  const playPrevious = useCallback(() => {
+    keptOutRef.current = false;
+    void send(async () => {
+      await ensurePlayingHere();
+      return playerClient.previous();
+    }, 'MusicPlayer.deviceError');
+  }, [send, ensurePlayingHere]);
+
+  const skipTo = useCallback(
+    (track: Track) => {
+      keptOutRef.current = false;
+      void send(async () => {
+        await ensurePlayingHere();
+        return playerClient.skip(track.id);
+      }, 'MusicPlayer.deviceError');
+    },
+    [send, ensurePlayingHere],
+  );
   const seek = useCallback((time: number) => void send(() => playerClient.seek(Math.max(0, time)), 'MusicPlayer.deviceError'), [send]);
   const toggleRepeat = useCallback(() => {
     const next: RepeatMode = stateRef.current.repeat === 'none' ? 'one' : stateRef.current.repeat === 'one' ? 'all' : 'none';
@@ -919,9 +1030,31 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const clearQueue = useCallback(() => void send(() => playerClient.clear(), 'MusicPlayer.deviceError'), [send]);
   // Taking this device out on purpose says it no longer belongs, or putting
   // itself back would undo the order as soon as it was given.
-  const playOn = useCallback((next: Device[]) => void send(() => playerClient.devices(next.map((device) => device.id)), 'MusicPlayer.deviceError'), [send]);
-  const joinDevice = useCallback((device: Device) => void send(() => playerClient.join(device.id), 'MusicPlayer.deviceError'), [send]);
-  const leaveDevice = useCallback((device: Device) => void send(() => playerClient.leave(device.id), 'MusicPlayer.deviceError'), [send]);
+  const playOn = useCallback(
+    (next: Device[]) => {
+      keptOutRef.current = !next.some((device) => device.id === getMyDeviceId());
+      void send(() => playerClient.devices(next.map((device) => device.id)), 'MusicPlayer.deviceError');
+    },
+    [send],
+  );
+  const joinDevice = useCallback(
+    (device: Device) => {
+      if (device.id === getMyDeviceId()) {
+        keptOutRef.current = false;
+      }
+      void send(() => playerClient.join(device.id), 'MusicPlayer.deviceError');
+    },
+    [send],
+  );
+  const leaveDevice = useCallback(
+    (device: Device) => {
+      if (device.id === getMyDeviceId()) {
+        keptOutRef.current = true;
+      }
+      void send(() => playerClient.leave(device.id), 'MusicPlayer.deviceError');
+    },
+    [send],
+  );
 
   // How loud a device is goes through the server even when the device is this
   // one, so that every other device sees the change rather than only this one.
