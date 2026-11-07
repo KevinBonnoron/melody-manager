@@ -50,15 +50,18 @@ func (s *Store) Load(owner string) (State, error) {
 }
 
 // Save writes the record back, creating it the first time. A state with
-// nothing to play is not a record but the absence of one, so any record left
-// over goes: keeping it would bring the forgotten track back on the next read.
+// nothing playing and nowhere to play it is not a record but the absence of
+// one, so any record left over goes: keeping it would bring the forgotten
+// track back on the next read. Devices alone keep the record: they are the
+// places the next sound is meant to come out of, and dropping them would turn
+// the next order into one that reaches nobody.
 func (s *Store) Save(owner string, state State) error {
 	record, err := s.find(owner)
 	if err != nil {
 		return err
 	}
 
-	if state.Track == "" {
+	if state.Track == "" && len(state.Devices) == 0 {
 		if record == nil {
 			return nil
 		}
