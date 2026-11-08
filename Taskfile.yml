@@ -21,9 +21,20 @@ tasks:
   api:
     desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
     dir: apps/server
+    vars:
+      # A checkout that ran from apps/api before the rename still has its data
+      # and config there: keep using them rather than starting an empty
+      # database beside the new directory. The new locations win once they
+      # exist, so a fresh setup is untouched.
+      DATA_DIR:
+        sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
+      CONFIG:
+        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo ../api/config/config.json || echo config/config.json'
+    env:
+      CONFIG_FILE: '{{.CONFIG}}'
     cmds:
       # The listen address comes from config/config.json; pass --http to override.
-      - go run . serve
+      - go run . serve --dir {{.DATA_DIR}}
 
   client:
     desc: Run the Vite client on :5173
@@ -41,13 +52,18 @@ tasks:
     desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
     dir: apps/server
     silent: true
+    vars:
+      # Same legacy fallback as the api task: the superuser must land in the
+      # database `task api` actually serves.
+      DATA_DIR:
+        sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
     cmds:
       - |
         if [ -z "{{.CLI_ARGS}}" ]; then
           echo "Usage: task superuser -- <email> <password>" >&2
           exit 1
         fi
-        go run . superuser upsert {{.CLI_ARGS}}
+        go run . superuser upsert {{.CLI_ARGS}} --dir {{.DATA_DIR}}
 
   build:
     desc: Build the Go binary, with the client compiled into it
