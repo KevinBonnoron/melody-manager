@@ -1,5 +1,5 @@
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Pencil, Trash2, User as UserIcon } from 'lucide-react';
+import { Pencil, Trash2, User as UserIcon, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { useAuthUser } from '@/hooks/use-auth-user';
 import { useUsers } from '@/hooks/use-users';
 import { config } from '@/lib/config';
 import type { User } from '@/shared';
+import { CreateUserDialog } from './create-user-dialog';
 import { EditUserDialog } from './edit-user-dialog';
 
 function getInitials(name: string): string {
@@ -29,6 +30,7 @@ export function AdminUsers() {
   const { users, isLoading } = useUsers();
   const [pending, setPending] = useState<User | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const columns = useMemo<Array<ColumnDef<User>>>(
     () => [
@@ -115,6 +117,13 @@ export function AdminUsers() {
 
   return (
     <div>
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setCreating(true)} aria-label={t('Admin.createUser')}>
+          <UserPlus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">{t('Admin.createUser')}</span>
+        </Button>
+      </div>
+
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
@@ -160,6 +169,7 @@ export function AdminUsers() {
       </Dialog>
 
       <EditUserDialog user={editing} isSelf={editing?.id === me.id} onOpenChange={(open) => !open && setEditing(null)} />
+      <CreateUserDialog open={creating} onOpenChange={setCreating} />
     </div>
   );
 }
