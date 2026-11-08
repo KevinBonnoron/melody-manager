@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { Cast, Check, Laptop, Minus, Monitor, Plus, Smartphone, Speaker, Terminal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -156,7 +157,9 @@ export function DeviceSelector() {
         <DropdownMenuLabel>{t('DeviceSelector.playbackDevices')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {here && row(here, t('DeviceSelector.thisBrowser'))}
+        {/* The app registers under its own name on a phone; "this browser" only
+        means something in a tab. */}
+        {here && row(here, Capacitor.isNativePlatform() ? here.name : t('DeviceSelector.thisBrowser'))}
 
         {others.length > 0 && (
           <>

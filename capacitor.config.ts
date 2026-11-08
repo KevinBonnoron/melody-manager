@@ -7,11 +7,6 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
   },
-  plugins: {
-    MediaSession: {
-      alwaysShowNotification: true,
-    },
-  },
 };
 
 export default config;
