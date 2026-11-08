@@ -11,9 +11,9 @@ reviews:
   path_filters:
     - '!bun.lock'
     - '!flake.lock'
-    - '!apps/api/go.sum'
+    - '!apps/server/go.sum'
     - '!apps/client/src/routeTree.gen.ts'
-    - '!apps/api/internal/migrations/snapshot.json'
+    - '!apps/server/internal/migrations/snapshot.json'
     - '!apps/client/src/i18n/locales/**'
     - '!apps/client/public/*.png'
     - '!android/app/src/main/res/**'

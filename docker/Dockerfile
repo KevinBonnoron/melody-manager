@@ -15,13 +15,13 @@ FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS api
 ARG TARGETARCH
 # Which build this is, so that a running server can be asked rather than
 # guessed at. Only the repository knows, and it is not in here: the image is
-# built from apps/api/ alone, so nothing left unset can be worked out later.
+# built from apps/server/ alone, so nothing left unset can be worked out later.
 ARG VERSION=
 ARG BUILT_AT=
 WORKDIR /src
-COPY apps/api/go.mod apps/api/go.sum ./
+COPY apps/server/go.mod apps/server/go.sum ./
 RUN go mod download
-COPY apps/api/ ./
+COPY apps/server/ ./
 # The client is compiled into the binary, and go:embed only reaches under the
 # module, so it is copied in rather than mounted beside it at the end.
 COPY --from=client /app/apps/client/dist ./client/dist

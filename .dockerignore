@@ -23,7 +23,7 @@ node_modules
 .tanstack
 
 # PocketBase data (runtime only)
-apps/api/pb_data
+apps/server/pb_data
 
 # Docker (avoid recursive context)
 docker/Dockerfile

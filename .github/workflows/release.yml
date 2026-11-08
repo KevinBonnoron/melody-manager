@@ -133,15 +133,15 @@ jobs:
           bun-version: 1.3.10
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: apps/api/go.mod
-          cache-dependency-path: apps/api/go.sum
+          go-version-file: apps/server/go.mod
+          cache-dependency-path: apps/server/go.sum
       - run: bun install --frozen-lockfile
       - name: Build client
         run: bun run build
       - name: Compile it into the server
-        run: cp -r apps/client/dist apps/api/client/dist
+        run: cp -r apps/client/dist apps/server/client/dist
       - name: Build
-        working-directory: apps/api
+        working-directory: apps/server
         env:
           CGO_ENABLED: '0'
           GOOS: linux

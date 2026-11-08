@@ -20,7 +20,7 @@ tasks:
 
   api:
     desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
-    dir: apps/api
+    dir: apps/server
     cmds:
       # The listen address comes from config/config.json; pass --http to override.
       - go run . serve
@@ -39,7 +39,7 @@ tasks:
 
   superuser:
     desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
-    dir: apps/api
+    dir: apps/server
     silent: true
     cmds:
       - |
@@ -56,7 +56,7 @@ tasks:
   build:api:
     desc: Build the Go API binary into bin/melody-api, client compiled in
     deps: [build:client]
-    dir: apps/api
+    dir: apps/server
     cmds:
       # The client is embedded, and go:embed only reaches under the module.
       - rm -rf client/dist && cp -r ../client/dist client/dist
@@ -137,7 +137,7 @@ tasks:
   test:
     desc: Run Go and client tests
     cmds:
-      - cd apps/api && go test ./...
+      - cd apps/server && go test ./...
       - cd apps/client && bun test src
 
   test:e2e:
@@ -147,7 +147,7 @@ tasks:
 
   tidy:
     desc: go mod tidy for the API module
-    dir: apps/api
+    dir: apps/server
     cmds:
       - go mod tidy
 
