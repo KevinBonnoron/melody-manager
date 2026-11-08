@@ -1,5 +1,5 @@
 {
-  "name": "@melody-manager/docs",
+  "name": "@melody-manager/website",
   "private": true,
   "scripts": {
     "dev": "vitepress dev",

@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM oven/bun:1.3.10 AS client
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/client/package.json apps/client/
-COPY docs/package.json docs/
+COPY apps/website/package.json apps/website/
 RUN bun install --frozen-lockfile
 COPY apps/client/tsconfig.json apps/client/tsconfig.app.json apps/client/tsconfig.node.json apps/client/vite.config.ts apps/client/index.html apps/client/components.json apps/client/
 COPY apps/client/src ./apps/client/src

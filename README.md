@@ -8,7 +8,7 @@ a Chromecast.
 It runs on your own machine, in one container, and nothing about your library
 leaves it.
 
-![The home screen](docs/public/screenshots/home.jpg)
+![The home screen](apps/website/public/screenshots/home.jpg)
 
 ## What it does
 
@@ -30,15 +30,15 @@ leaves it.
 
 | Browse a source | An album, playing |
 |---|---|
-| ![The local library](docs/public/screenshots/library.jpg) | ![An album page](docs/public/screenshots/album.jpg) |
+| ![The local library](apps/website/public/screenshots/library.jpg) | ![An album page](apps/website/public/screenshots/album.jpg) |
 
 Sources sit side by side, and a track from any of them plays the same way:
 
-![The sources screen](docs/public/screenshots/sources.jpg)
+![The sources screen](apps/website/public/screenshots/sources.jpg)
 
 Speakers found on the network are offered as soon as they answer:
 
-![The devices screen](docs/public/screenshots/devices.jpg)
+![The devices screen](apps/website/public/screenshots/devices.jpg)
 
 <sub>The library in these screenshots is made of releases from the Musictrade
 netlabel by Softspace, KraftiM, Doc &amp; Lena Selyanina, Lena Selyanina and

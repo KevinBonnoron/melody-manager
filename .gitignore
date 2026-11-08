@@ -58,8 +58,8 @@ apps/server/pb_data
 .claude
 
 # VitePress
-docs/.vitepress/cache
-docs/.vitepress/dist
+apps/website/.vitepress/cache
+apps/website/.vitepress/dist
 
 # Android
 android/*.keystore
