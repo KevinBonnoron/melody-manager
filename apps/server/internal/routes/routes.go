@@ -383,6 +383,54 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
 	})
 
+	// The users collection createRule stays superuser-only so that self-signup
+	// remains the only public creation path (gated by the registration switch);
+	// administrators create accounts here instead.
+	g.POST("/users", func(e *core.RequestEvent) error {
+		if !isAdmin(e) {
+			return e.ForbiddenError("admin only", nil)
+		}
+
+		var body struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+			Name     string `json:"name"`
+			Role     string `json:"role"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("invalid body", err)
+		}
+
+		email := strings.TrimSpace(body.Email)
+		if email == "" {
+			return e.BadRequestError("an email address is required", nil)
+		}
+		if body.Password == "" {
+			return e.BadRequestError("a password is required", nil)
+		}
+		if len(body.Password) < passwordMinLength {
+			return e.BadRequestError(fmt.Sprintf("the password must be at least %d characters", passwordMinLength), nil)
+		}
+		role := body.Role
+		if role != "admin" {
+			role = "user"
+		}
+
+		collection, err := e.App.FindCollectionByNameOrId("users")
+		if err != nil {
+			return e.InternalServerError("the users collection is missing", err)
+		}
+		record := core.NewRecord(collection)
+		record.SetEmail(email)
+		record.SetPassword(body.Password)
+		record.Set("name", strings.TrimSpace(body.Name))
+		record.Set("role", role)
+		if err := e.App.Save(record); err != nil {
+			return e.BadRequestError(err.Error(), err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+
 	g.POST("/albums/{id}/download", func(e *core.RequestEvent) error {
 		if !isAdmin(e) {
 			return e.ForbiddenError("admin only", nil)
