@@ -725,6 +725,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     setAudioElement(audio);
 
     const onTimeUpdate = () => {
+      if (Capacitor.isNativePlatform() && audio.duration > 0) {
+        void nativeAudioService.setPosition(audio.currentTime, audio.duration);
+      }
+
       const delta = audio.currentTime - lastTimeRef.current;
       if (delta > 0 && delta < 2) {
         listenedRef.current += delta;
@@ -1093,6 +1097,37 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const volume = playsHere ? localVolume : (louder?.volume ?? 100) / 100;
 
+  useEffect(
+    () => () => {
+      if (Capacitor.isNativePlatform()) {
+        void nativeAudioService.destroy();
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    // Registering is idempotent; the service keeps only the latest callbacks.
+    void nativeAudioService.initialize({ onPlay: togglePlayPause, onPause: togglePlayPause, onNext: playNext, onPrevious: playPrevious, onSeek: seek });
+  }, [togglePlayPause, playNext, playPrevious, seek]);
+
+  // The lock screen only offers controls while the plugin hears a playback
+  // state: that state starts its foreground service, and the service is what
+  // keeps Android from suspending the WebView when the screen locks. With no
+  // state sent the audio dies with the screen — the progress freezes and the
+  // end of a track never arrives, so nothing advances the queue.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    void nativeAudioService.setPlaybackState(currentTrack ? (state.playing ? 'playing' : 'paused') : 'none');
+  }, [state.playing, currentTrack]);
+
   useEffect(() => {
     if (!currentTrack) {
       return;
@@ -1101,9 +1136,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     const album = albumsById.get(currentTrack.album);
     const artist = artistNames(currentTrack.artists, artistsById);
     if (Capacitor.isNativePlatform()) {
-      nativeAudioService.initialize({ onPlay: togglePlayPause, onPause: togglePlayPause, onNext: playNext, onPrevious: playPrevious, onSeek: seek });
-      nativeAudioService.setMetadata({ title: currentTrack.title, artist, album: album?.name ?? '', artwork: album ? getAlbumCoverUrl(album) : undefined, duration: currentTrack.duration });
-      return () => nativeAudioService.destroy();
+      void nativeAudioService.setMetadata({ title: currentTrack.title, artist, album: album?.name ?? '', artwork: album ? getAlbumCoverUrl(album) : undefined, duration: currentTrack.duration });
+      return;
     }
 
     if (!('mediaSession' in navigator)) {
