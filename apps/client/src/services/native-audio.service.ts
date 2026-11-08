@@ -20,11 +20,19 @@ class NativeAudioService {
   private callbacks: NativeAudioCallbacks = {};
   private initialized = false;
   private initPromise: Promise<void> | null = null;
+  // Bumped on every initialize. A destroy requested by an older owner waits
+  // its turn and then checks the generation: a remount that re-initialized
+  // while the teardown was pending owns the handlers now, and tearing them
+  // down would leave its lock screen without controls.
+  private generation = 0;
 
   public async initialize(callbacks: NativeAudioCallbacks) {
+    this.generation++;
     this.callbacks = callbacks;
     if (this.initPromise) {
       await this.initPromise;
+      // The handlers are registered once and shared by every mount; only the
+      // callbacks belonged to this call, and they are already stored.
       return;
     }
 
@@ -103,9 +111,20 @@ class NativeAudioService {
   }
 
   public async destroy() {
-    if (!this.initialized) {
+    const generation = this.generation;
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+    if (!this.initialized || generation !== this.generation) {
+      // Nothing to tear down, or a newer mount took over while this teardown
+      // was waiting: its callbacks are the live ones and the handlers must
+      // survive for it.
       return;
     }
+
+    // Clearing the state first stops the foreground service; removing the
+    // handlers first would leave Android thinking playback goes on.
+    await MediaSession.setPlaybackState({ playbackState: 'none' });
 
     await MediaSession.setActionHandler({ action: 'play' }, null);
     await MediaSession.setActionHandler({ action: 'pause' }, null);

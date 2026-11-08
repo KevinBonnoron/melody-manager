@@ -1137,6 +1137,11 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     const artist = artistNames(currentTrack.artists, artistsById);
     if (Capacitor.isNativePlatform()) {
       void nativeAudioService.setMetadata({ title: currentTrack.title, artist, album: album?.name ?? '', artwork: album ? getAlbumCoverUrl(album) : undefined, duration: currentTrack.duration });
+      // The lock screen wants a timeline even for a track sitting paused:
+      // timeupdate only comes from playback, so seed it from what is loaded
+      // and let the updates take it from there.
+      const audio = audioRef.current;
+      void nativeAudioService.setPosition(audio?.currentTime ?? 0, currentTrack.duration || audio?.duration || 0);
       return;
     }
 
