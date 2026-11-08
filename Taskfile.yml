@@ -54,9 +54,14 @@ tasks:
     silent: true
     vars:
       # Same legacy fallback as the api task: the superuser must land in the
-      # database `task api` actually serves.
+      # database `task api` actually serves, and loading the config must not
+      # create the new file before the legacy one is chosen.
       DATA_DIR:
         sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
+      CONFIG:
+        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo ../api/config/config.json || echo config/config.json'
+    env:
+      CONFIG_FILE: '{{.CONFIG}}'
     cmds:
       - |
         if [ -z "{{.CLI_ARGS}}" ]; then
