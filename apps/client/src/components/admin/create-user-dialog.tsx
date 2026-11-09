@@ -27,7 +27,7 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
 
   const passwordTooShort = password.length > 0 && password.length < PASSWORD_MIN_LENGTH;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
-  const incomplete = email.trim() === '' || password === '' || passwordTooShort || passwordsMismatch;
+  const incomplete = email.trim() === '' || password === '' || confirmPassword === '' || passwordTooShort || passwordsMismatch;
 
   const reset = () => {
     setName('');
