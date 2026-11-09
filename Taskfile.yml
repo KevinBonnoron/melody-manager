@@ -20,21 +20,10 @@ tasks:
 
   api:
     desc: Run the Go backend (embedded PocketBase + custom /api) on :8090
-    dir: apps/server
-    vars:
-      # A checkout that ran from apps/api before the rename still has its data
-      # and config there: keep using them rather than starting an empty
-      # database beside the new directory. The new locations win once they
-      # exist, so a fresh setup is untouched.
-      DATA_DIR:
-        sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
-      CONFIG:
-        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo ../api/config/config.json || echo config/config.json'
-    env:
-      CONFIG_FILE: '{{.CONFIG}}'
     cmds:
       # The listen address comes from config/config.json; pass --http to override.
-      - go run . serve --dir {{.DATA_DIR}}
+      - task: server
+        vars: { ARGS: serve }
 
   client:
     desc: Run the Vite client on :5173
@@ -50,25 +39,47 @@ tasks:
 
   superuser:
     desc: 'Create or update a PocketBase superuser (dashboard at /_/) — task superuser -- <email> <password>'
-    dir: apps/server
     silent: true
-    vars:
-      # Same legacy fallback as the api task: the superuser must land in the
-      # database `task api` actually serves, and loading the config must not
-      # create the new file before the legacy one is chosen.
-      DATA_DIR:
-        sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
-      CONFIG:
-        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo ../api/config/config.json || echo config/config.json'
-    env:
-      CONFIG_FILE: '{{.CONFIG}}'
     cmds:
       - |
         if [ -z "{{.CLI_ARGS}}" ]; then
           echo "Usage: task superuser -- <email> <password>" >&2
           exit 1
         fi
-        go run . superuser upsert {{.CLI_ARGS}} --dir {{.DATA_DIR}}
+      # Silent, or the password would be echoed with the command line.
+      - task: server
+        silent: true
+        vars: { ARGS: 'superuser upsert {{.CLI_ARGS}}' }
+
+  # Runs the server binary for `api` and `superuser`, so both see the same state.
+  #
+  # A checkout that ran from apps/api before the rename still has its data and
+  # config there: keep using them rather than starting an empty database beside
+  # the new directory. The new locations win once they exist, so a fresh setup
+  # is untouched.
+  #
+  # When the legacy config is the one in use the server runs from apps/api, so
+  # a relative path inside it (cacheDir) keeps meaning what it always did
+  # instead of landing in apps/server, where the cache would be adopted from
+  # whatever happens to sit there and trimmed to its limits.
+  server:
+    internal: true
+    dir: apps/server
+    vars:
+      DATA_DIR:
+        sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
+      LEGACY_CONFIG:
+        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo 1 || echo 0'
+    cmds:
+      - |
+        if [ "{{.LEGACY_CONFIG}}" = 1 ]; then
+          go build -o ../../bin/melody-api-legacy .
+          data="$PWD/{{.DATA_DIR}}"
+          cd ../api
+          CONFIG_FILE=config/config.json ../../bin/melody-api-legacy {{.ARGS}} --dir "$data"
+        else
+          CONFIG_FILE=config/config.json go run . {{.ARGS}} --dir {{.DATA_DIR}}
+        fi
 
   build:
     desc: Build the Go binary, with the client compiled into it
