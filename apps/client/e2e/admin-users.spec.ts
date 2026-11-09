@@ -8,6 +8,8 @@ test('an administrator creates a user and deletes it again', async ({ page }) =>
   await dialog.getByLabel('Name').fill('Managed E2E');
   await dialog.getByLabel('Email address').fill('managed-e2e@melody.test');
   await dialog.getByLabel('Password', { exact: true }).fill('managed-e2e-password');
+  // An unconfirmed password is one typo away from an account nobody can sign in to.
+  await expect(dialog.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
   await dialog.getByLabel('Confirm password').fill('managed-e2e-password');
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
