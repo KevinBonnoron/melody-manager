@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { HttpError } from 'universal-client';
 import { usersClient } from '@/clients/users.client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +17,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+function createUserErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof HttpError) {
+    const emailMessage = (error.body as { data?: { email?: { message?: unknown } } } | null)?.data?.email?.message;
+    return typeof emailMessage === 'string' && emailMessage !== '' ? emailMessage : fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function CreateUserDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
@@ -23,6 +32,7 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
   const [role, setRole] = useState<User['role']>('user');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const passwordTooShort = password.length > 0 && password.length < PASSWORD_MIN_LENGTH;
@@ -35,6 +45,7 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
     setRole('user');
     setPassword('');
     setConfirmPassword('');
+    setError(null);
   };
 
   const save = async () => {
@@ -43,17 +54,19 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
     }
 
     setIsSaving(true);
+    setError(null);
     try {
       await usersClient.createUser({ email: email.trim(), password, name: name.trim(), role });
       toast.success(t('Admin.userCreated', { name: name.trim() || email.trim() }));
       onOpenChange(false);
       reset();
-    } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : t('Admin.createUserError'));
-    } finally {
-      setIsSaving(false);
+    } catch (err) {
+      console.error(err);
+      const message = createUserErrorMessage(err, t('Admin.createUserError'));
+      setError(message);
+      toast.error(message);
     }
+    setIsSaving(false);
   };
 
   return (
@@ -75,17 +88,40 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
         <div className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="new-user-name">{t('Admin.name')}</Label>
-            <Input id="new-user-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
+            <Input
+              id="new-user-name"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setError(null);
+              }}
+              autoComplete="off"
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="new-user-email">{t('Admin.email')}</Label>
-            <Input id="new-user-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" />
+            <Input
+              id="new-user-email"
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setError(null);
+              }}
+              autoComplete="off"
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="new-user-role">{t('Admin.role')}</Label>
-            <Select value={role} onValueChange={(next) => setRole(next as User['role'])}>
+            <Select
+              value={role}
+              onValueChange={(next) => {
+                setRole(next as User['role']);
+                setError(null);
+              }}
+            >
               <SelectTrigger id="new-user-role" className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -98,16 +134,36 @@ export function CreateUserDialog({ open, onOpenChange }: Props) {
 
           <div className="grid gap-2">
             <Label htmlFor="new-user-password">{t('Admin.password')}</Label>
-            <Input id="new-user-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
+            <Input
+              id="new-user-password"
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setError(null);
+              }}
+              autoComplete="new-password"
+            />
             {passwordTooShort ? <p className="text-[12px] text-destructive">{t('Admin.passwordTooShort', { count: PASSWORD_MIN_LENGTH })}</p> : <p className="text-[12px] text-muted-foreground">{t('Admin.passwordHint')}</p>}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="new-user-password-confirm">{t('Admin.confirmPassword')}</Label>
-            <Input id="new-user-password-confirm" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" />
+            <Input
+              id="new-user-password-confirm"
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                setError(null);
+              }}
+              autoComplete="new-password"
+            />
             {passwordsMismatch && <p className="text-[12px] text-destructive">{t('Admin.passwordsMismatch')}</p>}
           </div>
         </div>
+
+        {error && <p className="text-[12px] text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button onClick={save} disabled={isSaving || incomplete}>
