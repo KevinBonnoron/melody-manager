@@ -15,7 +15,7 @@ if [ "${E2E_SKIP_BUILD:-}" != "1" ]; then
   (cd "$root" && bun run build >/dev/null)
 fi
 
-cd "$root/../api"
+cd "$root/../server"
 export CONFIG_FILE="$data/config.json"
 export PUBLIC_DIR="$root/dist"
 

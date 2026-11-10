@@ -5,7 +5,7 @@
   "type": "module",
   "workspaces": [
     "./apps/client",
-    "./docs"
+    "./apps/website"
   ],
   "scripts": {
     "dev": "bun run --cwd apps/client dev",

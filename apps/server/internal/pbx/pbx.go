@@ -12,7 +12,7 @@ import (
 
 // EffectiveConfig resolves a provider's effective config for a user: the server-level
 // provider_settings.config overlaid with the user's connections.config (per
-// docs/guide/configuration.md).
+// apps/website/guide/configuration.md).
 func EffectiveConfig(app core.App, userID, providerType string) providers.Config {
 	cfg := providers.Config{}
 

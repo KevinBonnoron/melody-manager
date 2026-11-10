@@ -84,8 +84,8 @@
         "workbox-window": "7.4.1",
       },
     },
-    "docs": {
-      "name": "@melody-manager/docs",
+    "apps/website": {
+      "name": "@melody-manager/website",
       "devDependencies": {
         "vitepress": "^1.6.3",
       },
@@ -458,7 +458,7 @@
 
     "@melody-manager/client": ["@melody-manager/client@workspace:apps/client"],
 
-    "@melody-manager/docs": ["@melody-manager/docs@workspace:docs"],
+    "@melody-manager/website": ["@melody-manager/website@workspace:apps/website"],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.5", "", { "dependencies": { "@tybys/wasm-util": "^0.10.2" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-AWPoBRJ9tsnVhor4sjO7rkni+7p+2IAEFj6cx06UgP10jkQHqay/36uRV/bFkgrh18D9vb4cr8Q0Pthskgzy+Q=="],
 
