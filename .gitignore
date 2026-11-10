@@ -49,6 +49,7 @@ bun.lockb
 .tanstack
 
 # Pocketbase
+apps/api/pb_data
 apps/server/pb_data
 
 # Nix
@@ -78,6 +79,7 @@ ios/App/App/Assets.xcassets/AppIcon.appiconset/
 ios/App/App/Assets.xcassets/Splash.imageset/
 
 # Operator configuration, generated on first run
+apps/api/config/
 apps/server/config/
 
 # Compiled binaries: `task build:api` and `task desktop` both write here.

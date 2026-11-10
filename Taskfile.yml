@@ -69,7 +69,7 @@ tasks:
       DATA_DIR:
         sh: '[ -d ../api/pb_data ] && [ ! -d pb_data ] && echo ../api/pb_data || echo pb_data'
       LEGACY_CONFIG:
-        sh: '[ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo 1 || echo 0'
+        sh: '([ -z "${CONFIG_FILE:-}" ] || [ "$CONFIG_FILE" = config/config.json ]) && [ -f ../api/config/config.json ] && [ ! -f config/config.json ] && echo 1 || echo 0'
     cmds:
       - |
         if [ "{{.LEGACY_CONFIG}}" = 1 ]; then
@@ -78,7 +78,7 @@ tasks:
           cd ../api
           CONFIG_FILE=config/config.json ../../bin/melody-api-legacy {{.ARGS}} --dir "$data"
         else
-          CONFIG_FILE=config/config.json go run . {{.ARGS}} --dir {{.DATA_DIR}}
+          CONFIG_FILE="${CONFIG_FILE:-config/config.json}" go run . {{.ARGS}} --dir {{.DATA_DIR}}
         fi
 
   build:
