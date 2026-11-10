@@ -428,7 +428,7 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if err := e.App.Save(record); err != nil {
 			return e.BadRequestError(err.Error(), err)
 		}
-		return e.JSON(http.StatusOK, map[string]any{"success": true})
+		return e.JSON(http.StatusCreated, map[string]any{"success": true})
 	})
 
 	g.POST("/albums/{id}/download", func(e *core.RequestEvent) error {
