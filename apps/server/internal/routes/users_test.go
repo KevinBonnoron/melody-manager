@@ -96,8 +96,8 @@ func TestCreateUserMakesASignableAccount(t *testing.T) {
 	token := sessionLogin(t, handler, "test@example.com", "1234567890", "Firefox/1.0")
 
 	response := usersCreateRequest(t, handler, token, `{"email":"made@example.com","password":"made-password","name":"Made","role":"admin"}`)
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	if response.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", response.Code, response.Body.String())
 	}
 	record, err := pb.FindAuthRecordByEmail("users", "made@example.com")
 	if err != nil {
@@ -116,8 +116,8 @@ func TestCreateUserDefaultsAnUnknownRoleToUser(t *testing.T) {
 	token := sessionLogin(t, handler, "test@example.com", "1234567890", "Firefox/1.0")
 
 	response := usersCreateRequest(t, handler, token, `{"email":"made@example.com","password":"made-password","role":"superadmin"}`)
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	if response.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", response.Code, response.Body.String())
 	}
 	record, err := pb.FindAuthRecordByEmail("users", "made@example.com")
 	if err != nil {
