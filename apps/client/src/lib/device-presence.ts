@@ -1,5 +1,7 @@
+import { HttpError } from 'universal-client';
 import { deviceClient } from '@/clients/device.client';
 import { handleRevokedSession } from '@/lib/auth-session';
+import { pb } from '@/lib/pocketbase';
 import { getDeviceLabel, getDeviceType, getSessionId } from '@/lib/session-device';
 import { storedVolume } from '@/lib/volume';
 import type { Device, DeviceCommand, Task } from '@/shared';
@@ -24,6 +26,10 @@ const taskHandlers = new Set<(task: Task) => void>();
 // as the stream came back, which is the one moment the waiting was for.
 const RETRY_MIN_MS = 1_000;
 const RETRY_MAX_MS = 10_000;
+// How long the probe that follows a broken stream may take. Past it the server is
+// treated as unreachable, not as having ended the session, so the stream is asked for
+// again on the usual back-off instead of waiting on a request that may never answer.
+const PROBE_TIMEOUT_MS = 5_000;
 let retryIn = RETRY_MIN_MS;
 const STREAM_SILENCE_MS = 60_000;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -91,7 +97,7 @@ function start() {
       },
       'auth-revoked': handleRevokedSession,
     },
-    reconnect,
+    streamBroken,
   );
 }
 
@@ -164,6 +170,41 @@ export function checkAlive() {
 
 function wanted() {
   return listeners.size > 0 || commandHandlers.size > 0 || taskHandlers.size > 0;
+}
+
+/**
+ * streamBroken decides whether a failed stream is worth asking for again. The
+ * stream's error carries no status, so a session that has ended would be asked
+ * again forever, every refusal a 401 that a proxy in front reads as a password
+ * being guessed. A token that has expired is known here; one the server has
+ * ended is learnt from a plain request, whose 401 signs the session out.
+ *
+ * The probe takes a moment, and the stream it was started for may be replaced in
+ * the meantime (the silence timer does it). Its answer then says nothing about
+ * the stream that is there now, and acting on it would interrupt a healthy one.
+ */
+function streamBroken() {
+  if (!pb.authStore.isValid) {
+    stop?.();
+    stop = null;
+    stopWatching();
+    myDeviceId = null;
+    handleRevokedSession();
+    return;
+  }
+
+  const broken = stop;
+  const reconnectIfStillBroken = () => {
+    if (stop === broken) {
+      reconnect();
+    }
+  };
+
+  deviceClient.list(AbortSignal.timeout(PROBE_TIMEOUT_MS)).then(reconnectIfStillBroken, (error: unknown) => {
+    if (!(error instanceof HttpError && error.status === 401)) {
+      reconnectIfStillBroken();
+    }
+  });
 }
 
 /**
