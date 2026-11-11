@@ -164,6 +164,9 @@ func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*
 		if rt.Metadata.Year != nil {
 			r.Set("year", *rt.Metadata.Year)
 		}
+		if rt.AlbumType != "" {
+			r.Set("type", rt.AlbumType)
+		}
 	})
 	if err != nil {
 		return nil, err

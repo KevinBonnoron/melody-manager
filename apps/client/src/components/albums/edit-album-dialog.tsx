@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useArtists } from '@/hooks/use-artists';
+import { albumTypeLabelKey } from '@/lib/album-type';
 import { cn } from '@/lib/utils';
-import type { Album, Artist } from '@/shared';
+import { ALBUM_TYPES, type Album, type AlbumType, type Artist } from '@/shared';
 
 interface Props {
   album: Album;
@@ -25,13 +26,16 @@ export function EditAlbumDialog({ album, currentArtistId, open, onOpenChange }: 
   const [name, setName] = useState(album.name);
   const [artistId, setArtistId] = useState(currentArtistId ?? '');
   const [isSaving, setIsSaving] = useState(false);
+  const initialType: AlbumType | 'auto' = album.typeLocked && album.type ? album.type : 'auto';
+  const [type, setType] = useState<AlbumType | 'auto'>(initialType);
 
   useEffect(() => {
     if (open) {
       setName(album.name);
       setArtistId(currentArtistId ?? '');
+      setType(initialType);
     }
-  }, [open, album.name, currentArtistId]);
+  }, [open, album.name, currentArtistId, initialType]);
 
   const sorted = useMemo(() => [...(artists as unknown as Artist[])].sort((a, b) => a.name.localeCompare(b.name)), [artists]);
 
@@ -39,14 +43,15 @@ export function EditAlbumDialog({ album, currentArtistId, open, onOpenChange }: 
     const nextName = name.trim();
     const renamed = nextName && nextName !== album.name;
     const moved = artistId && artistId !== currentArtistId;
-    if (!renamed && !moved) {
+    const retyped = type !== initialType;
+    if (!renamed && !moved && !retyped) {
       onOpenChange(false);
       return;
     }
 
     setIsSaving(true);
     try {
-      await albumsClient.update(album.id, { name: renamed ? nextName : undefined, artist: moved ? artistId : undefined });
+      await albumsClient.update(album.id, { name: renamed ? nextName : undefined, artist: moved ? artistId : undefined, type: retyped ? (type === 'auto' ? '' : type) : undefined });
       toast.success(t('AlbumActionsMenu.edited', { name: nextName || album.name }));
       onOpenChange(false);
     } catch (error) {
@@ -89,6 +94,24 @@ export function EditAlbumDialog({ album, currentArtistId, open, onOpenChange }: 
                 ))}
               </CommandList>
             </Command>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('AlbumActionsMenu.typeLabel')}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {(['auto', ...ALBUM_TYPES] as const).map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  aria-pressed={type === option}
+                  className={cn('rounded-full border px-3 py-1.5 text-xs font-medium transition-all', type === option ? 'border-primary bg-primary-soft text-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground')}
+                  onClick={() => setType(option)}
+                >
+                  {option === 'auto' ? t('AlbumActionsMenu.typeAuto') : t(albumTypeLabelKey(option))}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">{t('AlbumActionsMenu.typeHelp')}</p>
           </div>
 
           <DialogFooter>

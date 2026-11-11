@@ -460,6 +460,9 @@ func persistLocalFile(ctx context.Context, app core.App, path, sourceURL string)
 		}
 	}
 
+	if err := RefreshAlbumType(app, album.Id); err != nil {
+		app.Logger().Warn("album type refresh failed", "album", album.Id, "error", err)
+	}
 	return album.Id, nil
 }
 

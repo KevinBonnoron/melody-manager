@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { Disc3, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlbumRatings } from '@/hooks/use-ratings';
+import { albumTypeLabelKey, distinctiveAlbumType } from '@/lib/album-type';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { formatDuration } from '@/lib/utils';
 import type { Album, Artist, Track } from '@/shared';
@@ -23,6 +24,7 @@ export function AlbumPage({ album, tracks, artists }: Props) {
   const { t } = useTranslation();
   const { ratingOf, toggleLike, toggleDislike, isReady: ratingsReady } = useAlbumRatings();
   const coverUrl = getAlbumCoverUrl(album);
+  const kind = distinctiveAlbumType(album);
   const totalDuration = tracks.reduce((sum, { duration }) => sum + duration, 0);
   const origin = (() => {
     const raw = tracks.find((t) => {
@@ -71,6 +73,12 @@ export function AlbumPage({ album, tracks, artists }: Props) {
               </DropdownMenu>
             )}
             <span>·</span>
+            {kind && (
+              <>
+                <span>{t(albumTypeLabelKey(kind))}</span>
+                <span>·</span>
+              </>
+            )}
             {album.year && (
               <>
                 <span>{album.year}</span>

@@ -1,9 +1,11 @@
-import { Check, Heart, HeartOff, ListPlus, MoreVertical, Plus, Share2, Trash2 } from 'lucide-react';
+import { Check, Disc3, Heart, HeartOff, ListPlus, MoreVertical, Plus, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { playlistsClient } from '@/clients/playlists.client';
+import { tracksClient } from '@/clients/tracks.client';
 import { trackCollection } from '@/collections/track.collection';
+import { AlbumPickerDialog } from '@/components/albums/album-picker-dialog';
 import { CreatePlaylistDialog } from '@/components/playlists/create-playlist-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -29,6 +31,7 @@ export function TrackActionsCell({ track }: Props) {
   const isAdmin = user.role === 'admin';
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const liked = isLiked(track.id);
   const { data: playlists = [] } = useManualPlaylists();
@@ -121,6 +124,10 @@ export function TrackActionsCell({ track }: Props) {
             {isAdmin && (
               <>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => afterMenuCloses(() => setMoveOpen(true))}>
+                  <Disc3 className="h-4 w-4 mr-2" />
+                  {t('TrackActionsMenu.move')}
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => afterMenuCloses(() => setDeleteDialogOpen(true))}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   {t('TrackActionsMenu.delete')}
@@ -132,6 +139,27 @@ export function TrackActionsCell({ track }: Props) {
       </div>
 
       <CreatePlaylistDialog open={createPlaylistOpen} onOpenChange={setCreatePlaylistOpen} trackIds={[track.id]} />
+
+      {isAdmin && (
+        <AlbumPickerDialog
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+          title={t('TrackActionsMenu.moveTitle', { title: track.title })}
+          description={t('TrackActionsMenu.moveDescription')}
+          excludeId={track.album}
+          preferArtistId={track.artists[0]}
+          allowNew
+          onPick={async (target) => {
+            try {
+              await tracksClient.move([track.id], target);
+              toast.success(t('TrackActionsMenu.moved', { title: track.title }));
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : t('TrackActionsMenu.moveError'));
+              throw error;
+            }
+          }}
+        />
+      )}
 
       {isAdmin && (
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -446,8 +446,9 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			return e.ForbiddenError("admin only", nil)
 		}
 		var body struct {
-			Name   string `json:"name"`
-			Artist string `json:"artist"`
+			Name   string  `json:"name"`
+			Artist string  `json:"artist"`
+			Type   *string `json:"type"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("invalid body", err)
@@ -463,6 +464,53 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 			if err := services.RenameAlbum(e.App, id, body.Name); err != nil {
 				return renameError(e, err)
 			}
+		}
+		if body.Type != nil {
+			if err := services.SetAlbumType(e.App, id, *body.Type); err != nil {
+				return e.BadRequestError(err.Error(), err)
+			}
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true})
+	})
+
+	g.POST("/tracks/move", func(e *core.RequestEvent) error {
+		if !isAdmin(e) {
+			return e.ForbiddenError("admin only", nil)
+		}
+		var body struct {
+			TrackIDs []string `json:"trackIds"`
+			AlbumID  string   `json:"albumId"`
+			Name     string   `json:"name"`
+		}
+		if err := e.BindBody(&body); err != nil || len(body.TrackIDs) == 0 || (body.AlbumID == "") == (body.Name == "") {
+			return e.BadRequestError("give the tracks and either an album or the name of a new one", err)
+		}
+
+		albumID := body.AlbumID
+		if albumID == "" {
+			created, err := services.NewAlbumFromTracks(e.Request.Context(), e.App, body.TrackIDs, body.Name)
+			if err != nil {
+				return regroupError(e, err)
+			}
+			albumID = created
+		} else if err := services.MoveTracks(e.App, body.TrackIDs, albumID); err != nil {
+			return regroupError(e, err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true, "albumId": albumID})
+	})
+
+	g.POST("/albums/{id}/merge", func(e *core.RequestEvent) error {
+		if !isAdmin(e) {
+			return e.ForbiddenError("admin only", nil)
+		}
+		var body struct {
+			Into string `json:"into"`
+		}
+		if err := e.BindBody(&body); err != nil || body.Into == "" {
+			return e.BadRequestError("missing destination album", err)
+		}
+		if err := services.MergeAlbums(e.App, e.Request.PathValue("id"), body.Into); err != nil {
+			return regroupError(e, err)
 		}
 		return e.JSON(http.StatusOK, map[string]any{"success": true})
 	})
@@ -916,6 +964,15 @@ func usableDevice(deps *app.Deps, e *core.RequestEvent) (devices.Device, bool) {
 		return devices.Device{}, false
 	}
 	return dev, true
+}
+
+// regroupError answers a failed move or merge: a file already sitting where a track would go is
+// the caller's to settle, anything else is the server's.
+func regroupError(e *core.RequestEvent, err error) error {
+	if errors.Is(err, services.ErrNameTaken) {
+		return e.BadRequestError(err.Error(), err)
+	}
+	return e.InternalServerError("regroup failed", err)
 }
 
 func renameError(e *core.RequestEvent, err error) error {

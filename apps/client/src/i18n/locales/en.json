@@ -173,6 +173,14 @@
     "noArtistsFromProvider": "No artists with tracks from {{provider}}"
   },
   "AlbumActionsMenu": {
+    "typeLabel": "Release type",
+    "typeAuto": "Automatic",
+    "typeHelp": "Automatic: worked out from the number and length of the tracks. A type you choose is no longer recalculated.",
+    "merge": "Merge into another album…",
+    "mergeTitle": "Merge \"{{name}}\"",
+    "mergeDescription": "The tracks of this album join the chosen album, then this one is removed.",
+    "merged": "\"{{name}}\" was merged",
+    "mergeError": "Could not merge this album",
     "delete": "Delete album",
     "deleting": "Deleting...",
     "deleteConfirmTitle": "Delete album",
@@ -216,6 +224,11 @@
     "checkLost_other": "{{count}} missing"
   },
   "TrackActionsMenu": {
+    "move": "Move to album…",
+    "moveTitle": "Move \"{{title}}\"",
+    "moveDescription": "Pick the album that should hold this track. Its downloaded file follows the track.",
+    "moved": "\"{{title}}\" was moved",
+    "moveError": "Could not move this track",
     "like": "Add to liked songs",
     "unlike": "Remove from liked songs",
     "dislike": "Dislike",
@@ -405,6 +418,7 @@
   "ArtistPage": {
     "playAll": "Play all",
     "albumsSectionTitle": "Albums",
+    "singlesSectionTitle": "Singles & EPs",
     "artistNotFound": "Artist not found",
     "albums_one": "album",
     "albums_other": "albums",
@@ -878,6 +892,21 @@
   },
   "Album": {
     "unavailable": "No file of this album is available"
+  },
+  "AlbumType": {
+    "all": "All",
+    "single": "Single",
+    "ep": "EP",
+    "album": "Album",
+    "mix": "Mix"
+  },
+  "AlbumPicker": {
+    "search": "Search albums...",
+    "none": "No album found",
+    "newLabel": "Or create a new album",
+    "newPlaceholder": "New album name",
+    "create": "Create",
+    "cancel": "Cancel"
   },
   "SetupPage": {
     "title": "Welcome to Melody Manager",

@@ -217,7 +217,31 @@ artwork up again, re-read it from the source.
 ### `PATCH /api/albums/{id}` · `PATCH /api/artists/{id}`
 
 Edit the parts of an album or an artist that are not free for anyone to change
-through the collection API.
+through the collection API. An album takes `name`, `artist` and `type`.
+
+An album's `type` is `single`, `ep`, `album` or `mix`. A video with no chapters
+is imported as a single named after the track; a video cut on its chapters, and
+a local album, get theirs from how many tracks they hold and how long they run
+(up to three tracks under half an hour is a single, up to six an EP, a lone
+track of half an hour or more a mix, anything else an album). The type is worked
+out again whenever tracks come or go, until a `type` is sent: that choice is
+kept, and sending an empty `type` hands the decision back. An album that is only
+one track of a release the source listed has no type.
+
+### `POST /api/tracks/move`
+
+Put tracks in another album. The body is `{"trackIds": [...]}` and either
+`"albumId"` for an existing album or `"name"` for a new one, credited to the
+artist of the first track. A track downloaded to this server has its file moved
+to the new album's folder; the request is refused, and nothing changes, if a
+file is already there. An album left with no track is removed. Administrators
+only. Answers `{"albumId": "..."}`.
+
+### `POST /api/albums/{id}/merge`
+
+Move every track of the album into the album named by `{"into": "..."}`, and
+remove it. Its likes carry over to the destination when the destination has none
+from the same person. Administrators only.
 
 ## Playlists
 

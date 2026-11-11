@@ -8,6 +8,7 @@ import { resolveAll, useArtistsById } from '@/hooks/use-library-index';
 import { useNowPlaying } from '@/hooks/use-now-playing';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { getAlbumDownloadStatus } from '@/lib/album-download-status';
+import { albumTypeLabelKey, distinctiveAlbumType } from '@/lib/album-type';
 import { getAlbumCoverUrl } from '@/lib/cover-url';
 import { getProviderColor } from '@/lib/utils';
 import type { Album } from '@/shared';
@@ -29,6 +30,7 @@ export function AlbumCard({ album }: Props) {
   const unavailable = trackCount > 0 && tracks.every((track) => track.availability === 'none');
   const playable = tracks.filter((track) => track.availability !== 'none');
   const coverUrl = getAlbumCoverUrl(album);
+  const kind = distinctiveAlbumType(album);
   return (
     <Card className={`group transition-all overflow-hidden p-0 gap-0 relative ${unavailable ? 'opacity-45 saturate-0' : 'cursor-pointer hover:shadow-lg hover:shadow-primary/10'} ${isCurrentAlbum ? 'playing-ring' : ''}`} title={unavailable ? t('Album.unavailable') : undefined}>
       <Link to="/albums/$albumId" params={{ albumId: album.id }} className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20">
@@ -87,6 +89,7 @@ export function AlbumCard({ album }: Props) {
             <span>
               {trackCount} {t('AlbumPage.tracks', { count: trackCount })}
             </span>
+            {kind && <span className="rounded-sm bg-muted px-1 uppercase tracking-wide">{t(albumTypeLabelKey(kind))}</span>}
             {downloadStatus !== 'none' && providerType === 'youtube' && <Download className="h-3 w-3 text-muted-foreground/70" />}
           </p>
         </div>
