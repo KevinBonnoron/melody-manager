@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -139,6 +140,36 @@ func TestCreateUserRequiresARealPassword(t *testing.T) {
 		response := usersCreateRequest(t, handler, token, body)
 		if response.Code != http.StatusBadRequest {
 			t.Fatalf("%s: expected 400, got %d: %s", name, response.Code, response.Body.String())
+		}
+	}
+}
+
+// The create-user dialog reads the reason out of data.email.message, so the shape of a
+// refused email is part of the route's contract.
+func TestCreateUserReportsAnEmailProblemUnderDataEmail(t *testing.T) {
+	_, handler := usersTestHandler(t)
+	token := sessionLogin(t, handler, "test@example.com", "1234567890", "Firefox/1.0")
+
+	for name, body := range map[string]string{
+		"a malformed email": `{"email":"not-an-email","password":"made-password"}`,
+		"a duplicate email": `{"email":"test2@example.com","password":"made-password"}`,
+	} {
+		response := usersCreateRequest(t, handler, token, body)
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("%s: expected 400, got %d: %s", name, response.Code, response.Body.String())
+		}
+		var payload struct {
+			Data struct {
+				Email struct {
+					Message string `json:"message"`
+				} `json:"email"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("%s: unreadable body %q: %v", name, response.Body.String(), err)
+		}
+		if payload.Data.Email.Message == "" {
+			t.Fatalf("%s: no data.email.message in %s", name, response.Body.String())
 		}
 	}
 }
