@@ -178,6 +178,10 @@ function wanted() {
  * again forever, every refusal a 401 that a proxy in front reads as a password
  * being guessed. A token that has expired is known here; one the server has
  * ended is learnt from a plain request, whose 401 signs the session out.
+ *
+ * The probe takes a moment, and the stream it was started for may be replaced in
+ * the meantime (the silence timer does it). Its answer then says nothing about
+ * the stream that is there now, and acting on it would interrupt a healthy one.
  */
 function streamBroken() {
   if (!pb.authStore.isValid) {
@@ -189,9 +193,16 @@ function streamBroken() {
     return;
   }
 
-  deviceClient.list(AbortSignal.timeout(PROBE_TIMEOUT_MS)).then(reconnect, (error: unknown) => {
-    if (!(error instanceof HttpError && error.status === 401)) {
+  const broken = stop;
+  const reconnectIfStillBroken = () => {
+    if (stop === broken) {
       reconnect();
+    }
+  };
+
+  deviceClient.list(AbortSignal.timeout(PROBE_TIMEOUT_MS)).then(reconnectIfStillBroken, (error: unknown) => {
+    if (!(error instanceof HttpError && error.status === 401)) {
+      reconnectIfStillBroken();
     }
   });
 }
