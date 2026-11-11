@@ -1,5 +1,7 @@
+import { HttpError } from 'universal-client';
 import { deviceClient } from '@/clients/device.client';
 import { handleRevokedSession } from '@/lib/auth-session';
+import { pb } from '@/lib/pocketbase';
 import { getDeviceLabel, getDeviceType, getSessionId } from '@/lib/session-device';
 import { storedVolume } from '@/lib/volume';
 import type { Device, DeviceCommand, Task } from '@/shared';
@@ -91,7 +93,7 @@ function start() {
       },
       'auth-revoked': handleRevokedSession,
     },
-    reconnect,
+    streamBroken,
   );
 }
 
@@ -164,6 +166,30 @@ export function checkAlive() {
 
 function wanted() {
   return listeners.size > 0 || commandHandlers.size > 0 || taskHandlers.size > 0;
+}
+
+/**
+ * streamBroken decides whether a failed stream is worth asking for again. The
+ * stream's error carries no status, so a session that has ended would be asked
+ * again forever, every refusal a 401 that a proxy in front reads as a password
+ * being guessed. A token that has expired is known here; one the server has
+ * ended is learnt from a plain request, whose 401 signs the session out.
+ */
+function streamBroken() {
+  if (!pb.authStore.isValid) {
+    stop?.();
+    stop = null;
+    stopWatching();
+    myDeviceId = null;
+    handleRevokedSession();
+    return;
+  }
+
+  deviceClient.list().then(reconnect, (error: unknown) => {
+    if (!(error instanceof HttpError && error.status === 401)) {
+      reconnect();
+    }
+  });
 }
 
 /**
