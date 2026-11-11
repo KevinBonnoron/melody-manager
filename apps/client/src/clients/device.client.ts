@@ -8,7 +8,7 @@ export const deviceClient = universalClient(
   withSseDelegate(config.server.url),
   withMethods(({ http, sse }) => {
     return {
-      list: () => http.get<{ success: boolean; data: Device[] }>('/devices'),
+      list: (signal?: AbortSignal) => http.get<{ success: boolean; data: Device[] }>('/devices', { signal }),
 
       events: (identity: { type: DeviceType; session: string; name: string; volume: number }, handlers: { [K in ServerEventName]: (payload: ServerEventPayloads[K]) => void }, onBroken?: () => void) => {
         const unsubscribes: Array<() => void> = Object.values(SERVER_EVENTS).map((name) =>

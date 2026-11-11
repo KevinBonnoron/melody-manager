@@ -26,6 +26,10 @@ const taskHandlers = new Set<(task: Task) => void>();
 // as the stream came back, which is the one moment the waiting was for.
 const RETRY_MIN_MS = 1_000;
 const RETRY_MAX_MS = 10_000;
+// How long the probe that follows a broken stream may take. Past it the server is
+// treated as unreachable, not as having ended the session, so the stream is asked for
+// again on the usual back-off instead of waiting on a request that may never answer.
+const PROBE_TIMEOUT_MS = 5_000;
 let retryIn = RETRY_MIN_MS;
 const STREAM_SILENCE_MS = 60_000;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -185,7 +189,7 @@ function streamBroken() {
     return;
   }
 
-  deviceClient.list().then(reconnect, (error: unknown) => {
+  deviceClient.list(AbortSignal.timeout(PROBE_TIMEOUT_MS)).then(reconnect, (error: unknown) => {
     if (!(error instanceof HttpError && error.status === 401)) {
       reconnect();
     }
