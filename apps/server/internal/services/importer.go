@@ -151,6 +151,11 @@ func autoLikeAlbums(app core.App, userID string, tracks []*core.Record) {
 }
 
 func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*core.Record, error) {
+	if rt.AlbumOwn {
+		if existing, err := app.FindFirstRecordByFilter("tracks", "origin = {:u}", dbx.Params{"u": rt.Origin}); err == nil {
+			return existing, nil
+		}
+	}
 	artist, err := getOrCreate(app, "artists", "name = {:n}", dbx.Params{"n": rt.ArtistName}, func(r *core.Record) {
 		r.Set("name", rt.ArtistName)
 	})
@@ -158,16 +163,32 @@ func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*
 		return nil, err
 	}
 
-	album, err := getOrCreate(app, "albums", "name = {:n} && artists ~ {:a}", dbx.Params{"n": rt.AlbumName, "a": artist.Id}, func(r *core.Record) {
+	setAlbum := func(r *core.Record) {
 		r.Set("name", rt.AlbumName)
 		r.Set("artists", []string{artist.Id})
 		if rt.Metadata.Year != nil {
 			r.Set("year", *rt.Metadata.Year)
 		}
+		r.Set("typeIncomplete", rt.AlbumIncomplete || rt.AlbumType == "")
+		if rt.AlbumOwn {
+			r.Set("videoOrigin", rt.Origin)
+		}
 		if rt.AlbumType != "" {
 			r.Set("type", rt.AlbumType)
 		}
-	})
+	}
+	var album *core.Record
+	if rt.AlbumOwn {
+		var col *core.Collection
+		col, err = app.FindCollectionByNameOrId("albums")
+		if err == nil {
+			album = core.NewRecord(col)
+			setAlbum(album)
+			err = app.Save(album)
+		}
+	} else {
+		album, err = getOrCreate(app, "albums", "name = {:n} && artists ~ {:a} && videoOrigin = ''", dbx.Params{"n": rt.AlbumName, "a": artist.Id}, setAlbum)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +283,9 @@ func resolvePlayable(ctx context.Context, app core.App, reg *providers.Registry,
 	out.Title = meta.Title
 	out.ArtistName = meta.ArtistName
 	out.AlbumName = meta.AlbumName
+	out.AlbumType = meta.AlbumType
+	out.AlbumIncomplete = true
+	out.AlbumOwn = false
 	if meta.CoverURL != "" {
 		out.CoverURL = meta.CoverURL
 	}

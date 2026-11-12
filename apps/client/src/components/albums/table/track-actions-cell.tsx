@@ -1,3 +1,4 @@
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { Check, Disc3, Heart, HeartOff, ListPlus, MoreVertical, Plus, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,8 @@ interface Props {
 
 export function TrackActionsCell({ track }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const router = useRouter();
   const menuFocus = useMenuFocus();
   const { isLiked, isDisliked, toggleLike, toggleDislike } = useTrackRatings();
   const user = useAuthUser();
@@ -151,7 +154,11 @@ export function TrackActionsCell({ track }: Props) {
           allowNew
           onPick={async (target) => {
             try {
-              await tracksClient.move([track.id], target);
+              const result = await tracksClient.move([track.id], target);
+              const sourcePath = router.buildLocation({ to: '/albums/$albumId', params: { albumId: track.album } }).pathname;
+              if (result.removedAlbumIds.includes(track.album) && router.latestLocation.pathname.replace(/\/$/, '') === sourcePath.replace(/\/$/, '')) {
+                navigate({ to: '/albums/$albumId', params: { albumId: result.albumId } });
+              }
               toast.success(t('TrackActionsMenu.moved', { title: track.title }));
             } catch (error) {
               toast.error(error instanceof Error ? error.message : t('TrackActionsMenu.moveError'));

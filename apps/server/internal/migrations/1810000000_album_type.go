@@ -1,13 +1,10 @@
 package migrations
 
 import (
-	"context"
-
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
-	"github.com/KevinBonnoron/melody-manager/api/internal/services"
 )
 
 func init() {
@@ -27,14 +24,22 @@ func init() {
 		if albums.Fields.GetByName("typeLocked") == nil {
 			albums.Fields.Add(&core.BoolField{Name: "typeLocked"})
 		}
+		if albums.Fields.GetByName("typeIncomplete") == nil {
+			albums.Fields.Add(&core.BoolField{Name: "typeIncomplete"})
+		}
+		if albums.Fields.GetByName("videoOrigin") == nil {
+			albums.Fields.Add(&core.TextField{Name: "videoOrigin"})
+		}
 		albums.Fields = orderFields(albums.Fields)
 		if err := app.Save(albums); err != nil {
 			return err
 		}
 
-		if err := services.SplitLegacyYouTubeAlbums(context.Background(), app); err != nil {
+		_, err = app.DB().NewQuery("CREATE TABLE IF NOT EXISTS _album_type_backfill (pending INTEGER NOT NULL)").Execute()
+		if err != nil {
 			return err
 		}
-		return services.BackfillAlbumTypes(app)
+		_, err = app.DB().NewQuery("INSERT INTO _album_type_backfill (pending) VALUES (1)").Execute()
+		return err
 	}, nil)
 }

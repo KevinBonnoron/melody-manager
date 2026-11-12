@@ -10,7 +10,7 @@ export const tracksClient = universalClient(
       addFromUrl: (url: string) => http.post('/tracks/add', { url }),
       previewFromUrl: (url: string, options?: { signal?: AbortSignal }) => http.post<TrackPreview>('/tracks/preview', { url }, options),
       getPeaks: (trackId: string) => http.get<{ peaks: number[] }>(`/tracks/${encodeURIComponent(trackId)}/peaks`),
-      move: (trackIds: string[], target: { albumId: string } | { name: string }) => http.post<{ albumId: string }>('/tracks/move', { trackIds, ...target }),
+      move: (trackIds: string[], target: { albumId: string } | { name: string }) => http.post<{ albumId: string; removedAlbumIds: string[] }>('/tracks/move', { trackIds, ...target }),
     };
   }),
 );

@@ -173,7 +173,13 @@ func numberKnownTrack(app core.App, abs, sourceURL string) error {
 		meta := metas[i]
 		meta.TrackNumber, meta.TotalTracks, meta.DiscNumber = place.number, place.total, place.disc
 		rec.Set("metadata", meta)
-		if err := app.Save(rec); err != nil && firstErr == nil {
+		if err := app.Save(rec); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		if err := RefreshAlbumType(app, rec.GetString("album")); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
@@ -212,7 +218,13 @@ func remeasureChanged(ctx context.Context, app core.App, abs, sourceURL string) 
 		meta.MeasuredFrom = &mtime
 		rec.Set("duration", int(seconds))
 		rec.Set("metadata", meta)
-		if err := app.Save(rec); err != nil && firstErr == nil {
+		if err := app.Save(rec); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		if err := RefreshAlbumType(app, rec.GetString("album")); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
@@ -253,7 +265,7 @@ func downloadedDirs(app core.App) map[string]bool {
 			if root == "" {
 				continue
 			}
-			dirs[filepath.Join(root, sanitizeFilename(artist.GetString("name")), sanitizeFilename(album.GetString("name")))] = true
+			dirs[filepath.Join(root, sanitizeFilename(artist.GetString("name")), AlbumDirectoryName(album))] = true
 		}
 	}
 

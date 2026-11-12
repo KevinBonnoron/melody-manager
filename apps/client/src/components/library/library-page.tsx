@@ -54,7 +54,8 @@ export function LibraryPage() {
 
   const activeTab: LibraryTab = tab ?? 'all';
   const isAll = activeTab === 'all';
-  const shownAlbums = isAll || kind === 'all' || !kinds.has(kind) ? albums : albums.filter((album) => effectiveAlbumType(album) === kind);
+  const effectiveKind = kind === 'all' || kinds.has(kind) ? kind : 'all';
+  const shownAlbums = isAll || effectiveKind === 'all' ? albums : albums.filter((album) => effectiveAlbumType(album) === effectiveKind);
   const shows = (name: LibraryTab) => isAll || activeTab === name;
   const tabs = [
     { id: 'all' as const, label: t('LibraryPage.tabAll') },
@@ -92,7 +93,7 @@ export function LibraryPage() {
           <Section title={t('LibraryPage.albums')} count={shownAlbums.length} bare={!isAll} action={isAll && shownAlbums.length > PREVIEW_LIMIT ? <SeeAllButton onClick={() => navigate({ search: (prev: LibrarySearch) => ({ ...prev, tab: 'albums' }) })} /> : undefined}>
             {!isAll && (
               <div className="mb-3">
-                <AlbumTypeFilterBar value={kind} onChange={setKind} available={kinds} />
+                <AlbumTypeFilterBar value={effectiveKind} onChange={setKind} available={kinds} />
               </div>
             )}
             <CardGrid items={isAll ? shownAlbums.slice(0, PREVIEW_LIMIT) : shownAlbums} getKey={(album) => album.id} className={CARD_GRID} fallbackHeight={246}>

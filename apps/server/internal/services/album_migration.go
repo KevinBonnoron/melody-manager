@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -23,6 +24,26 @@ const (
 	coverFetchFailures = 3
 )
 
+// CompleteAlbumTypeMigration runs after schema migrations commit because splitting can move files.
+// The marker is cleared only after all work succeeds, making interrupted starts retryable.
+func CompleteAlbumTypeMigration(ctx context.Context, app core.App) error {
+	var pending int
+	if err := app.DB().NewQuery("SELECT COUNT(*) FROM _album_type_backfill").Row(&pending); err != nil {
+		return err
+	}
+	if pending == 0 {
+		return nil
+	}
+	if err := SplitLegacyYouTubeAlbums(ctx, app); err != nil {
+		return err
+	}
+	if err := BackfillAlbumTypes(app); err != nil {
+		return err
+	}
+	_, err := app.DB().NewQuery("DELETE FROM _album_type_backfill").Execute()
+	return err
+}
+
 // SplitLegacyYouTubeAlbums gives each track of the "<channel> - youtube" albums an album of its
 // own, named after the track, as an import does now. Downloaded files follow their track, likes
 // follow the album, and what cannot be moved stays where it is. It is safe to run again.
@@ -34,7 +55,7 @@ func SplitLegacyYouTubeAlbums(ctx context.Context, app core.App) error {
 
 	failures := 0
 	for _, old := range albums {
-		if !strings.HasSuffix(old.GetString("name"), legacyAlbumSuffix) {
+		if old.GetString("videoOrigin") != "" || !strings.HasSuffix(old.GetString("name"), legacyAlbumSuffix) {
 			continue
 		}
 		tracks, err := app.FindRecordsByFilter("tracks", "album = {:a}", "", 0, 0, dbx.Params{"a": old.Id})
@@ -54,27 +75,31 @@ func SplitLegacyYouTubeAlbums(ctx context.Context, app core.App) error {
 				credit = old.GetStringSlice("artists")
 			}
 			if len(credit) == 0 {
-				continue
+				return fmt.Errorf("split legacy album: track %s has no artist", track.Id)
 			}
 			title := track.GetString("title")
-			next, err := getOrCreate(app, "albums", "name = {:n} && artists ~ {:a}", dbx.Params{"n": title, "a": credit[0]}, func(r *core.Record) {
-				r.Set("name", title)
-				r.Set("artists", credit)
-				if meta.Year != nil {
-					r.Set("year", *meta.Year)
-				}
-			})
+			col, err := app.FindCollectionByNameOrId("albums")
 			if err != nil {
-				app.Logger().Warn("split legacy album: creating album failed", "track", track.Id, "error", err)
-				continue
+				return err
 			}
-			if err := carryAlbumRatings(app, old.Id, next.Id); err != nil {
-				app.Logger().Warn("split legacy album: carrying likes failed", "track", track.Id, "error", err)
+			next := core.NewRecord(col)
+			next.Set("name", title)
+			next.Set("artists", credit)
+			next.Set("videoOrigin", track.GetString("origin"))
+			if meta.Year != nil {
+				next.Set("year", *meta.Year)
 			}
-			if err := MoveTracks(app, []string{track.Id}, next.Id); err != nil {
-				app.Logger().Warn("split legacy album: moving track failed", "track", track.Id, "error", err)
+			err = app.Save(next)
+			if err != nil {
+				return fmt.Errorf("split legacy album: creating album for track %s: %w", track.Id, err)
+			}
+			if err := moveTracks(app, []string{track.Id}, next.Id, old.Id); err != nil {
 				deleteIfUnused(app, "albums", next.Id, "album = {:id}")
-				continue
+				return fmt.Errorf("split legacy album: moving track %s: %w", track.Id, err)
+			}
+			next, err = app.FindRecordById("albums", next.Id)
+			if err != nil {
+				return err
 			}
 
 			if next.GetString("cover") == "" && meta.CoverArtURL != "" && failures < coverFetchFailures {
@@ -111,7 +136,7 @@ func isLegacyYouTubeAlbum(tracks []*core.Record) bool {
 // counts, and videos cut on their chapters. The rest, such as one track of an album a catalog
 // listed, are left without a kind rather than called singles.
 func BackfillAlbumTypes(app core.App) error {
-	albums, err := app.FindRecordsByFilter("albums", "type = '' && typeLocked = false", "", 0, 0)
+	albums, err := app.FindRecordsByFilter("albums", "", "", 0, 0)
 	if err != nil {
 		return err
 	}
@@ -120,21 +145,31 @@ func BackfillAlbumTypes(app core.App) error {
 		if err != nil {
 			return err
 		}
-		if len(tracks) == 0 || !isWholeAlbum(tracks) {
+		if album.GetString("videoOrigin") != "" {
 			continue
 		}
-		if err := RefreshAlbumType(app, album.Id); err != nil {
-			return err
+		if len(tracks) == 0 {
+			continue
+		}
+		if !isWholeAlbum(album, tracks) {
+			album.Set("typeIncomplete", true)
+			if err := app.Save(album); err != nil {
+				return err
+			}
+		} else if !album.GetBool("typeLocked") && album.GetString("type") == "" {
+			if err := RefreshAlbumType(app, album.Id); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func isWholeAlbum(tracks []*core.Record) bool {
+func isWholeAlbum(album *core.Record, tracks []*core.Record) bool {
 	for _, track := range tracks {
 		var meta domain.TrackMetadata
 		_ = track.UnmarshalJSONField("metadata", &meta)
-		if track.GetString("source") != localSource && meta.StartTime == nil {
+		if track.GetString("source") != localSource && (meta.StartTime == nil || !strings.HasSuffix(album.GetString("name"), legacyAlbumSuffix)) {
 			return false
 		}
 	}

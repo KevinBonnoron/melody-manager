@@ -41,6 +41,8 @@ func newRegroupFixture(t *testing.T) *regroupFixture {
 		&core.NumberField{Name: "year"},
 		&core.SelectField{Name: "type", MaxSelect: 1, Values: []string{"single", "ep", "album", "mix"}},
 		&core.BoolField{Name: "typeLocked"},
+		&core.BoolField{Name: "typeIncomplete"},
+		&core.TextField{Name: "videoOrigin"},
 		&core.RelationField{Name: "artists", CollectionId: artists.Id, MaxSelect: 10},
 	)
 	save(albums)
@@ -111,7 +113,7 @@ func (f *regroupFixture) track(album *core.Record, title string, metadata map[st
 	}
 	f.save(r)
 
-	dir := filepath.Join(f.root, "Channel", sanitizeFilename(album.GetString("name")))
+	dir := filepath.Join(f.root, "Channel", AlbumDirectoryName(album))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		f.t.Fatal(err)
 	}
@@ -229,6 +231,91 @@ func TestMergingKeepsTheLikesOfTheMergedAlbum(t *testing.T) {
 	}
 }
 
+func TestRejectedMergeDoesNotCarryRatings(t *testing.T) {
+	f := newRegroupFixture(t)
+	from, into := f.album("From"), f.album("Into")
+	track := f.track(from, "Song", nil)
+	f.track(into, "Song", nil)
+	c, _ := f.app.FindCollectionByNameOrId("album_ratings")
+	rating := core.NewRecord(c)
+	rating.Set("user", "u1")
+	rating.Set("album", from.Id)
+	rating.Set("value", "like")
+	f.save(rating)
+
+	if err := MergeAlbums(f.app, from.Id, into.Id); err == nil {
+		t.Fatal("merge overwrote an existing file")
+	}
+	got, err := f.app.FindRecordById("tracks", track.Id)
+	if err != nil || got.GetString("album") != from.Id {
+		t.Fatalf("source track changed: %v", err)
+	}
+	source, _ := f.app.FindRecordsByFilter("album_ratings", "album = {:a}", "", 0, 0, dbx.Params{"a": from.Id})
+	dest, _ := f.app.FindRecordsByFilter("album_ratings", "album = {:a}", "", 0, 0, dbx.Params{"a": into.Id})
+	if len(source) != 1 || len(dest) != 0 {
+		t.Fatalf("ratings after failed merge: source %d, destination %d", len(source), len(dest))
+	}
+}
+
+func TestMergingEmptyAlbumCarriesRatingsAndRemovesSource(t *testing.T) {
+	f := newRegroupFixture(t)
+	from, into := f.album("Empty"), f.album("Into")
+	c, _ := f.app.FindCollectionByNameOrId("album_ratings")
+	rating := core.NewRecord(c)
+	rating.Set("user", "u1")
+	rating.Set("album", from.Id)
+	rating.Set("value", "like")
+	f.save(rating)
+
+	if err := MergeAlbums(f.app, from.Id, into.Id); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.albumsNamed("Empty")) != 0 {
+		t.Fatal("empty source survived merge")
+	}
+	dest, err := f.app.FindRecordsByFilter("album_ratings", "album = {:a} && user = 'u1'", "", 0, 0, dbx.Params{"a": into.Id})
+	if err != nil || len(dest) != 1 || dest[0].GetString("value") != "like" {
+		t.Fatalf("destination ratings = %v, %v", dest, err)
+	}
+}
+
+func TestNewAlbumRejectsExistingEmptyAlbum(t *testing.T) {
+	f := newRegroupFixture(t)
+	existing, from := f.album("Existing"), f.album("From")
+	track := f.track(from, "Song", nil)
+	if _, err := NewAlbumFromTracks(context.Background(), f.app, []string{track.Id}, "Existing"); err == nil {
+		t.Fatal("accepted an existing album")
+	}
+	if _, err := f.app.FindRecordById("albums", existing.Id); err != nil {
+		t.Fatalf("existing album deleted: %v", err)
+	}
+	got, err := f.app.FindRecordById("tracks", track.Id)
+	if err != nil || got.GetString("album") != from.Id || !f.file("From", "Song") {
+		t.Fatalf("track changed after rejected split: %v", err)
+	}
+}
+
+func TestResetIncompleteAlbumPreservesUnknownType(t *testing.T) {
+	f := newRegroupFixture(t)
+	album := f.album("Catalog")
+	album.Set("typeIncomplete", true)
+	f.save(album)
+	f.track(album, "Song", nil)
+	if err := SetAlbumType(f.app, album.Id, "album"); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetAlbumType(f.app, album.Id, ""); err != nil {
+		t.Fatal(err)
+	}
+	got, err := f.app.FindRecordById("albums", album.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.GetString("type") != "" || got.GetBool("typeLocked") {
+		t.Fatalf("reset incomplete album: type %q, locked %v", got.GetString("type"), got.GetBool("typeLocked"))
+	}
+}
+
 func TestSplittingLegacyYouTubeAlbumsGivesEachTrackItsOwnAlbum(t *testing.T) {
 	f := newRegroupFixture(t)
 	legacy := f.album("Channel - youtube")
@@ -253,7 +340,7 @@ func TestSplittingLegacyYouTubeAlbumsGivesEachTrackItsOwnAlbum(t *testing.T) {
 		if len(albums) != 1 || albums[0].GetString("type") != "single" {
 			t.Fatalf("album %q: %d found, type %q", title, len(albums), albums[0].GetString("type"))
 		}
-		if !f.file(title, title) || f.file("Channel - youtube", title) {
+		if _, err := os.Stat(filepath.Join(f.root, "Channel", AlbumDirectoryName(albums[0]), "01 - "+title+".m4a")); err != nil || f.file("Channel - youtube", title) {
 			t.Fatalf("the file of %q did not move", title)
 		}
 	}
@@ -269,7 +356,7 @@ func TestBackfillOnlyNamesAlbumsWhoseContentIsKnown(t *testing.T) {
 	f := newRegroupFixture(t)
 	partial := f.album("Seen through one track")
 	f.track(partial, "Only", nil)
-	cut := f.album("Cut video")
+	cut := f.album("Cut video - youtube")
 	for _, title := range []string{"a", "b", "c", "d", "e", "f", "g"} {
 		f.track(cut, title, map[string]any{"startTime": 0.0, "endTime": 60.0})
 	}

@@ -65,6 +65,9 @@ func main() {
 	routes.RegisterAuthSessions(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		if err := services.CompleteAlbumTypeMigration(context.Background(), se.App); err != nil {
+			return err
+		}
 		if err := deps.Config.Reload(); err != nil {
 			slog.Warn("configuration not reloaded", "path", deps.Config.Path(), "error", err)
 		}

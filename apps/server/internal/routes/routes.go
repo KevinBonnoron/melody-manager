@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -453,6 +454,21 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("invalid body", err)
 		}
+		if body.Type != nil {
+			switch *body.Type {
+			case "", domain.AlbumSingle, domain.AlbumEP, domain.AlbumFull, domain.AlbumMix:
+			default:
+				return e.BadRequestError("unknown album type", nil)
+			}
+		}
+		if body.Name != "" && strings.TrimSpace(body.Name) == "" {
+			return e.BadRequestError("the name cannot be empty", nil)
+		}
+		if body.Artist != "" {
+			if _, err := e.App.FindRecordById("artists", body.Artist); err != nil {
+				return e.BadRequestError("artist not found", err)
+			}
+		}
 
 		id := e.Request.PathValue("id")
 		if body.Artist != "" {
@@ -485,6 +501,14 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		if err := e.BindBody(&body); err != nil || len(body.TrackIDs) == 0 || (body.AlbumID == "") == (body.Name == "") {
 			return e.BadRequestError("give the tracks and either an album or the name of a new one", err)
 		}
+		sourceAlbums := make(map[string]bool)
+		for _, id := range body.TrackIDs {
+			track, err := e.App.FindRecordById("tracks", id)
+			if err != nil {
+				return e.BadRequestError("track not found", err)
+			}
+			sourceAlbums[track.GetString("album")] = true
+		}
 
 		albumID := body.AlbumID
 		if albumID == "" {
@@ -496,7 +520,15 @@ func Register(se *core.ServeEvent, deps *app.Deps) {
 		} else if err := services.MoveTracks(e.App, body.TrackIDs, albumID); err != nil {
 			return regroupError(e, err)
 		}
-		return e.JSON(http.StatusOK, map[string]any{"success": true, "albumId": albumID})
+		removedAlbumIDs := make([]string, 0, len(sourceAlbums))
+		for id := range sourceAlbums {
+			if _, err := e.App.FindRecordById("albums", id); errors.Is(err, sql.ErrNoRows) {
+				removedAlbumIDs = append(removedAlbumIDs, id)
+			} else if err != nil {
+				return e.InternalServerError("checking source album", err)
+			}
+		}
+		return e.JSON(http.StatusOK, map[string]any{"success": true, "albumId": albumID, "removedAlbumIds": removedAlbumIDs})
 	})
 
 	g.POST("/albums/{id}/merge", func(e *core.RequestEvent) error {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -23,6 +24,13 @@ func RefreshAlbumType(app core.App, albumID string) error {
 	}
 	if album.GetBool("typeLocked") {
 		return nil
+	}
+	if album.GetBool("typeIncomplete") {
+		if album.GetString("type") == "" {
+			return nil
+		}
+		album.Set("type", "")
+		return app.Save(album)
 	}
 
 	tracks, err := app.FindRecordsByFilter("tracks", "album = {:a}", "", 0, 0, dbx.Params{"a": albumID})
@@ -80,6 +88,12 @@ func SetAlbumType(app core.App, albumID, kind string) error {
 // MoveTracks puts tracks in another album. A track downloaded to this server's disk has its
 // file moved to the new album's folder, since that is where it is looked for.
 func MoveTracks(app core.App, trackIDs []string, albumID string) error {
+	return moveTracks(app, trackIDs, albumID, "")
+}
+
+// moveTracks includes a merge's rating transfer and source removal in the same transaction
+// as the track updates, so a rejected move cannot leave likes on the destination.
+func moveTracks(app core.App, trackIDs []string, albumID, mergeFrom string) error {
 	target, err := app.FindRecordById("albums", albumID)
 	if err != nil {
 		return err
@@ -108,13 +122,16 @@ func MoveTracks(app core.App, trackIDs []string, albumID string) error {
 		if src == "" {
 			continue
 		}
-		dst := filepath.Join(rootOf(app, src), sanitizeFilename(artistName(app, track, target)), sanitizeFilename(target.GetString("name")), filepath.Base(src))
+		dst := filepath.Join(rootOf(app, src), sanitizeFilename(artistName(app, track, target)), AlbumDirectoryName(target), filepath.Base(src))
 		if src != dst {
 			moves = append(moves, move{from: src, to: dst})
 		}
 	}
-	if len(tracks) == 0 {
+	if len(tracks) == 0 && mergeFrom == "" {
 		return nil
+	}
+	if mergeFrom != "" {
+		sources[mergeFrom] = true
 	}
 
 	if err := checkDestinations(moves); err != nil {
@@ -131,7 +148,32 @@ func MoveTracks(app core.App, trackIDs []string, albumID string) error {
 				return err
 			}
 		}
-		return nil
+		if mergeFrom != "" {
+			if err := carryAlbumRatings(tx, mergeFrom, target.Id); err != nil {
+				return err
+			}
+		}
+		for id := range sources {
+			if id == "" {
+				continue
+			}
+			remaining, err := tx.FindRecordsByFilter("tracks", "album = {:id}", "", 1, 0, dbx.Params{"id": id})
+			if err != nil {
+				return err
+			}
+			if len(remaining) == 0 {
+				source, err := tx.FindRecordById("albums", id)
+				if err != nil {
+					return err
+				}
+				if err := tx.Delete(source); err != nil {
+					return err
+				}
+			} else if err := RefreshAlbumType(tx, id); err != nil {
+				return err
+			}
+		}
+		return RefreshAlbumType(tx, target.Id)
 	}); err != nil {
 		undoMoves(moves)
 		return err
@@ -140,15 +182,7 @@ func MoveTracks(app core.App, trackIDs []string, albumID string) error {
 	for _, m := range moves {
 		pruneEmpty(filepath.Dir(m.from), rootOf(app, m.from))
 	}
-	for id := range sources {
-		deleteIfUnused(app, "albums", id, "album = {:id}")
-		if _, err := app.FindRecordById("albums", id); err == nil {
-			if err := RefreshAlbumType(app, id); err != nil {
-				return err
-			}
-		}
-	}
-	return RefreshAlbumType(app, target.Id)
+	return nil
 }
 
 // MergeAlbums moves every track of an album into another and removes the emptied album,
@@ -173,10 +207,7 @@ func MergeAlbums(app core.App, fromID, intoID string) error {
 		ids[i] = track.Id
 	}
 
-	if err := carryAlbumRatings(app, fromID, intoID); err != nil {
-		return err
-	}
-	return MoveTracks(app, ids, intoID)
+	return moveTracks(app, ids, intoID, fromID)
 }
 
 // NewAlbumFromTracks gathers tracks into an album of the given name, credited to the artist of
@@ -199,16 +230,32 @@ func NewAlbumFromTracks(ctx context.Context, app core.App, trackIDs []string, na
 		return "", errors.New("the first track has no artist to credit the album to")
 	}
 
-	album, err := getOrCreate(app, "albums", "name = {:n} && artists ~ {:a}", dbx.Params{"n": name, "a": artists[0]}, func(r *core.Record) {
-		r.Set("name", name)
-		r.Set("artists", artists)
-	})
+	filter := "name = {:n} && artists ~ {:a}"
+	params := dbx.Params{"n": name, "a": artists[0]}
+	if _, err := app.FindFirstRecordByFilter("albums", filter, params); err == nil {
+		return "", fmt.Errorf("%w: %s", ErrNameTaken, name)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+	collection, err := app.FindCollectionByNameOrId("albums")
+	if err != nil {
+		return "", err
+	}
+	album := core.NewRecord(collection)
+	album.Set("name", name)
+	album.Set("artists", artists)
+	err = app.Save(album)
 	if err != nil {
 		return "", err
 	}
 
 	if err := MoveTracks(app, trackIDs, album.Id); err != nil {
 		deleteIfUnused(app, "albums", album.Id, "album = {:id}")
+		return "", err
+	}
+	// MoveTracks recalculates the type; fetch a fresh record before saving a cover.
+	album, err = app.FindRecordById("albums", album.Id)
+	if err != nil {
 		return "", err
 	}
 

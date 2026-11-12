@@ -48,7 +48,7 @@ func applyMoves(moves []move) error {
 			undoMoves(done)
 			return err
 		}
-		if err := os.Rename(m.from, m.to); err != nil {
+		if err := movePath(m.from, m.to); err != nil {
 			undoMoves(done)
 			return err
 		}
@@ -60,8 +60,36 @@ func applyMoves(moves []move) error {
 
 func undoMoves(done []move) {
 	for i := len(done) - 1; i >= 0; i-- {
-		_ = os.Rename(done[i].to, done[i].from)
+		_ = movePath(done[i].to, done[i].from)
 	}
+}
+
+// movePath uses a hard link as an atomic no-replace operation for downloaded
+// files. Directory renames retain their existing destination check.
+func movePath(from, to string) error {
+	info, err := os.Lstat(from)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		if _, err := os.Lstat(to); err == nil {
+			return fmt.Errorf("%w: %s", ErrNameTaken, to)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		return os.Rename(from, to)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("cannot move non-regular file: %s", from)
+	}
+	if err := os.Link(from, to); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%w: %s", ErrNameTaken, to)
+		}
+		return err
+	}
+	// If unlinking fails, keep both links rather than risking loss of data.
+	return os.Remove(from)
 }
 
 func isDir(path string) bool {
@@ -70,7 +98,7 @@ func isDir(path string) bool {
 }
 
 func exists(path string) bool {
-	_, err := os.Stat(path)
+	_, err := os.Lstat(path)
 	return err == nil
 }
 
@@ -103,7 +131,7 @@ func RenameAlbum(app core.App, albumID, newName string) error {
 	}
 
 	artist := albumArtistName(app, album)
-	moves := planned(albumMoves(app, artist, album.GetString("name"), artist, newName))
+	moves := planned(albumMoves(app, artist, AlbumDirectoryName(album), artist, albumDirectoryName(album, newName)))
 	if err := checkDestinations(moves); err != nil {
 		return err
 	}
@@ -182,7 +210,7 @@ func ReattachAlbum(app core.App, albumID, artistID string) error {
 
 	from := albumArtistName(app, album)
 	to := artist.GetString("name")
-	name := album.GetString("name")
+	name := AlbumDirectoryName(album)
 
 	var moves []move
 	if from != to {
@@ -221,8 +249,8 @@ func albumMoves(app core.App, fromArtist, fromAlbum, toArtist, toAlbum string) [
 			continue
 		}
 		moves = append(moves, move{
-			from: filepath.Join(root, sanitizeFilename(fromArtist), sanitizeFilename(fromAlbum)),
-			to:   filepath.Join(root, sanitizeFilename(toArtist), sanitizeFilename(toAlbum)),
+			from: filepath.Join(root, sanitizeFilename(fromArtist), fromAlbum),
+			to:   filepath.Join(root, sanitizeFilename(toArtist), toAlbum),
 		})
 	}
 

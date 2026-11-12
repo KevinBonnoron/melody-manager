@@ -619,7 +619,7 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 			continue
 		}
 
-		dir := filepath.Join(root, sanitizeFilename(artist), sanitizeFilename(album.GetString("name")))
+		dir := filepath.Join(root, sanitizeFilename(artist), AlbumDirectoryName(album))
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

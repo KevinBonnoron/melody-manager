@@ -113,6 +113,119 @@ func TestApplyMovesCreatesTheDestinationParent(t *testing.T) {
 	}
 }
 
+func TestApplyMovesFileCollisionRollsBack(t *testing.T) {
+	root := t.TempDir()
+	first := filepath.Join(root, "first")
+	second := filepath.Join(root, "second")
+	firstDest := filepath.Join(root, "new", "first")
+	secondDest := filepath.Join(root, "new", "second")
+	writeFile(t, first)
+	writeFile(t, second)
+	mkdirs(t, filepath.Dir(secondDest))
+	if err := os.WriteFile(secondDest, []byte("existing"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := applyMoves([]move{{from: first, to: firstDest}, {from: second, to: secondDest}})
+	if !errors.Is(err, ErrNameTaken) {
+		t.Fatalf("got %v, want ErrNameTaken", err)
+	}
+	if !exists(first) || exists(firstDest) || !exists(second) {
+		t.Fatal("failed batch did not preserve the source files")
+	}
+	data, err := os.ReadFile(secondDest)
+	if err != nil || string(data) != "existing" {
+		t.Fatalf("destination changed: %q, %v", data, err)
+	}
+}
+
+func TestUndoMovesDoesNotOverwriteRecreatedSource(t *testing.T) {
+	root := t.TempDir()
+	for _, directory := range []bool{false, true} {
+		name := "file"
+		if directory {
+			name = "directory"
+		}
+		t.Run(name, func(t *testing.T) {
+			from := filepath.Join(root, name, "old")
+			to := filepath.Join(root, name, "new")
+			if directory {
+				writeFile(t, filepath.Join(from, "track"))
+			} else {
+				writeFile(t, from)
+			}
+			m := move{from: from, to: to}
+			if err := applyMoves([]move{m}); err != nil {
+				t.Fatal(err)
+			}
+			if directory {
+				mkdirs(t, from)
+			} else if err := os.WriteFile(from, []byte("replacement"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			undoMoves([]move{m})
+			if !exists(from) || !exists(to) {
+				t.Fatal("rollback overwrote the recreated source or removed the moved data")
+			}
+			if !directory {
+				data, err := os.ReadFile(from)
+				if err != nil || string(data) != "replacement" {
+					t.Fatalf("source changed: %q, %v", data, err)
+				}
+			}
+		})
+	}
+}
+
+func TestApplyMovesConcurrentDestinationCreation(t *testing.T) {
+	root := t.TempDir()
+	from := filepath.Join(root, "source")
+	to := filepath.Join(root, "destination")
+	writeFile(t, from)
+	start := make(chan struct{})
+	created := make(chan error, 1)
+	go func() {
+		<-start
+		f, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err == nil {
+			_, err = f.WriteString("competitor")
+			if closeErr := f.Close(); err == nil {
+				err = closeErr
+			}
+		}
+		created <- err
+	}()
+	close(start)
+	moveErr := applyMoves([]move{{from: from, to: to}})
+	createErr := <-created
+	data, err := os.ReadFile(to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if moveErr == nil {
+		if !errors.Is(createErr, os.ErrExist) || string(data) != "x" || exists(from) {
+			t.Fatalf("move won but destination changed: create=%v data=%q", createErr, data)
+		}
+	} else if !errors.Is(moveErr, ErrNameTaken) || createErr != nil || string(data) != "competitor" || !exists(from) {
+		t.Fatalf("creator won but files changed: move=%v create=%v data=%q", moveErr, createErr, data)
+	}
+}
+
+func TestRenameVideoAlbumKeepsItsDirectoryIdentity(t *testing.T) {
+	f := newRegroupFixture(t)
+	album := f.album("Old")
+	album.Set("videoOrigin", "https://example.com/video")
+	f.save(album)
+	oldPath := filepath.Join(f.root, "Channel", AlbumDirectoryName(album), "track.flac")
+	writeFile(t, oldPath)
+	if err := RenameAlbum(f.app, album.Id, "New"); err != nil {
+		t.Fatal(err)
+	}
+	newPath := filepath.Join(f.root, "Channel", albumDirectoryName(album, "New"), "track.flac")
+	if exists(oldPath) || !exists(newPath) {
+		t.Fatalf("video album not moved from %q to %q", oldPath, newPath)
+	}
+}
+
 func TestPruneEmptyStopsAtTheRootAndAtWhatIsUsed(t *testing.T) {
 	root := t.TempDir()
 	empty := filepath.Join(root, "Empty Artist", "Gone")

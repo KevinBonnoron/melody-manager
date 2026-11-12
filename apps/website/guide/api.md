@@ -220,13 +220,25 @@ Edit the parts of an album or an artist that are not free for anyone to change
 through the collection API. An album takes `name`, `artist` and `type`.
 
 An album's `type` is `single`, `ep`, `album` or `mix`. A video with no chapters
-is imported as a single named after the track; a video cut on its chapters, and
-a local album, get theirs from how many tracks they hold and how long they run
+and no source-listed album is imported as a release named after the track:
+`single` below 30 minutes, `mix` at 30 minutes or more. A video cut on its
+chapters, and a local album, get theirs from how many tracks they hold and how
+long they run
 (up to three tracks under half an hour is a single, up to six an EP, a lone
 track of half an hour or more a mix, anything else an album). The type is worked
 out again whenever tracks come or go, until a `type` is sent: that choice is
 kept, and sending an empty `type` hands the decision back. An album that is only
 one track of a release the source listed has no type.
+
+An imported video keeps its own album identity even when another video by the
+same artist has the same title. These albums also have separate download
+directories; their displayed names stay unchanged.
+
+On the first start after this upgrade, the server splits eligible legacy
+`"<channel> - youtube"` albums into one album per video and backfills release
+types. Renamed albums are not split. The one-shot data conversion runs before
+serving requests, after schema migrations, so a failed file move does not leave
+a rolled-back database pointing at files that have already moved.
 
 ### `POST /api/tracks/move`
 
@@ -235,7 +247,9 @@ Put tracks in another album. The body is `{"trackIds": [...]}` and either
 artist of the first track. A track downloaded to this server has its file moved
 to the new album's folder; the request is refused, and nothing changes, if a
 file is already there. An album left with no track is removed. Administrators
-only. Answers `{"albumId": "..."}`.
+only. Answers `{"albumId": "...", "removedAlbumIds": [...]}`; the latter lists
+source albums removed by this move so callers can leave a deleted album page.
+A new album name must not match an existing album by the same artist.
 
 ### `POST /api/albums/{id}/merge`
 
