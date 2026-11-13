@@ -1,6 +1,9 @@
-import { ExternalLink, HeartOff, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { ExternalLink, HeartOff, Merge, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { albumsClient } from '@/clients/albums.client';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuthUser } from '@/hooks/use-auth-user';
@@ -9,6 +12,7 @@ import { useAlbumRatings } from '@/hooks/use-ratings';
 import { useAlbumTracks } from '@/hooks/use-tracks';
 import { afterMenuCloses } from '@/lib/utils';
 import type { Album } from '@/shared';
+import { AlbumPickerDialog } from './album-picker-dialog';
 import { CheckAlbumMenuItem } from './check-album-menu-item';
 import { DeleteAlbumDialog } from './delete-album-dialog';
 import { DownloadAlbumMenuItem } from './download-album-menu-item';
@@ -31,6 +35,8 @@ export function AlbumActionsMenu({ album, currentArtistId, origin }: Props) {
   const { isDisliked, toggleDislike } = useAlbumRatings();
   const disliked = isDisliked(album.id);
   const [editOpen, setEditOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const navigate = useNavigate();
   const isYouTubeAlbum = tracks.some((t) => t.origin.includes('youtube.com') || t.origin.includes('youtu.be'));
   const hasChapters = tracks.some((t) => t.metadata?.startTime !== undefined);
   const hasActionItems = isYouTubeAlbum || hasChapters;
@@ -73,6 +79,10 @@ export function AlbumActionsMenu({ album, currentArtistId, origin }: Props) {
                   </DropdownMenuItem>
                   <CheckAlbumMenuItem album={album} />
                   <RefreshCoverMenuItem album={album} />
+                  <DropdownMenuItem onSelect={() => afterMenuCloses(() => setMergeOpen(true))}>
+                    <Merge className="h-4 w-4 mr-2" />
+                    {t('AlbumActionsMenu.merge')}
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => afterMenuCloses(openDialog)}>
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -85,6 +95,29 @@ export function AlbumActionsMenu({ album, currentArtistId, origin }: Props) {
         )}
       />
       <EditAlbumDialog album={album} currentArtistId={currentArtistId} open={editOpen} onOpenChange={setEditOpen} />
+      {isAdmin && (
+        <AlbumPickerDialog
+          open={mergeOpen}
+          onOpenChange={setMergeOpen}
+          title={t('AlbumActionsMenu.mergeTitle', { name: album.name })}
+          description={t('AlbumActionsMenu.mergeDescription')}
+          excludeId={album.id}
+          preferArtistId={currentArtistId}
+          onPick={async (target) => {
+            if (!('albumId' in target)) {
+              return;
+            }
+            try {
+              await albumsClient.merge(album.id, target.albumId);
+              toast.success(t('AlbumActionsMenu.merged', { name: album.name }));
+              navigate({ to: '/albums/$albumId', params: { albumId: target.albumId } });
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : t('AlbumActionsMenu.mergeError'));
+              throw error;
+            }
+          }}
+        />
+      )}
     </>
   );
 }

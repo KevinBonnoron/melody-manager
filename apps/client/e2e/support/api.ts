@@ -26,6 +26,10 @@ export class AdminApi {
     return this.send('PATCH', `/api/collections/${collection}/records/${id}`, data);
   }
 
+  public async delete(collection: string, id: string) {
+    return this.send('DELETE', `/api/collections/${collection}/records/${id}`);
+  }
+
   public async first(collection: string, filter: string) {
     const query = new URLSearchParams({ filter, perPage: '1' });
     const body = await this.send('GET', `/api/collections/${collection}/records?${query}`);

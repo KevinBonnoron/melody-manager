@@ -217,7 +217,70 @@ artwork up again, re-read it from the source.
 ### `PATCH /api/albums/{id}` · `PATCH /api/artists/{id}`
 
 Edit the parts of an album or an artist that are not free for anyone to change
-through the collection API.
+through the collection API. An album takes `name`, `artist` and `type`.
+
+An album's `type` is `single`, `ep`, `album` or `mix`. A video with no chapters
+and no source-listed album is imported as a release named after the track:
+`single` below 30 minutes, `mix` at 30 minutes or more. A video cut on its
+chapters, and a local album, get theirs from how many tracks they hold and how
+long they run
+(up to three tracks under half an hour is a single, up to six an EP, a lone
+track of half an hour or more a mix, anything else an album). The type is worked
+out again whenever tracks come or go, until a `type` is sent: that choice is
+kept, and sending an empty `type` hands the decision back. An album that is only
+one track of a release the source listed has no type.
+
+An imported video keeps its own album identity even when another video by the
+same artist has the same title, including chaptered videos. These albums also
+have separate download directories; their displayed names stay unchanged.
+Chapters are identified by their video and start time, not by their title:
+repeated chapter titles remain separate tracks, and reimporting reuses the
+existing tracks and the video's album.
+
+On the first start after this upgrade, the server splits eligible legacy
+`"<channel> - youtube"` albums into one album per video and backfills release
+types. Renamed albums are not split. The one-shot data conversion runs before
+serving requests, after schema migrations, so a failed file move does not leave
+a rolled-back database pointing at files that have already moved.
+Cover fetching shares a five-second deadline across the entire conversion,
+including successful downloads. Once that deadline expires, the split still
+finishes without waiting for the remaining covers.
+If a legacy album's downloaded files cannot be attributed unambiguously, the
+whole album is left unsplit, with its tracks, files and ratings still in place.
+The server logs the skipped album and completes the one-shot conversion rather
+than blocking startup or retrying the ambiguity on every restart.
+
+### `POST /api/tracks/move`
+
+Put tracks in another album. The body is `{"trackIds": [...]}` and either
+`"albumId"` for an existing album or `"name"` for a new one, credited to the
+artist of the first track. A track downloaded to this server has its file moved
+to the new album's folder; the request is refused, and nothing changes, if a
+file is already there. An album left with no track is removed. Administrators
+only. Answers `{"albumId": "...", "removedAlbumIds": [...]}`; the latter lists
+source albums removed by this move so callers can leave a deleted album page.
+A new album name must not match an existing album by the same artist.
+
+A downloaded file must be identified unambiguously: repeated on-disk titles
+or multiple matching files cause the move to be refused before changing album
+associations. Regular-file moves never replace an existing destination. On
+filesystems without hard links, including FAT/exFAT, the server instead creates
+the destination exclusively, copies and flushes the audio, then removes the
+source. This requires temporary space for both copies.
+File lookup compares the entire title after the track-number prefix, so
+`01 - Opening - Theme.m4a` never supplies audio for `Theme`. If only such a
+suffix match exists, the move is refused and legacy conversion skips the
+affected album; an exact-title file remains usable even when both files exist.
+
+If cleanup or rollback cannot complete, the error retains both the original
+failure and the affected paths. Files are not overwritten to force a rollback;
+inspect the reported paths before retrying the operation.
+
+### `POST /api/albums/{id}/merge`
+
+Move every track of the album into the album named by `{"into": "..."}`, and
+remove it. Its likes carry over to the destination when the destination has none
+from the same person. Administrators only.
 
 ## Playlists
 

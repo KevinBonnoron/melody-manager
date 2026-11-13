@@ -33,11 +33,18 @@ type TrackMetadata struct {
 
 // ResolvedTrack is what a provider returns when resolving a URL, not yet persisted.
 type ResolvedTrack struct {
-	Title          string        `json:"title"`
-	Duration       int           `json:"duration"`
-	Origin         string        `json:"origin"`
-	ArtistName     string        `json:"artistName"`
-	AlbumName      string        `json:"albumName"`
+	Title      string `json:"title"`
+	Duration   int    `json:"duration"`
+	Origin     string `json:"origin"`
+	ArtistName string `json:"artistName"`
+	AlbumName  string `json:"albumName"`
+	// AlbumType is the kind of release the provider knows the album to be, empty when the
+	// resolved tracks are only part of an album it cannot see the rest of.
+	AlbumType string `json:"albumType,omitempty"`
+	// AlbumIncomplete means the source lists an album but did not resolve its complete contents.
+	AlbumIncomplete bool `json:"albumIncomplete,omitempty"`
+	// AlbumOwn identifies a chapterless video whose album is the video itself.
+	AlbumOwn       bool          `json:"albumOwn,omitempty"`
 	CoverURL       string        `json:"coverUrl,omitempty"`
 	ArtistImageURL string        `json:"artistImageUrl,omitempty"`
 	Source         string        `json:"source"`

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlbumCard } from '@/components/albums/album-card';
 import { ArtistCard } from '@/components/artists/artist-card';
+import { type AlbumTypeFilter, AlbumTypeFilterBar } from '@/components/atoms/album-type-filter-bar';
 import { CardGrid } from '@/components/atoms/card-grid';
 import { EmptyTab } from '@/components/atoms/empty-tab';
 import { SectionTabs } from '@/components/atoms/section-tabs';
@@ -18,6 +19,7 @@ import { useArtistsByIds } from '@/hooks/use-artists';
 import { useManualPlaylists } from '@/hooks/use-playlists';
 import { useLikedAlbumIds, useLikedArtistIds, useLikedTracks } from '@/hooks/use-ratings';
 import { useSourceScope } from '@/hooks/use-source-scope';
+import { effectiveAlbumType } from '@/lib/album-type';
 import type { LibrarySearch, LibraryTab } from '@/routes/library/index';
 
 const PREVIEW_LIMIT = 6;
@@ -31,6 +33,7 @@ export function LibraryPage() {
   const { albumIds, artistIds } = useSourceScope(source);
   const { data: playlists = [] } = useManualPlaylists();
   const [createOpen, setCreateOpen] = useState(false);
+  const [kind, setKind] = useState<AlbumTypeFilter>('all');
   const { data: likedTracks = [] } = useLikedTracks();
   const { data: likedAlbumIds = [] } = useLikedAlbumIds();
   const { data: albumsByIds = [] } = useAlbumsByIds(likedAlbumIds);
@@ -41,6 +44,7 @@ export function LibraryPage() {
 
   const artists = useMemo(() => (artistIds ? likedArtists.filter((a) => artistIds.has(a.id)) : likedArtists), [likedArtists, artistIds]);
   const albums = useMemo(() => (albumIds ? likedAlbums.filter((a) => albumIds.has(a.id)) : likedAlbums), [likedAlbums, albumIds]);
+  const kinds = useMemo(() => new Set(albums.map(effectiveAlbumType)), [albums]);
   const tracks = useMemo(() => (source ? likedTracks.filter((tr) => tr.source === source) : likedTracks), [likedTracks, source]);
 
   const totalItems = likedArtists.length + likedAlbums.length + playlists.length + likedTracks.length;
@@ -50,6 +54,8 @@ export function LibraryPage() {
 
   const activeTab: LibraryTab = tab ?? 'all';
   const isAll = activeTab === 'all';
+  const effectiveKind = kind === 'all' || kinds.has(kind) ? kind : 'all';
+  const shownAlbums = isAll || effectiveKind === 'all' ? albums : albums.filter((album) => effectiveAlbumType(album) === effectiveKind);
   const shows = (name: LibraryTab) => isAll || activeTab === name;
   const tabs = [
     { id: 'all' as const, label: t('LibraryPage.tabAll') },
@@ -84,8 +90,13 @@ export function LibraryPage() {
         )}
 
         {shows('albums') && albums.length > 0 && (
-          <Section title={t('LibraryPage.albums')} count={albums.length} bare={!isAll} action={isAll && albums.length > PREVIEW_LIMIT ? <SeeAllButton onClick={() => navigate({ search: (prev: LibrarySearch) => ({ ...prev, tab: 'albums' }) })} /> : undefined}>
-            <CardGrid items={isAll ? albums.slice(0, PREVIEW_LIMIT) : albums} getKey={(album) => album.id} className={CARD_GRID} fallbackHeight={246}>
+          <Section title={t('LibraryPage.albums')} count={shownAlbums.length} bare={!isAll} action={isAll && shownAlbums.length > PREVIEW_LIMIT ? <SeeAllButton onClick={() => navigate({ search: (prev: LibrarySearch) => ({ ...prev, tab: 'albums' }) })} /> : undefined}>
+            {!isAll && (
+              <div className="mb-3">
+                <AlbumTypeFilterBar value={effectiveKind} onChange={setKind} available={kinds} />
+              </div>
+            )}
+            <CardGrid items={isAll ? shownAlbums.slice(0, PREVIEW_LIMIT) : shownAlbums} getKey={(album) => album.id} className={CARD_GRID} fallbackHeight={246}>
               {(album) => <AlbumCard album={album} />}
             </CardGrid>
           </Section>

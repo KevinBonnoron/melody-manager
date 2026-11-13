@@ -3,9 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -45,12 +47,10 @@ func applyMoves(moves []move) error {
 	done := make([]move, 0, len(moves))
 	for _, m := range moves {
 		if err := os.MkdirAll(filepath.Dir(m.to), 0o755); err != nil {
-			undoMoves(done)
-			return err
+			return errors.Join(err, undoMoves(done))
 		}
-		if err := os.Rename(m.from, m.to); err != nil {
-			undoMoves(done)
-			return err
+		if err := movePath(m.from, m.to); err != nil {
+			return errors.Join(err, undoMoves(done))
 		}
 		done = append(done, m)
 	}
@@ -58,10 +58,88 @@ func applyMoves(moves []move) error {
 	return nil
 }
 
-func undoMoves(done []move) {
+func undoMoves(done []move) error {
+	var errs []error
 	for i := len(done) - 1; i >= 0; i-- {
-		_ = os.Rename(done[i].to, done[i].from)
+		if err := movePath(done[i].to, done[i].from); err != nil {
+			errs = append(errs, fmt.Errorf("rollback %s to %s: %w", done[i].to, done[i].from, err))
+		}
 	}
+	return errors.Join(errs...)
+}
+
+// movePath uses an atomic no-replace operation for files. Directory renames
+// retain their existing destination check.
+func movePath(from, to string) error {
+	return movePathWithOps(from, to, os.Link, os.Remove)
+}
+
+// The operations are injectable to exercise filesystem failures deterministically.
+func movePathWithOps(from, to string, link func(string, string) error, remove func(string) error) error {
+	info, err := os.Lstat(from)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		if _, err := os.Lstat(to); err == nil {
+			return fmt.Errorf("%w: %s", ErrNameTaken, to)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		return os.Rename(from, to)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("cannot move non-regular file: %s", from)
+	}
+	if err := link(from, to); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%w: %s", ErrNameTaken, to)
+		}
+		// Some filesystems report EPERM when hard links are unsupported.
+		if !errors.Is(err, syscall.EXDEV) && !errors.Is(err, syscall.ENOSYS) && !errors.Is(err, syscall.EOPNOTSUPP) && !errors.Is(err, syscall.EPERM) {
+			return err
+		}
+		return copyMove(from, to, info.Mode(), remove)
+	}
+	if err := remove(from); err != nil {
+		return cleanupMoveDestination(to, fmt.Errorf("remove source %s: %w", from, err), remove)
+	}
+	return nil
+}
+
+func cleanupMoveDestination(to string, cause error, remove func(string) error) error {
+	if err := remove(to); err != nil {
+		return errors.Join(cause, fmt.Errorf("remove destination %s: %w", to, err))
+	}
+	return cause
+}
+
+func copyMove(from, to string, mode os.FileMode, remove func(string) error) error {
+	src, err := os.Open(from)
+	if err != nil {
+		return err
+	}
+	dst, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode.Perm())
+	if err != nil {
+		closeErr := src.Close()
+		if errors.Is(err, os.ErrExist) {
+			err = fmt.Errorf("%w: %s", ErrNameTaken, to)
+		}
+		return errors.Join(err, closeErr)
+	}
+	_, copyErr := io.Copy(dst, src)
+	var syncErr error
+	if copyErr == nil {
+		syncErr = dst.Sync()
+	}
+	err = errors.Join(copyErr, syncErr, dst.Close(), src.Close())
+	if err != nil {
+		return cleanupMoveDestination(to, fmt.Errorf("copy %s to %s: %w", from, to, err), remove)
+	}
+	if err := remove(from); err != nil {
+		return cleanupMoveDestination(to, fmt.Errorf("remove source %s: %w", from, err), remove)
+	}
+	return nil
 }
 
 func isDir(path string) bool {
@@ -70,7 +148,7 @@ func isDir(path string) bool {
 }
 
 func exists(path string) bool {
-	_, err := os.Stat(path)
+	_, err := os.Lstat(path)
 	return err == nil
 }
 
@@ -103,7 +181,7 @@ func RenameAlbum(app core.App, albumID, newName string) error {
 	}
 
 	artist := albumArtistName(app, album)
-	moves := planned(albumMoves(app, artist, album.GetString("name"), artist, newName))
+	moves := planned(albumMoves(app, artist, AlbumDirectoryName(album), artist, albumDirectoryName(album, newName)))
 	if err := checkDestinations(moves); err != nil {
 		return err
 	}
@@ -113,8 +191,7 @@ func RenameAlbum(app core.App, albumID, newName string) error {
 
 	album.Set("name", newName)
 	if err := app.Save(album); err != nil {
-		undoMoves(moves)
-		return err
+		return errors.Join(err, undoMoves(moves))
 	}
 
 	return nil
@@ -157,8 +234,7 @@ func RenameArtist(app core.App, artistID, newName string) error {
 
 	artist.Set("name", newName)
 	if err := app.Save(artist); err != nil {
-		undoMoves(moves)
-		return err
+		return errors.Join(err, undoMoves(moves))
 	}
 
 	return nil
@@ -182,7 +258,7 @@ func ReattachAlbum(app core.App, albumID, artistID string) error {
 
 	from := albumArtistName(app, album)
 	to := artist.GetString("name")
-	name := album.GetString("name")
+	name := AlbumDirectoryName(album)
 
 	var moves []move
 	if from != to {
@@ -203,8 +279,7 @@ func ReattachAlbum(app core.App, albumID, artistID string) error {
 	}
 	album.Set("artists", credited)
 	if err := app.Save(album); err != nil {
-		undoMoves(moves)
-		return err
+		return errors.Join(err, undoMoves(moves))
 	}
 
 	for _, m := range moves {
@@ -221,8 +296,8 @@ func albumMoves(app core.App, fromArtist, fromAlbum, toArtist, toAlbum string) [
 			continue
 		}
 		moves = append(moves, move{
-			from: filepath.Join(root, sanitizeFilename(fromArtist), sanitizeFilename(fromAlbum)),
-			to:   filepath.Join(root, sanitizeFilename(toArtist), sanitizeFilename(toAlbum)),
+			from: filepath.Join(root, sanitizeFilename(fromArtist), fromAlbum),
+			to:   filepath.Join(root, sanitizeFilename(toArtist), toAlbum),
 		})
 	}
 

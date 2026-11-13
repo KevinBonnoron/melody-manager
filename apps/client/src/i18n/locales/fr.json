@@ -173,6 +173,14 @@
     "noArtistsFromProvider": "Aucun artiste avec des titres de {{provider}}"
   },
   "AlbumActionsMenu": {
+    "typeLabel": "Type de sortie",
+    "typeAuto": "Automatique",
+    "typeHelp": "Automatique : déduit du nombre et de la durée des titres. Un type choisi n'est plus recalculé.",
+    "merge": "Fusionner dans un autre album…",
+    "mergeTitle": "Fusionner « {{name}} »",
+    "mergeDescription": "Les titres de cet album rejoignent l'album choisi, puis celui-ci est supprimé.",
+    "merged": "« {{name}} » a été fusionné",
+    "mergeError": "Impossible de fusionner cet album",
     "delete": "Supprimer l'album",
     "deleting": "Suppression...",
     "deleteConfirmTitle": "Supprimer l'album",
@@ -216,6 +224,11 @@
     "checkLost_other": "{{count}} introuvables"
   },
   "TrackActionsMenu": {
+    "move": "Déplacer vers un album…",
+    "moveTitle": "Déplacer « {{title}} »",
+    "moveDescription": "Choisissez l'album qui doit accueillir ce titre. Son fichier téléchargé suit le titre.",
+    "moved": "« {{title}} » a été déplacé",
+    "moveError": "Impossible de déplacer ce titre",
     "like": "Ajouter aux titres aimés",
     "unlike": "Retirer des titres aimés",
     "dislike": "Ignorer ce titre",
@@ -405,6 +418,7 @@
   "ArtistPage": {
     "playAll": "Lire tout",
     "albumsSectionTitle": "Albums",
+    "singlesSectionTitle": "Singles et EP",
     "artistNotFound": "Artiste introuvable",
     "albums_one": "album",
     "albums_other": "albums",
@@ -878,6 +892,21 @@
   },
   "Album": {
     "unavailable": "Aucun fichier de cet album n'est disponible"
+  },
+  "AlbumType": {
+    "all": "Tout",
+    "single": "Single",
+    "ep": "EP",
+    "album": "Album",
+    "mix": "Mix"
+  },
+  "AlbumPicker": {
+    "search": "Rechercher un album...",
+    "none": "Aucun album trouvé",
+    "newLabel": "Ou créer un nouvel album",
+    "newPlaceholder": "Nom du nouvel album",
+    "create": "Créer",
+    "cancel": "Annuler"
   },
   "SetupPage": {
     "title": "Bienvenue sur Melody Manager",

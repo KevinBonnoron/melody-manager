@@ -35,11 +35,21 @@ func (YouTube) ResolveTracks(ctx context.Context, url string, cfg Config) ([]dom
 	}
 	base := ytdlp.BuildResolvedTrack(*info, "youtube")
 	base.ArtistImageURL = ytdlp.ChannelAvatar(ctx, firstNonEmpty(info.ChannelURL, info.UploaderURL), cookiesFile)
+	return resolvedYouTubeTracks(*info, base), nil
+}
+
+func resolvedYouTubeTracks(info ytdlp.TrackInfo, base domain.ResolvedTrack) []domain.ResolvedTrack {
+	// An album the uploader names is a real release we may only see one track of; one we
+	// name after the video is whole by construction, so we know what kind of release it is.
+	ownAlbum := info.Album == "" && info.Title != ""
+	base.AlbumIncomplete = !ownAlbum
 	if len(info.Chapters) > 1 {
-		if info.Album == "" && info.Title != "" {
+		if ownAlbum {
 			base.AlbumName = info.Title
+			base.AlbumOwn = true
 		}
 		tracks := make([]domain.ResolvedTrack, 0, len(info.Chapters))
+		seconds := 0
 		for _, ch := range info.Chapters {
 			t := base
 			st, et := ch.StartTime, ch.EndTime
@@ -47,11 +57,23 @@ func (YouTube) ResolveTracks(ctx context.Context, url string, cfg Config) ([]dom
 			t.Duration = int(et - st)
 			t.Metadata.StartTime = &st
 			t.Metadata.EndTime = &et
+			seconds += t.Duration
 			tracks = append(tracks, t)
 		}
-		return tracks, nil
+		if ownAlbum {
+			kind := domain.ClassifyAlbum(len(tracks), seconds)
+			for i := range tracks {
+				tracks[i].AlbumType = kind
+			}
+		}
+		return tracks
 	}
-	return []domain.ResolvedTrack{base}, nil
+	if ownAlbum {
+		base.AlbumName = info.Title
+		base.AlbumType = domain.ClassifyAlbum(1, base.Duration)
+		base.AlbumOwn = true
+	}
+	return []domain.ResolvedTrack{base}
 }
 
 func (YouTube) ResolveStream(ctx context.Context, sourceURL string, cfg Config) (*Stream, error) {

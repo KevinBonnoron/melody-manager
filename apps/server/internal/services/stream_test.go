@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/KevinBonnoron/melody-manager/api/internal/providers"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 // A track record carries an operator-supplied path, so anything outside the configured music
@@ -100,6 +101,41 @@ func resolvesUnderAnyRoot(path string, roots []string) bool {
 		}
 	}
 	return false
+}
+
+func TestLocalFileSeparatesSameNamedVideoAlbums(t *testing.T) {
+	f := newRegroupFixture(t)
+	first := f.album("Same name")
+	second := f.album("Same name")
+	first.Set("videoOrigin", "https://example.com/first")
+	second.Set("videoOrigin", "https://example.com/second")
+	f.save(first)
+	f.save(second)
+	collection, err := f.app.FindCollectionByNameOrId("tracks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	makeTrack := func(album *core.Record) *core.Record {
+		track := core.NewRecord(collection)
+		track.Set("title", "Same track")
+		track.Set("album", album.Id)
+		track.Set("artists", []string{f.artist.Id})
+		return f.save(track)
+	}
+	firstTrack, secondTrack := makeTrack(first), makeTrack(second)
+	firstPath := filepath.Join(f.root, "Channel", AlbumDirectoryName(first), "01 - Same track.m4a")
+	writeFile(t, firstPath)
+	if got := localFile(f.app, firstTrack, []string{f.root}); got != firstPath {
+		t.Fatalf("first track resolved to %q, want %q", got, firstPath)
+	}
+	if got := localFile(f.app, secondTrack, []string{f.root}); got != "" {
+		t.Fatalf("second track resolved to another album's file: %q", got)
+	}
+	secondPath := filepath.Join(f.root, "Channel", AlbumDirectoryName(second), "01 - Same track.m4a")
+	writeFile(t, secondPath)
+	if got := localFile(f.app, secondTrack, []string{f.root}); got != secondPath {
+		t.Fatalf("second track resolved to %q, want %q", got, secondPath)
+	}
 }
 
 func TestSameFormat(t *testing.T) {

@@ -31,6 +31,20 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
+// AlbumDirectoryName keeps separate video-derived albums with the same title
+// from sharing downloaded tracks.
+func AlbumDirectoryName(album *core.Record) string {
+	return albumDirectoryName(album, album.GetString("name"))
+}
+
+func albumDirectoryName(album *core.Record, title string) string {
+	name := sanitizeFilename(title)
+	if album.GetString("videoOrigin") != "" {
+		name += " [" + sanitizeFilename(album.Id) + "]"
+	}
+	return name
+}
+
 func artistName(app core.App, track, album *core.Record) string {
 	return artistNameCached(app, track, album, nil)
 }
@@ -135,7 +149,7 @@ func DownloadAlbum(ctx context.Context, app core.App, taskSvc *tasks.Service, au
 			return
 		}
 
-		albumDir := filepath.Join(dir, sanitizeFilename(artistName(app, grp[0], album)), sanitizeFilename(album.GetString("name")))
+		albumDir := filepath.Join(dir, sanitizeFilename(artistName(app, grp[0], album)), AlbumDirectoryName(album))
 		if err := os.MkdirAll(albumDir, 0o755); err != nil {
 			fail(err)
 			return

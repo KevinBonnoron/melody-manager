@@ -28,6 +28,8 @@ export function ArtistPage({ artistId }: Props) {
   const { data: artist, isLoading } = useArtist(artistId);
   const { data: tracks = [] } = useArtistTracks(artistId);
   const { data: albums = [] } = useAlbumsForArtist(artistId);
+  const shortAlbums = albums.filter((album) => album.type === 'single' || album.type === 'ep');
+  const fullAlbums = albums.filter((album) => album.type !== 'single' && album.type !== 'ep');
   const { ratingOf, toggleLike, toggleDislike, isReady: ratingsReady } = useArtistRatings();
   const { play } = useMusicPlayer();
   const user = useAuthUser();
@@ -90,15 +92,21 @@ export function ArtistPage({ artistId }: Props) {
             menu={<ArtistActionsMenu artistId={artist.id} name={artist.name} onDelete={isAdmin ? () => setDeleteDialogOpen(true) : undefined} />}
           />
 
-          {albums.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">{t('ArtistPage.albumsSectionTitle')}</h2>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 sm:gap-3">
-                {albums.map((album) => (
-                  <AlbumCard key={album.id} album={album} />
-                ))}
-              </div>
-            </div>
+          {[
+            { key: 'albums', title: t('ArtistPage.albumsSectionTitle'), items: fullAlbums },
+            { key: 'singles', title: t('ArtistPage.singlesSectionTitle'), items: shortAlbums },
+          ].map(
+            ({ key, title, items }) =>
+              items.length > 0 && (
+                <div key={key} className="mb-8">
+                  <h2 className="text-2xl font-bold mb-4">{title}</h2>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 sm:gap-3">
+                    {items.map((album) => (
+                      <AlbumCard key={album.id} album={album} />
+                    ))}
+                  </div>
+                </div>
+              ),
           )}
         </>
       ) : (

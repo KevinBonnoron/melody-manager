@@ -1,6 +1,7 @@
 import { universalClient, withMethods } from 'universal-client';
 import { withHttpDelegate } from '@/lib/client';
 import { config } from '@/lib/config';
+import type { AlbumType } from '@/shared';
 
 export const albumsClient = universalClient(
   withHttpDelegate(config.server.url),
@@ -12,7 +13,8 @@ export const albumsClient = universalClient(
       check: (albumId: string) => http.post<{ checked: number; changed: number; lost: number }>(`/albums/${albumId}/check`, {}),
       refreshCover: (albumId: string) => http.post(`/albums/${albumId}/cover`, {}),
       delete: (albumId: string) => http.delete(`/albums/${albumId}`),
-      update: (albumId: string, body: { name?: string; artist?: string }) => http.patch(`/albums/${albumId}`, body),
+      update: (albumId: string, body: { name?: string; artist?: string; type?: AlbumType | '' }) => http.patch(`/albums/${albumId}`, body),
+      merge: (albumId: string, into: string) => http.post(`/albums/${albumId}/merge`, { into }),
     };
   }),
 );
