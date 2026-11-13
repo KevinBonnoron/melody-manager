@@ -14,6 +14,8 @@ import (
 	"github.com/KevinBonnoron/melody-manager/api/internal/domain"
 )
 
+var errAmbiguousDownloadedFile = errors.New("ambiguous downloaded file")
+
 // RefreshAlbumType gives an album the kind of release its tracks make up, unless a person
 // chose that kind (typeLocked). A local album's tags say how many tracks it should hold, which
 // outweighs how many of them are in the library.
@@ -115,29 +117,12 @@ func moveTracks(app core.App, trackIDs []string, albumID, mergeFrom string) erro
 		sources[from] = true
 		tracks = append(tracks, track)
 
-		if strings.HasPrefix(track.GetString("origin"), "file://") {
-			continue
-		}
-		src, err := lookupLocalFile(app, track, roots, nil, true)
+		src, err := downloadedFileForMove(app, track, roots)
 		if err != nil {
 			return err
 		}
 		if src == "" {
-			if track.GetString("availability") == AvailabilityFile {
-				return fmt.Errorf("downloaded file not found for track %s", track.Id)
-			}
 			continue
-		}
-		// A single matching file still cannot be attributed to this record if
-		// another track in the album has the same on-disk title.
-		siblings, err := app.FindRecordsByFilter("tracks", "album = {:album} && id != {:track}", "", 0, 0, dbx.Params{"album": from, "track": track.Id})
-		if err != nil {
-			return err
-		}
-		for _, sibling := range siblings {
-			if sanitizeFilename(sibling.GetString("title")) == sanitizeFilename(track.GetString("title")) {
-				return fmt.Errorf("ambiguous downloaded file for tracks %s and %s in album %s", track.Id, sibling.Id, from)
-			}
 		}
 		dst := filepath.Join(rootOf(app, src), sanitizeFilename(artistName(app, track, target)), AlbumDirectoryName(target), filepath.Base(src))
 		if src != dst {
@@ -283,6 +268,36 @@ func NewAlbumFromTracks(ctx context.Context, app core.App, trackIDs []string, na
 		}
 	}
 	return album.Id, nil
+}
+
+// downloadedFileForMove is shared by interactive moves and migration preflight,
+// so neither path guesses which same-titled track owns a downloaded file.
+func downloadedFileForMove(app core.App, track *core.Record, roots []string) (string, error) {
+	if strings.HasPrefix(track.GetString("origin"), "file://") {
+		return "", nil
+	}
+	src, err := lookupLocalFile(app, track, roots, nil, true)
+	if err != nil {
+		return "", err
+	}
+	if src == "" {
+		if track.GetString("availability") == AvailabilityFile {
+			return "", fmt.Errorf("downloaded file not found for track %s", track.Id)
+		}
+		return "", nil
+	}
+	from := track.GetString("album")
+	siblings, err := app.FindRecordsByFilter("tracks", "album = {:album} && id != {:track}", "", 0, 0, dbx.Params{"album": from, "track": track.Id})
+	if err != nil {
+		return "", err
+	}
+	title := sanitizeFilename(track.GetString("title"))
+	for _, sibling := range siblings {
+		if sanitizeFilename(sibling.GetString("title")) == title {
+			return "", fmt.Errorf("%w for tracks %s and %s in album %s", errAmbiguousDownloadedFile, track.Id, sibling.Id, from)
+		}
+	}
+	return src, nil
 }
 
 func carryAlbumRatings(app core.App, fromID, intoID string) error {

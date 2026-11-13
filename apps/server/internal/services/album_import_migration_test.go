@@ -125,9 +125,10 @@ func TestChapteredVideosWithSameTitleKeepDistinctAlbumsOnReimport(t *testing.T) 
 	f := newRegroupFixture(t)
 	ctx := t.Context()
 	var firstAlbum string
+	trackIDs := make(map[string]bool)
 	for _, origin := range []string{"https://youtube.com/watch?v=first", "https://youtube.com/watch?v=second"} {
 		var albumID string
-		for index, title := range []string{"Opening", "Finale"} {
+		for index, title := range []string{"Opening", "Opening", "Finale"} {
 			start, end := float64(index*120), float64((index+1)*120)
 			resolved := domain.ResolvedTrack{
 				Title: title, AlbumName: "Same OST", ArtistName: "Channel",
@@ -139,6 +140,10 @@ func TestChapteredVideosWithSameTitleKeepDistinctAlbumsOnReimport(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
+			if trackIDs[track.Id] {
+				t.Fatalf("different chapters reused track %s", track.Id)
+			}
+			trackIDs[track.Id] = true
 			if albumID != "" && track.GetString("album") != albumID {
 				t.Fatal("chapters from one video landed in different albums")
 			}
@@ -157,5 +162,9 @@ func TestChapteredVideosWithSameTitleKeepDistinctAlbumsOnReimport(t *testing.T) 
 	albums := f.albumsNamed("Same OST")
 	if len(albums) != 2 {
 		t.Fatalf("same-title releases = %d, want 2", len(albums))
+	}
+	tracks, err := f.app.FindAllRecords("tracks")
+	if err != nil || len(tracks) != 6 {
+		t.Fatalf("tracks after reimport = %d, want six distinct chapters: %v", len(tracks), err)
 	}
 }

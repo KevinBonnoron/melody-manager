@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -59,6 +60,8 @@ func splitLegacyYouTubeAlbums(ctx context.Context, app core.App, coverBudget tim
 	}
 
 	failures := 0
+	roots := localRoots(app)
+albumLoop:
 	for _, old := range albums {
 		if old.GetString("videoOrigin") != "" || !strings.HasSuffix(old.GetString("name"), legacyAlbumSuffix) {
 			continue
@@ -69,6 +72,16 @@ func splitLegacyYouTubeAlbums(ctx context.Context, app core.App, coverBudget tim
 		}
 		if len(tracks) == 0 || !isLegacyYouTubeAlbum(tracks) {
 			continue
+		}
+		// Inspect the entire legacy album before moving anything. Ambiguous
+		// ownership needs a person to resolve it, not a failed server start.
+		for _, track := range tracks {
+			if _, err := downloadedFileForMove(app, track, roots); errors.Is(err, errAmbiguousDownloadedFile) {
+				app.Logger().Warn("leaving ambiguous legacy album unsplit", "album", old.Id, "error", err)
+				continue albumLoop
+			} else if err != nil {
+				return fmt.Errorf("split legacy album: checking track %s: %w", track.Id, err)
+			}
 		}
 
 		for _, track := range tracks {

@@ -650,7 +650,7 @@ func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *lo
 					return p, nil
 				}
 				if found != "" && found != p {
-					return "", fmt.Errorf("ambiguous downloaded file for track %s: %s and %s", track.Id, found, p)
+					return "", fmt.Errorf("%w for track %s: %s and %s", errAmbiguousDownloadedFile, track.Id, found, p)
 				}
 				found = p
 			}

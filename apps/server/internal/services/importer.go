@@ -151,10 +151,14 @@ func autoLikeAlbums(app core.App, userID string, tracks []*core.Record) {
 }
 
 func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*core.Record, error) {
-	if rt.AlbumOwn {
-		if existing, err := app.FindFirstRecordByFilter("tracks", "origin = {:u}", dbx.Params{"u": rt.Origin}); err == nil {
-			return existing, nil
-		}
+	filter := "origin = {:u}"
+	params := dbx.Params{"u": rt.Origin}
+	if rt.Metadata.StartTime != nil {
+		filter += " && metadata.startTime = {:start}"
+		params["start"] = *rt.Metadata.StartTime
+	}
+	if existing, err := app.FindFirstRecordByFilter("tracks", filter, params); err == nil {
+		return existing, nil
 	}
 	artist, err := getOrCreate(app, "artists", "name = {:n}", dbx.Params{"n": rt.ArtistName}, func(r *core.Record) {
 		r.Set("name", rt.ArtistName)
@@ -179,13 +183,7 @@ func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*
 	}
 	var album *core.Record
 	if rt.AlbumOwn {
-		var col *core.Collection
-		col, err = app.FindCollectionByNameOrId("albums")
-		if err == nil {
-			album = core.NewRecord(col)
-			setAlbum(album)
-			err = app.Save(album)
-		}
+		album, err = getOrCreate(app, "albums", "videoOrigin = {:origin}", dbx.Params{"origin": rt.Origin}, setAlbum)
 	} else {
 		album, err = getOrCreate(app, "albums", "name = {:n} && artists ~ {:a} && videoOrigin = ''", dbx.Params{"n": rt.AlbumName, "a": artist.Id}, setAlbum)
 	}
@@ -198,13 +196,6 @@ func persistTrack(ctx context.Context, app core.App, rt domain.ResolvedTrack) (*
 
 	if rt.ArtistImageURL != "" && artist.GetString("cover") == "" {
 		setCoverFromURL(ctx, app, artist, rt.ArtistImageURL)
-	}
-
-	filter := "origin = {:u}"
-	params := dbx.Params{"u": rt.Origin}
-	if rt.Metadata.StartTime != nil {
-		filter = "origin = {:u} && title = {:t}"
-		params["t"] = rt.Title
 	}
 
 	track, err := getOrCreate(app, "tracks", filter, params, func(r *core.Record) {

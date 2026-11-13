@@ -233,6 +233,9 @@ one track of a release the source listed has no type.
 An imported video keeps its own album identity even when another video by the
 same artist has the same title, including chaptered videos. These albums also
 have separate download directories; their displayed names stay unchanged.
+Chapters are identified by their video and start time, not by their title:
+repeated chapter titles remain separate tracks, and reimporting reuses the
+existing tracks and the video's album.
 
 On the first start after this upgrade, the server splits eligible legacy
 `"<channel> - youtube"` albums into one album per video and backfills release
@@ -242,6 +245,10 @@ a rolled-back database pointing at files that have already moved.
 Cover fetching shares a five-second deadline across the entire conversion,
 including successful downloads. Once that deadline expires, the split still
 finishes without waiting for the remaining covers.
+If a legacy album's downloaded files cannot be attributed unambiguously, the
+whole album is left unsplit, with its tracks, files and ratings still in place.
+The server logs the skipped album and completes the one-shot conversion rather
+than blocking startup or retrying the ambiguity on every restart.
 
 ### `POST /api/tracks/move`
 
