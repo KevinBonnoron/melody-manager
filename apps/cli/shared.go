@@ -40,13 +40,16 @@ type sharedState struct {
 	PositionAt sharedTime `json:"positionAt"`
 	Began      sharedTime `json:"beganAt"`
 	Playing    bool       `json:"playing"`
-	Devices    []string   `json:"devices"`
-	List       []string   `json:"list"`
-	Order      []int      `json:"order"`
-	Index      int        `json:"index"`
-	Shuffle    bool       `json:"shuffle"`
-	Repeat     string     `json:"repeat"`
-	Now        sharedTime `json:"now"`
+	// Waiting is a run no device has yet said it is making sound for: its
+	// playhead has not moved from Position.
+	Waiting bool       `json:"waiting"`
+	Devices []string   `json:"devices"`
+	List    []string   `json:"list"`
+	Order   []int      `json:"order"`
+	Index   int        `json:"index"`
+	Shuffle bool       `json:"shuffle"`
+	Repeat  string     `json:"repeat"`
+	Now     sharedTime `json:"now"`
 }
 
 func (s sharedState) Cycle() int64 {

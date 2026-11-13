@@ -183,6 +183,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // twice. Reading the record at that point would not do: by then it may
   // already name the run that replaced this one.
   const cycleRef = useRef(0);
+  // The run whose first sound has already been reported. The record waits for
+  // that report before its playhead moves, so it is sent the moment the sound
+  // starts rather than at the next periodic one, and once per run.
+  const heardRef = useRef(0);
   const waitingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stuckRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadHereRef = useRef<(trackId: string, at: number, startAt: number, cycle: number, current: () => boolean, tries?: number) => Promise<void>>(async () => undefined);
@@ -206,13 +210,20 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   // names. Before that it reads zero, which is not where the playhead is.
   const media = playsHere && holding === state.track ? audioElement : null;
   // The playhead moves when something is actually carrying it: this device once
-  // it holds the track, or another device we are only watching. A device that
-  // should be playing and is not carries nothing, whatever the record says.
-  const advancing = state.playing && (media !== null || !playsHere);
+  // it holds the track, or another device we are only watching once that one
+  // has said it is making sound. A device that should be playing and is not
+  // carries nothing, whatever the record says.
+  const advancing = state.playing && (media !== null || (!playsHere && !state.waiting));
+  // Another device still loading what it was told to play. Here it reads as
+  // loading, as it would if this device were the one loading.
+  const loadingElsewhere = state.playing && state.waiting && !playsHere;
   // Whose level the one control shows: this device when it is playing, and
   // otherwise the first of the others, which is the one it is watching.
   const louder = devices.find((device) => device.id !== deviceId) ?? null;
-  const playhead = useMemo(() => playheadOf({ position: state.position, positionAt: state.positionAt, duration: currentTrack?.duration ?? 0, advancing, loading: isLoading, media }), [state.position, state.positionAt, currentTrack?.duration, advancing, isLoading, media]);
+  // A load this device started for a playback that has since gone elsewhere
+  // can leave its own flag up: nothing it holds will ever say it is ready.
+  const loading = (playsHere && isLoading) || loadingElsewhere;
+  const playhead = useMemo(() => playheadOf({ position: state.position, positionAt: state.positionAt, duration: currentTrack?.duration ?? 0, advancing, loading, media }), [state.position, state.positionAt, currentTrack?.duration, advancing, loading, media]);
   const currentTime = usePlayheadTime(playhead);
 
   const stateRef = useRef<PlayerState>(state);
@@ -698,7 +709,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const at = reached(record.position, record.positionAt, true, serverNow());
+    // A run nobody has heard yet has not moved from where it was written.
+    const at = reached(record.position, record.positionAt, !record.waiting, serverNow());
     if (loadedRef.current !== record.track || !audio.src) {
       void loadHere(record.track, at, 0, runOf(record), current);
       return;
@@ -734,6 +746,18 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         listenedRef.current += delta;
       }
       lastTimeRef.current = audio.currentTime;
+
+      if (!audio.paused && delta > 0 && delta < 2 && loadedRef.current && cycleRef.current !== 0 && heardRef.current !== cycleRef.current) {
+        const run = cycleRef.current;
+        heardRef.current = run;
+        void playerClient.position(loadedRef.current, audio.currentTime, run).catch(() => {
+          // Said again on the next moment of sound, unless a newer run has
+          // taken its place in the meantime.
+          if (heardRef.current === run) {
+            heardRef.current = 0;
+          }
+        });
+      }
 
       const trackId = loadedRef.current;
       const playId = currentPlayIdRef.current;
@@ -798,6 +822,13 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       void reasonFor(src).then((reason) => toast.error(reason ?? i18n.t('MusicPlayer.playbackErrorGeneric')));
     };
 
+    // A seek moves the time without anything being heard, and a short one
+    // looks like progress: the first-sound report would go out over silence
+    // while the new position buffers. Progress is counted from where it landed.
+    const onSeeking = () => {
+      lastTimeRef.current = audio.currentTime;
+    };
+
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('canplay', stopLoading);
@@ -805,6 +836,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener('waiting', startLoading);
     audio.addEventListener('error', onError);
     audio.addEventListener('stalled', startLoading);
+    audio.addEventListener('seeking', onSeeking);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
@@ -814,6 +846,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('waiting', startLoading);
       audio.removeEventListener('error', onError);
       audio.removeEventListener('stalled', startLoading);
+      audio.removeEventListener('seeking', onSeeking);
       if (waitingRef.current) {
         clearTimeout(waitingRef.current);
         waitingRef.current = null;
@@ -945,6 +978,11 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     // and a device losing its turn every time the record moves never corrects.
     const timer = setInterval(() => {
       const record = stateRef.current;
+      // The record has nothing to follow until the first sound of the run is
+      // reported, and that report is what will anchor it.
+      if (record.waiting) {
+        return;
+      }
       const drift = audio.currentTime - reached(record.position, record.positionAt, true, serverNow());
       const { rate, seek } = correctionFor(drift);
       if (seek) {
@@ -1177,7 +1215,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const value: MusicPlayerContextValue = {
     currentTrack,
     isPlaying: state.playing,
-    isLoading,
+    isLoading: loading,
     volume,
     currentTime,
     queue,

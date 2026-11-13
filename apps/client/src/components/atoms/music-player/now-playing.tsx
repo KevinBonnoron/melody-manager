@@ -19,7 +19,7 @@ interface Props {
 
 export function NowPlaying({ open, onClose }: Props) {
   const { t } = useTranslation();
-  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, playsHere, playhead } = useMusicPlayer();
+  const { isLoading, shuffle, repeatMode, toggleShuffle, toggleRepeat, seek, currentTime, playNext, playPrevious, togglePlayPause, activeDevice, playhead } = useMusicPlayer();
   const { track, isPlaying, isRemote } = useNowPlaying();
   const { isLiked, toggleLike } = useTrackRatings();
   const albumsById = useAlbumsById();
@@ -52,7 +52,6 @@ export function NowPlaying({ open, onClose }: Props) {
   }
 
   const control = { togglePlayPause, playNext, playPrevious, seek, currentTime, duration: track.duration };
-  const isLoadingHere = playsHere && isLoading;
   const album = albumsById.get(track.album);
   const coverUrl = album ? getAlbumCoverUrl(album) : undefined;
   const sourceColor = getSourceColor(track.source);
@@ -110,7 +109,7 @@ export function NowPlaying({ open, onClose }: Props) {
                 <SkipBack className="h-[22px] w-[22px]" fill="currentColor" />
               </button>
               <button type="button" onClick={control.togglePlayPause} aria-label={t('NowPlaying.playPause')} className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_var(--primary-glow)] transition-transform hover:scale-105">
-                {isLoadingHere ? <Loader2 className="h-7 w-7 animate-spin" /> : isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="ml-1 h-7 w-7" fill="currentColor" />}
+                {isLoading ? <Loader2 className="h-7 w-7 animate-spin" /> : isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="ml-1 h-7 w-7" fill="currentColor" />}
               </button>
               <button type="button" onClick={control.playNext} aria-label={t('NowPlaying.next')} className="grid h-12 w-12 place-items-center rounded-full text-foreground transition-colors hover:bg-muted/50">
                 <SkipForward className="h-[22px] w-[22px]" fill="currentColor" />

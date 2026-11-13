@@ -424,6 +424,63 @@ func TestAPositionReportedForTheTrackBeingPlayedMovesThePlayhead(t *testing.T) {
 	}
 }
 
+// A stream takes seconds to start, and everyone watching another device reads
+// the playhead from the record: it must not run over silence.
+func TestARunWaitsForItsFirstSoundBeforeItsPlayheadMoves(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a", "b"}, Track: "a"})
+	if _, err := svc.Skip(context.Background(), "u1", "b"); err != nil {
+		t.Fatal(err)
+	}
+	if !store.state.Waiting {
+		t.Fatalf("a run nobody has heard yet is not waiting: %+v", store.state)
+	}
+	if got := store.state.PositionAtTime(epoch.Add(5 * time.Second)); got != 0 {
+		t.Fatalf("the playhead moved to %v before any sound", got)
+	}
+
+	svc.now = func() time.Time { return epoch.Add(5 * time.Second) }
+	if _, err := svc.Pause(context.Background(), "u1"); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Position != 0 || store.state.Waiting {
+		t.Fatalf("paused while loading = %+v, want position 0 and nothing to wait for", store.state)
+	}
+}
+
+func TestTheFirstReportOfARunEndsTheWaitWhereTheDeviceIs(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a", "b"}, Track: "a"})
+	if _, err := svc.Skip(context.Background(), "u1", "b"); err != nil {
+		t.Fatal(err)
+	}
+	run := store.state.Cycle()
+
+	svc.now = func() time.Time { return epoch.Add(3 * time.Second) }
+	if err := svc.SavePosition("u1", "b", 0.4, run); err != nil {
+		t.Fatal(err)
+	}
+	if store.state.Waiting || store.state.Position != 0.4 || store.state.Cycle() != run {
+		t.Fatalf("after the first report = %+v", store.state)
+	}
+	if got := store.state.PositionAtTime(epoch.Add(5 * time.Second)); got != 2.4 {
+		t.Fatalf("playhead two seconds after the report = %v, want 2.4", got)
+	}
+}
+
+func TestAReportFromAnEarlierRunDoesNotEndTheWait(t *testing.T) {
+	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a"}, Track: "a", Playing: true, Began: epoch.Add(-time.Minute)})
+	before := store.state.Cycle()
+	if _, err := svc.Seek(context.Background(), "u1", 90); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.SavePosition("u1", "a", 61, before); err != nil {
+		t.Fatal(err)
+	}
+	if !store.state.Waiting || store.state.Position != 90 {
+		t.Fatalf("a report of the run before the seek ended its wait: %+v", store.state)
+	}
+}
+
 func TestAPositionReportedDoesNotEndTheRunTheDevicesWereGiven(t *testing.T) {
 	began := epoch.Add(-30 * time.Second)
 	svc, store, _, _ := service(State{Devices: []string{"browser"}, List: []string{"a", "b"}, Track: "a", PositionAt: began, Began: began, Playing: true})

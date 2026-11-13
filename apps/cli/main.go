@@ -381,7 +381,7 @@ func (m *playerModel) applySharedState(state sharedState) {
 		m.ready = false
 	}
 	position := state.Position
-	if state.Playing && !state.PositionAt.IsZero() {
+	if state.Playing && !state.Waiting && !state.PositionAt.IsZero() {
 		position += m.serverNow().Sub(state.PositionAt.Time).Seconds()
 	}
 	m.position = max(position, 0)
@@ -459,6 +459,7 @@ func (m *playerModel) handleSharedEvent(event sharedEvent) tea.Cmd {
 			}
 			if parts[0] == "resume" && m.cancelTrack != nil && m.playingIndex >= 0 && m.playingIndex < len(m.queue) && m.queue[m.playingIndex].ID == parts[1] && math.Abs(m.position-position) < 2 {
 				m.currentCycle = cycle
+				m.lastPositionReport = time.Time{}
 				return m.scheduleControl(false, startAt)
 			}
 			return m.startSharedTrack(parts[1], position, startAt, cycle, false)
@@ -526,7 +527,10 @@ func (m *playerModel) startSharedTrack(trackID string, position float64, startAt
 	m.startPosition = max(position, 0)
 	m.startPaused = paused || wait > 0
 	m.currentCycle = cycle
-	m.lastPositionReport = time.Now()
+	// The record holds a new run still until a device says it is making sound,
+	// so the first report goes out as soon as the track plays rather than ten
+	// seconds later.
+	m.lastPositionReport = time.Time{}
 	start := m.startTrack(index)
 	return tea.Batch(start, m.scheduleControl(paused, startAt))
 }
@@ -848,7 +852,7 @@ func (m *playerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		var progressCmd tea.Cmd
-		if m.cancelTrack == nil && m.shared.Playing && m.shared.Track != "" && !m.shared.PositionAt.IsZero() {
+		if m.cancelTrack == nil && m.shared.Playing && !m.shared.Waiting && m.shared.Track != "" && !m.shared.PositionAt.IsZero() {
 			m.position = max(m.shared.Position+m.serverNow().Sub(m.shared.PositionAt.Time).Seconds(), 0)
 			m.syncProgressTarget()
 			progressCmd = m.progress.SetPercent(m.progressTarget)

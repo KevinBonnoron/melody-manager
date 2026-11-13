@@ -12,6 +12,7 @@ export interface PlaybackState extends PocketBaseRecord {
   positionAt: string;
   beganAt: string;
   playing: boolean;
+  waiting: boolean;
   devices: string[];
   list: Track['id'][];
   order: number[];
@@ -29,6 +30,8 @@ export interface PlayerState {
   positionAt: string;
   beganAt: string;
   playing: boolean;
+  /** The run was ordered and no device has yet said it is making sound: the playhead holds still until one does. */
+  waiting: boolean;
   devices: string[];
   list: Track['id'][];
   order: number[];

@@ -96,7 +96,7 @@ client never has to work out what its own order did.
 {
   "track": "...", "position": 61.5, "positionAt": "2026-09-20T17:31:02.412Z",
   "beganAt": "2026-09-20T17:30:01.000Z",
-  "playing": true, "devices": ["..."], "list": ["..."], "order": [2, 0, 1],
+  "playing": true, "waiting": false, "devices": ["..."], "list": ["..."], "order": [2, 0, 1],
   "index": 0, "shuffle": true, "repeat": "none", "now": "2026-09-20T17:31:04.118Z"
 }
 ```
@@ -106,6 +106,13 @@ client works out the rest itself. `now` is the server's own clock, which is what
 a client measures its offset against. `list` is the tracks; `order` is the
 permutation they are played in and `index` where the playhead sits in it, so
 shuffling reorders without losing what was queued.
+
+`waiting` is a run the devices were told to play that none of them has yet
+reported making sound for: loading a stream takes seconds. While it is true the
+playhead stays at `position`, and a client watching another device shows it as
+loading. Every order that starts sound (play, resume, next, previous, skip,
+seek, a change of devices) begins by waiting; the first position report of that
+run ends it.
 
 ### `GET /api/player`
 
@@ -146,6 +153,10 @@ it must not be inferred from a newer record while the device is still obeying
 an older one. Reports for a different track, a superseded run or paused
 playback are ignored. The response is `{"success": true}` even for an ignored
 report. A missing or zero cycle is invalid.
+
+A device sends its first report as soon as the sound of a run actually starts,
+not at its next periodic one: that report is what ends `waiting` and anchors the
+playhead where the device really is.
 
 ### `POST /api/player/add` · `remove`
 

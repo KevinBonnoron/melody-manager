@@ -33,6 +33,7 @@ func (s *Store) Load(owner string) (State, error) {
 		Track:    record.GetString("track"),
 		Position: record.GetFloat("position"),
 		Playing:  record.GetBool("playing"),
+		Waiting:  record.GetBool("waiting"),
 		Index:    record.GetInt("index"),
 		Shuffle:  record.GetBool("shuffle"),
 		Repeat:   Repeat(record.GetString("repeat")),
@@ -80,6 +81,7 @@ func (s *Store) Save(owner string, state State) error {
 	record.Set("track", state.Track)
 	record.Set("position", state.Position)
 	record.Set("playing", state.Playing)
+	record.Set("waiting", state.Waiting)
 	record.Set("list", filled(state.List))
 	record.Set("devices", filled(state.Devices))
 	record.Set("order", places(state.Order))
