@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { MusicPlayerProvider } from '@/contexts/music-player-context';
 import { TaskProvider } from '@/contexts/task-context';
+import { isStandaloneClient } from '@/lib/client-target';
 import { pb } from '@/lib/pocketbase';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 
@@ -38,7 +39,8 @@ function RootComponent() {
           ) : (
             page
           )}
-          <NewVersion />
+          {/* The app shells ship their own build; a service worker would only stand between them and it. */}
+          {!isStandaloneClient && <NewVersion />}
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
