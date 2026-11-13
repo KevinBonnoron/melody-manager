@@ -20,8 +20,8 @@ bun run cap:assets
 ```
 
 This will automatically generate:
-- **Android**: All icon sizes in `android/app/src/main/res/mipmap-*/`
-- **iOS**: All icon sizes in `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+- **Android**: All icon sizes in `apps/android/app/src/main/res/mipmap-*/`
+- **iOS**: All icon sizes in `apps/ios/App/App/Assets.xcassets/AppIcon.appiconset/`
 - **Splash screens**: For both platforms
 
 ## What Gets Generated

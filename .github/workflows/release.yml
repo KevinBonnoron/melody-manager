@@ -339,19 +339,20 @@ jobs:
       - name: Generate icons and splash screens
         run: bun run cap:assets
       - name: Sync Capacitor
+        working-directory: apps/client
         run: bunx cap sync android
-      # android/gradle.properties is not in the repository, so on a runner the
+      # apps/android/gradle.properties is not in the repository, so on a runner the
       # flag has to be put back before gradle reads it.
       - name: Ensure AndroidX is enabled
-        working-directory: android
+        working-directory: apps/android
         run: grep -q 'android.useAndroidX=true' gradle.properties 2>/dev/null || echo 'android.useAndroidX=true' >> gradle.properties
       - name: Decode keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/android/app/release.keystore
       # Both derived from the tag, because build.gradle cannot know it. Android
       # refuses an update whose versionCode has not gone up, so a fixed one means
       # the second release can never be installed over the first.
       - name: Build release APK and bundle
-        working-directory: android
+        working-directory: apps/android
         env:
           KEYSTORE_FILE: release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -369,12 +370,12 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: apps/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 90
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-release-bundle
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: apps/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 90
 
   release:
