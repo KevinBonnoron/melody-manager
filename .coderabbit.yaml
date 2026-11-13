@@ -16,12 +16,12 @@ reviews:
     - '!apps/server/internal/migrations/snapshot.json'
     - '!apps/client/src/i18n/locales/**'
     - '!apps/client/public/*.png'
-    - '!android/app/src/main/res/**'
-    - '!android/gradlew*'
-    - '!android/gradle/wrapper/**'
-    - '!android/**/capacitor*.gradle'
-    - '!ios/App/App.xcodeproj/**'
-    - '!ios/App/CapApp-SPM/**'
+    - '!apps/android/app/src/main/res/**'
+    - '!apps/android/gradlew*'
+    - '!apps/android/gradle/wrapper/**'
+    - '!apps/android/**/capacitor*.gradle'
+    - '!apps/ios/App/App.xcodeproj/**'
+    - '!apps/ios/App/CapApp-SPM/**'
   auto_review:
     # Default is a pause after five reviewed commits, which a branch reaches
     # before it is ready and every push after that has to be asked for by hand.

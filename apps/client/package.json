@@ -11,9 +11,24 @@
     "test": "bun test src",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "type-check": "tsc -b && tsc -b tsconfig.e2e.json"
+    "type-check": "tsc -b && tsc -b tsconfig.e2e.json",
+    "android": "bun run build && bunx cap sync && cd ../android && ./gradlew assembleDebug",
+    "cap:sync": "bunx cap sync",
+    "cap:add:android": "bunx cap add android",
+    "cap:add:ios": "bunx cap add ios",
+    "cap:open:android": "bunx cap open android",
+    "cap:open:ios": "bunx cap open ios",
+    "cap:run:android": "bunx cap run android",
+    "cap:run:ios": "bunx cap run ios",
+    "cap:assets": "bunx @capacitor/assets generate --androidProject ../android --iosProject ../ios/App --iconBackgroundColor '#7C3AED' --iconBackgroundColorDark '#7C3AED' --splashBackgroundColor '#7C3AED' --splashBackgroundColorDark '#7C3AED'"
   },
   "dependencies": {
+    "@capacitor/android": "8.3.4",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/cli": "8.4.0",
+    "@capacitor/core": "8.4.0",
+    "@capacitor/ios": "8.3.4",
+    "@capacitor/preferences": "8.0.1",
     "@jofr/capacitor-media-session": "^4.0.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -61,6 +76,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
+    "@capacitor/assets": "^3.0.5",
     "@playwright/test": "1.57.0",
     "@rolldown/plugin-babel": "0.2.4",
     "@tanstack/router-plugin": "1.168.14",

@@ -16,27 +16,18 @@
     "test:e2e": "bun run --cwd apps/client test:e2e",
     "test:e2e:ui": "bun run --cwd apps/client test:e2e:ui",
     "type-check": "bun run --cwd apps/client type-check",
-    "android": "bun run build && bunx cap sync && cd android && ./gradlew assembleDebug",
-    "cap:sync": "bunx cap sync",
-    "cap:add:android": "bunx cap add android",
-    "cap:add:ios": "bunx cap add ios",
-    "cap:open:android": "bunx cap open android",
-    "cap:open:ios": "bunx cap open ios",
-    "cap:run:android": "bunx cap run android",
-    "cap:run:ios": "bunx cap run ios",
-    "cap:assets": "bunx @capacitor/assets generate --iconBackgroundColor '#7C3AED' --iconBackgroundColorDark '#7C3AED' --splashBackgroundColor '#7C3AED' --splashBackgroundColorDark '#7C3AED'"
-  },
-  "dependencies": {
-    "@capacitor/android": "8.3.4",
-    "@capacitor/app": "^8.0.0",
-    "@capacitor/cli": "8.4.0",
-    "@capacitor/core": "8.4.0",
-    "@capacitor/ios": "8.3.4",
-    "@capacitor/preferences": "8.0.1"
+    "android": "bun run --cwd apps/client android",
+    "cap:sync": "bun run --cwd apps/client cap:sync",
+    "cap:add:android": "bun run --cwd apps/client cap:add:android",
+    "cap:add:ios": "bun run --cwd apps/client cap:add:ios",
+    "cap:open:android": "bun run --cwd apps/client cap:open:android",
+    "cap:open:ios": "bun run --cwd apps/client cap:open:ios",
+    "cap:run:android": "bun run --cwd apps/client cap:run:android",
+    "cap:run:ios": "bun run --cwd apps/client cap:run:ios",
+    "cap:assets": "bun run --cwd apps/client cap:assets"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
-    "@capacitor/assets": "^3.0.5",
     "typescript": "6.0.3"
   }
 }
