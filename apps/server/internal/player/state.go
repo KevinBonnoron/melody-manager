@@ -30,6 +30,11 @@ type State struct {
 	// advances by at least a millisecond even when orders share a clock tick.
 	Began   time.Time
 	Playing bool
+	// Waiting is a run the devices were told to play and none has yet said it
+	// is making sound. Loading a stream takes seconds, and a record counting
+	// from the order showed everyone else a playhead running over silence.
+	// The first report of the run ends it.
+	Waiting bool
 	Devices []string
 	List    []string
 	Order   []int
@@ -155,7 +160,8 @@ func (s State) Ahead() int {
 // PositionAtTime is where the playhead has reached by then, which is not where
 // it was last written down: a playing track has moved on since.
 func (s State) PositionAtTime(now time.Time) float64 {
-	if !s.Playing || s.PositionAt.IsZero() {
+	// Nothing has been heard of a run still waiting, so it has not moved.
+	if !s.Playing || s.Waiting || s.PositionAt.IsZero() {
 		return s.Position
 	}
 	elapsed := now.Sub(s.PositionAt).Seconds()
@@ -176,6 +182,9 @@ func (s State) at(position float64, now time.Time) State {
 	}
 	s.Position = position
 	s.PositionAt = now
+	// A run that is to make sound starts by waiting for it; one that is
+	// stopped has nothing to wait for.
+	s.Waiting = s.Playing
 	return s
 }
 
@@ -383,6 +392,7 @@ func (s State) Reached(position float64, now time.Time) State {
 	}
 	s = s.Sound().at(position, now)
 	s.Began = began
+	s.Waiting = false
 	return s
 }
 

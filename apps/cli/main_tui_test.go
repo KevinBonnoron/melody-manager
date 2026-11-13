@@ -81,6 +81,28 @@ func TestRemotePlaybackAdvancesBetweenServerUpdates(t *testing.T) {
 	}
 }
 
+// A run no device has started yet holds still on the server, so the terminal
+// must not count it on: reconciling from a counted-on position would start the
+// track past audio nobody has heard.
+func TestRemotePlaybackStillLoadingDoesNotAdvance(t *testing.T) {
+	before := time.Now().Add(-5 * time.Second)
+	m := &playerModel{}
+	m.applySharedState(sharedState{
+		Track: "track", Position: 90, PositionAt: sharedTime{Time: before}, Now: sharedTime{Time: time.Now()},
+		List: []string{"track"}, Playing: true, Waiting: true,
+	})
+	if m.position != 90 {
+		t.Fatalf("position of a waiting run = %v, want 90", m.position)
+	}
+	m.Update(libraryLoaded{library: &Library{
+		Tracks: []libraryTrack{{track: track{ID: "track", Title: "Song", Duration: 200}}},
+	}})
+	m.Update(spinner.TickMsg{})
+	if m.position != 90 {
+		t.Fatalf("position of a waiting run after a tick = %v, want 90", m.position)
+	}
+}
+
 func TestPlayerControlsAndProgress(t *testing.T) {
 	state := sharedState{Track: "a", Playing: true, Devices: []string{"cli"}, List: []string{"a"}, Repeat: "none"}
 	var orders []string
