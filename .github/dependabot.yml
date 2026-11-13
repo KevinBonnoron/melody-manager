@@ -10,3 +10,74 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+
+  # Minor and patch releases come grouped, one pull request per ecosystem a
+  # week; a major one comes on its own, since it is the kind that breaks.
+  - package-ecosystem: gomod
+    directory: /apps/server
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      go-server:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directory: /apps/cli
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      go-cli:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directory: /apps/desktop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      go-desktop:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # The root lockfile covers the client workspace; the website keeps its own.
+  - package-ecosystem: bun
+    directories: [/, /apps/website]
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      bun:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: gradle
+    directory: /apps/android
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      gradle:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
