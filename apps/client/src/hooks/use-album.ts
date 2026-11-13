@@ -1,13 +1,11 @@
 import { eq, inArray, useLiveQuery } from '@tanstack/react-db';
-import { useMemo } from 'react';
 import { albumCollection } from '@/collections/album.collection';
-import { trackCollection } from '@/collections/track.collection';
+import type { Album } from '@/shared';
+import { useLibraryIndex } from './use-library-index';
 
-export function useAlbums() {
-  const { data: tracks = [], isLoading: isLoadingTracks } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
-  const albumIds = useMemo(() => [...new Set(tracks.map((t) => t.album))], [tracks]);
-  const { data, isLoading } = useLiveQuery({ query: (q) => q.from({ albums: albumCollection }).where(({ albums }) => inArray(albums.id, albumIds.length > 0 ? albumIds : [''])) });
-  return { data, isLoading: isLoadingTracks || isLoading };
+export function useAlbums(): { data: Album[]; isLoading: boolean } {
+  const { playableAlbums, loading } = useLibraryIndex();
+  return { data: playableAlbums, isLoading: loading.tracks || loading.albums };
 }
 
 export function useAlbum(albumId: string) {

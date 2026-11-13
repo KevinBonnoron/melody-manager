@@ -10,33 +10,62 @@ function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
+// The whole library, kept live once for the app. A live query over a whole
+// collection is not cheap to start: every row goes through a fresh query graph,
+// which on a phone took most of a second each time a page opened. Hooks that
+// want everything read it from here instead of starting their own.
 interface LibraryIndex {
   albums: Map<string, Album>;
   artists: Map<string, Artist>;
   genres: Map<string, Genre>;
   tracks: Map<string, Track>;
+  // The albums something can be played from: an album whose tracks have all
+  // gone stays in its collection, and has nothing to offer.
+  playableAlbums: Album[];
+  artistList: Artist[];
+  trackList: Track[];
+  loading: { albums: boolean; artists: boolean; tracks: boolean };
 }
 
-const empty: LibraryIndex = { albums: new Map(), artists: new Map(), genres: new Map(), tracks: new Map() };
+const empty: LibraryIndex = {
+  albums: new Map(),
+  artists: new Map(),
+  genres: new Map(),
+  tracks: new Map(),
+  playableAlbums: [],
+  artistList: [],
+  trackList: [],
+  loading: { albums: true, artists: true, tracks: true },
+};
 const LibraryIndexContext = createContext<LibraryIndex>(empty);
 
 export function LibraryIndexProvider({ children }: { children: ReactNode }) {
-  const { data: albums = [] } = useLiveQuery({ query: (q) => q.from({ albums: albumCollection }) });
-  const { data: artists = [] } = useLiveQuery({ query: (q) => q.from({ artists: artistCollection }) });
+  const { data: albums = [], isLoading: albumsLoading } = useLiveQuery({ query: (q) => q.from({ albums: albumCollection }) });
+  const { data: artists = [], isLoading: artistsLoading } = useLiveQuery({ query: (q) => q.from({ artists: artistCollection }) });
   const { data: genres = [] } = useLiveQuery({ query: (q) => q.from({ genres: genreCollection }) });
-  const { data: tracks = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
+  const { data: tracks = [], isLoading: tracksLoading } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
 
-  const value = useMemo<LibraryIndex>(
-    () => ({
-      albums: byId(albums as unknown as Album[]),
+  const value = useMemo<LibraryIndex>(() => {
+    const albumList = albums as unknown as Album[];
+    const trackList = tracks as unknown as Track[];
+    const played = new Set(trackList.map((track) => track.album));
+    return {
+      albums: byId(albumList),
       artists: byId(artists as unknown as Artist[]),
       genres: byId(genres as unknown as Genre[]),
-      tracks: byId(tracks as unknown as Track[]),
-    }),
-    [albums, artists, genres, tracks],
-  );
+      tracks: byId(trackList),
+      playableAlbums: albumList.filter((album) => played.has(album.id)),
+      artistList: artists as unknown as Artist[],
+      trackList,
+      loading: { albums: albumsLoading, artists: artistsLoading, tracks: tracksLoading },
+    };
+  }, [albums, artists, genres, tracks, albumsLoading, artistsLoading, tracksLoading]);
 
   return createElement(LibraryIndexContext.Provider, { value }, children);
+}
+
+export function useLibraryIndex(): LibraryIndex {
+  return useContext(LibraryIndexContext);
 }
 
 export function useAlbumsById(): Map<string, Album> {
