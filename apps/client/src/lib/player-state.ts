@@ -85,6 +85,18 @@ async function watch(): Promise<() => void> {
     apply(fromRecord(event.record));
   });
 
+  // A topic added while the SDK's connection is still sending its first list
+  // is kept locally and never sent (pocketbase 0.26.9): the page then hears
+  // nothing of the record, and every other device's playhead stands still on
+  // it. Asking the SDK to send its list again costs nothing when nothing was
+  // missed, since it only sends what it has not sent.
+  const realtime: unknown = pb.realtime;
+  if (realtime && typeof realtime === 'object' && 'submitSubscriptions' in realtime && typeof realtime.submitSubscriptions === 'function') {
+    await realtime.submitSubscriptions();
+  }
+  // And what changed between the first read and the subscription is read now.
+  void refresh();
+
   return () => {
     off();
   };
