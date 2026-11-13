@@ -1,10 +1,8 @@
-import { useLiveQuery } from '@tanstack/react-db';
 import { useMemo } from 'react';
-import { trackCollection } from '@/collections/track.collection';
-import type { Track } from '@/shared';
+import { useLibraryIndex } from './use-library-index';
 
 export function useSourceScope(source?: string) {
-  const { data: tracks = [] } = useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
+  const tracks = useLibraryIndex().trackList;
 
   return useMemo(() => {
     if (!source) {
@@ -14,7 +12,7 @@ export function useSourceScope(source?: string) {
     const albumIds = new Set<string>();
     const artistIds = new Set<string>();
     let trackCount = 0;
-    for (const track of tracks as Track[]) {
+    for (const track of tracks) {
       if (track.source !== source) {
         continue;
       }

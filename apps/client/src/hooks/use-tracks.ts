@@ -3,9 +3,11 @@ import { useMemo } from 'react';
 import { trackCollection } from '@/collections/track.collection';
 import type { Track } from '@/shared';
 import { byPosition } from './track-order';
+import { useLibraryIndex } from './use-library-index';
 
-export function useTracks() {
-  return useLiveQuery({ query: (q) => q.from({ tracks: trackCollection }) });
+export function useTracks(): { data: Track[]; isLoading: boolean } {
+  const { trackList, loading } = useLibraryIndex();
+  return { data: trackList, isLoading: loading.tracks };
 }
 
 export function useAlbumTracks(albumId: string) {
