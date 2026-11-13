@@ -20,7 +20,9 @@ export function SetupPage() {
     setError(null);
 
     const typed = serverUrl.trim();
-    const candidates = typed.startsWith('http://') || typed.startsWith('https://') ? [typed] : [`https://${typed}`, `http://${typed}`];
+    // A phone keyboard capitalises the first letter, and « Https:// » is a scheme
+    // all the same: missing it would make « https://Https://… » of the address.
+    const candidates = /^https?:\/\//i.test(typed) ? [typed] : [`https://${typed}`, `http://${typed}`];
 
     let origin = '';
     let answered = false;
@@ -72,7 +74,7 @@ export function SetupPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="serverUrl">{t('SetupPage.serverUrl')}</Label>
-              <Input id="serverUrl" type="text" placeholder="https://music.example.com" value={serverUrl} onChange={(event) => setServerUrl(event.target.value)} required disabled={isLoading} autoFocus />
+              <Input id="serverUrl" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://music.example.com" value={serverUrl} onChange={(event) => setServerUrl(event.target.value)} required disabled={isLoading} autoFocus />
               <p className="text-sm text-muted-foreground">{t('SetupPage.hint')}</p>
             </div>
 
