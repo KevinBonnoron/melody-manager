@@ -13,10 +13,12 @@ func TestAlbumMigrationSkipsAmbiguousGroupsAndCompletesOtherAlbums(t *testing.T)
 		name       string
 		tracks     int
 		secondFile bool
+		suffixOnly bool
 	}{
-		{"two tracks share one file", 2, false},
-		{"two same-title tracks and numbered files", 2, true},
-		{"one track with two candidate files", 1, true},
+		{"two tracks share one file", 2, false, false},
+		{"two same-title tracks and numbered files", 2, true, false},
+		{"one track with two candidate files", 1, true, false},
+		{"only another track's suffix-matching file exists", 2, false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newRegroupFixture(t)
@@ -25,13 +27,23 @@ func TestAlbumMigrationSkipsAmbiguousGroupsAndCompletesOtherAlbums(t *testing.T)
 			// group in place, not split some of it before finding the conflict.
 			unique := f.track(legacy, "Unique", nil)
 			ids := []string{unique.Id}
-			for range tc.tracks {
-				track := f.track(legacy, "Song", nil)
+			for index := range tc.tracks {
+				title := "Song"
+				if tc.suffixOnly && index == 0 {
+					title = "Opening - Song"
+				}
+				track := f.track(legacy, title, nil)
 				track.Set("origin", "https://youtu.be/"+track.Id)
 				f.save(track)
 				ids = append(ids, track.Id)
 			}
 			firstPath := filepath.Join(f.root, "Channel", "Channel - youtube", "01 - Song.m4a")
+			if tc.suffixOnly {
+				if err := os.Remove(firstPath); err != nil {
+					t.Fatal(err)
+				}
+				firstPath = filepath.Join(filepath.Dir(firstPath), "01 - Opening - Song.m4a")
+			}
 			if err := os.WriteFile(firstPath, []byte("original recording"), 0o644); err != nil {
 				t.Fatal(err)
 			}

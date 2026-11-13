@@ -267,6 +267,10 @@ associations. Regular-file moves never replace an existing destination. On
 filesystems without hard links, including FAT/exFAT, the server instead creates
 the destination exclusively, copies and flushes the audio, then removes the
 source. This requires temporary space for both copies.
+File lookup compares the entire title after the track-number prefix, so
+`01 - Opening - Theme.m4a` never supplies audio for `Theme`. If only such a
+suffix match exists, the move is refused and legacy conversion skips the
+affected album; an exact-title file remains usable even when both files exist.
 
 If cleanup or rollback cannot complete, the error retains both the original
 failure and the affected paths. Files are not overwritten to force a rollback;

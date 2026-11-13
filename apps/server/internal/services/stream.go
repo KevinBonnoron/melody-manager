@@ -575,8 +575,8 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 	return path
 }
 
-// lookupLocalFile keeps playback's first-match lookup, but requires a unique
-// downloaded file before a move can change the track's album.
+// lookupLocalFile matches the complete downloaded title after the track-number
+// prefix. Moves also require a unique file and reject suffix-only candidates.
 func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *localLookupCache, unique bool) (string, error) {
 	if origin := track.GetString("origin"); strings.HasPrefix(origin, "file://") {
 		path := strings.TrimPrefix(origin, "file://")
@@ -620,8 +620,8 @@ func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *lo
 	}
 	artist := artistNameCached(app, track, album, artists)
 
-	suffix := " - " + sanitizeFilename(track.GetString("title"))
-	var found string
+	title := sanitizeFilename(track.GetString("title"))
+	var found, suffixMatch string
 	for _, root := range roots {
 		if root == "" {
 			continue
@@ -642,7 +642,14 @@ func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *lo
 			}
 
 			name := entry.Name()
-			if !strings.HasSuffix(strings.TrimSuffix(name, filepath.Ext(name)), suffix) {
+			_, fileTitle, ok := strings.Cut(strings.TrimSuffix(name, filepath.Ext(name)), " - ")
+			if !ok {
+				continue
+			}
+			if fileTitle != title {
+				if unique && strings.HasSuffix(fileTitle, " - "+title) {
+					suffixMatch = filepath.Join(dir, name)
+				}
 				continue
 			}
 			if p, ok := withinRoot(root, filepath.Join(dir, name)); ok {
@@ -655,6 +662,9 @@ func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *lo
 				found = p
 			}
 		}
+	}
+	if found == "" && suffixMatch != "" {
+		return "", fmt.Errorf("%w for track %s: %s matches only a title suffix", errAmbiguousDownloadedFile, track.Id, suffixMatch)
 	}
 
 	return found, nil
