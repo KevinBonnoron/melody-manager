@@ -571,18 +571,25 @@ func localFile(app core.App, track *core.Record, roots []string) string {
 }
 
 func localFileCached(app core.App, track *core.Record, roots []string, cache *localLookupCache) string {
+	path, _ := lookupLocalFile(app, track, roots, cache, false)
+	return path
+}
+
+// lookupLocalFile keeps playback's first-match lookup, but requires a unique
+// downloaded file before a move can change the track's album.
+func lookupLocalFile(app core.App, track *core.Record, roots []string, cache *localLookupCache, unique bool) (string, error) {
 	if origin := track.GetString("origin"); strings.HasPrefix(origin, "file://") {
 		path := strings.TrimPrefix(origin, "file://")
 		for _, root := range roots {
 			if p, ok := withinRoot(root, path); ok && fileExists(p) {
-				return p
+				return p, nil
 			}
 		}
-		return ""
+		return "", nil
 	}
 
 	if len(roots) == 0 {
-		return ""
+		return "", nil
 	}
 
 	albumID := track.GetString("album")
@@ -594,7 +601,7 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 		var err error
 		album, err = app.FindRecordById("albums", albumID)
 		if err != nil {
-			return ""
+			return "", err
 		}
 		if cache != nil {
 			if cache.albums == nil {
@@ -614,6 +621,7 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 	artist := artistNameCached(app, track, album, artists)
 
 	suffix := " - " + sanitizeFilename(track.GetString("title"))
+	var found string
 	for _, root := range roots {
 		if root == "" {
 			continue
@@ -622,6 +630,9 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 		dir := filepath.Join(root, sanitizeFilename(artist), AlbumDirectoryName(album))
 		entries, err := os.ReadDir(dir)
 		if err != nil {
+			if unique && !errors.Is(err, os.ErrNotExist) {
+				return "", err
+			}
 			continue
 		}
 
@@ -635,12 +646,18 @@ func localFileCached(app core.App, track *core.Record, roots []string, cache *lo
 				continue
 			}
 			if p, ok := withinRoot(root, filepath.Join(dir, name)); ok {
-				return p
+				if !unique {
+					return p, nil
+				}
+				if found != "" && found != p {
+					return "", fmt.Errorf("ambiguous downloaded file for track %s: %s and %s", track.Id, found, p)
+				}
+				found = p
 			}
 		}
 	}
 
-	return ""
+	return found, nil
 }
 
 func withinRoot(root, p string) (string, bool) {

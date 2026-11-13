@@ -231,14 +231,17 @@ kept, and sending an empty `type` hands the decision back. An album that is only
 one track of a release the source listed has no type.
 
 An imported video keeps its own album identity even when another video by the
-same artist has the same title. These albums also have separate download
-directories; their displayed names stay unchanged.
+same artist has the same title, including chaptered videos. These albums also
+have separate download directories; their displayed names stay unchanged.
 
 On the first start after this upgrade, the server splits eligible legacy
 `"<channel> - youtube"` albums into one album per video and backfills release
 types. Renamed albums are not split. The one-shot data conversion runs before
 serving requests, after schema migrations, so a failed file move does not leave
 a rolled-back database pointing at files that have already moved.
+Cover fetching shares a five-second deadline across the entire conversion,
+including successful downloads. Once that deadline expires, the split still
+finishes without waiting for the remaining covers.
 
 ### `POST /api/tracks/move`
 
@@ -250,6 +253,17 @@ file is already there. An album left with no track is removed. Administrators
 only. Answers `{"albumId": "...", "removedAlbumIds": [...]}`; the latter lists
 source albums removed by this move so callers can leave a deleted album page.
 A new album name must not match an existing album by the same artist.
+
+A downloaded file must be identified unambiguously: repeated on-disk titles
+or multiple matching files cause the move to be refused before changing album
+associations. Regular-file moves never replace an existing destination. On
+filesystems without hard links, including FAT/exFAT, the server instead creates
+the destination exclusively, copies and flushes the audio, then removes the
+source. This requires temporary space for both copies.
+
+If cleanup or rollback cannot complete, the error retains both the original
+failure and the affected paths. Files are not overwritten to force a rollback;
+inspect the reported paths before retrying the operation.
 
 ### `POST /api/albums/{id}/merge`
 

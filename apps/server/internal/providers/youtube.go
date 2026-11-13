@@ -46,6 +46,7 @@ func resolvedYouTubeTracks(info ytdlp.TrackInfo, base domain.ResolvedTrack) []do
 	if len(info.Chapters) > 1 {
 		if ownAlbum {
 			base.AlbumName = info.Title
+			base.AlbumOwn = true
 		}
 		tracks := make([]domain.ResolvedTrack, 0, len(info.Chapters))
 		seconds := 0

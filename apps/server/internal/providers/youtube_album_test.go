@@ -16,7 +16,7 @@ func TestYouTubeAlbumCompleteness(t *testing.T) {
 		incomplete, own bool
 	}{
 		{"source album with chapters", ytdlp.TrackInfo{Title: "Video", Album: "Release", Chapters: chapters}, "", true, false},
-		{"video with chapters", ytdlp.TrackInfo{Title: "Video", Chapters: chapters}, domain.AlbumSingle, false, false},
+		{"video with chapters", ytdlp.TrackInfo{Title: "Video", Chapters: chapters}, domain.AlbumSingle, false, true},
 		{"standalone video", ytdlp.TrackInfo{Title: "Video"}, domain.AlbumSingle, false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

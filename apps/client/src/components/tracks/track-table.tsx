@@ -168,6 +168,9 @@ export function TrackTable({ tracks }: Props) {
                 className={`flex w-full items-center group ${unplayable ? 'opacity-40 saturate-0 cursor-not-allowed' : isTrackDisliked ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${isCurrentTrack ? 'bg-primary/5' : ''}`}
                 onClick={(e) => {
                   const target = e.target as HTMLElement;
+                  if (!e.currentTarget.contains(target)) {
+                    return;
+                  }
                   if (target.closest('button, a, input, select, textarea, [role="button"]')) {
                     return;
                   }

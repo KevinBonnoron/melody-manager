@@ -16,11 +16,10 @@ import (
 // an album of its own was imported: every such video of a channel landed in "<channel> - youtube".
 const legacyAlbumSuffix = " - youtube"
 
-// coverFetchTimeout bounds one thumbnail download made while migrating, and coverFetchFailures
-// is how many in a row end the attempt: a server with no route out would otherwise hold the
-// start for every album.
+// Cover requests share one startup deadline; successful downloads cannot reset it.
 const (
 	coverFetchTimeout  = 5 * time.Second
+	coverFetchBudget   = 5 * time.Second
 	coverFetchFailures = 3
 )
 
@@ -48,6 +47,12 @@ func CompleteAlbumTypeMigration(ctx context.Context, app core.App) error {
 // own, named after the track, as an import does now. Downloaded files follow their track, likes
 // follow the album, and what cannot be moved stays where it is. It is safe to run again.
 func SplitLegacyYouTubeAlbums(ctx context.Context, app core.App) error {
+	return splitLegacyYouTubeAlbums(ctx, app, coverFetchBudget)
+}
+
+func splitLegacyYouTubeAlbums(ctx context.Context, app core.App, coverBudget time.Duration) error {
+	coverCtx, cancelCovers := context.WithTimeout(ctx, coverBudget)
+	defer cancelCovers()
 	albums, err := app.FindRecordsByFilter("albums", "name ~ {:s}", "", 0, 0, dbx.Params{"s": "%" + legacyAlbumSuffix})
 	if err != nil {
 		return err
@@ -102,8 +107,8 @@ func SplitLegacyYouTubeAlbums(ctx context.Context, app core.App) error {
 				return err
 			}
 
-			if next.GetString("cover") == "" && meta.CoverArtURL != "" && failures < coverFetchFailures {
-				fetch, cancel := context.WithTimeout(ctx, coverFetchTimeout)
+			if next.GetString("cover") == "" && meta.CoverArtURL != "" && failures < coverFetchFailures && coverCtx.Err() == nil {
+				fetch, cancel := context.WithTimeout(coverCtx, coverFetchTimeout)
 				setCoverFromURL(fetch, app, next, meta.CoverArtURL)
 				cancel()
 				if fresh, err := app.FindRecordById("albums", next.Id); err == nil && fresh.GetString("cover") != "" {

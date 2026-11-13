@@ -120,3 +120,42 @@ func TestAlbumMigrationMarkerRunsOnlyOnce(t *testing.T) {
 		t.Fatalf("completed migration reran: %v, %v", track, err)
 	}
 }
+
+func TestChapteredVideosWithSameTitleKeepDistinctAlbumsOnReimport(t *testing.T) {
+	f := newRegroupFixture(t)
+	ctx := t.Context()
+	var firstAlbum string
+	for _, origin := range []string{"https://youtube.com/watch?v=first", "https://youtube.com/watch?v=second"} {
+		var albumID string
+		for index, title := range []string{"Opening", "Finale"} {
+			start, end := float64(index*120), float64((index+1)*120)
+			resolved := domain.ResolvedTrack{
+				Title: title, AlbumName: "Same OST", ArtistName: "Channel",
+				Source: "youtube", Origin: origin, Duration: 120,
+				AlbumType: domain.AlbumSingle, AlbumOwn: true,
+				Metadata: domain.TrackMetadata{StartTime: &start, EndTime: &end},
+			}
+			track, err := persistTrack(ctx, f.app, resolved)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if albumID != "" && track.GetString("album") != albumID {
+				t.Fatal("chapters from one video landed in different albums")
+			}
+			albumID = track.GetString("album")
+			repeated, err := persistTrack(ctx, f.app, resolved)
+			if err != nil || repeated.Id != track.Id {
+				t.Fatalf("reimport duplicated chapter %q: %v", title, err)
+			}
+		}
+		if firstAlbum == "" {
+			firstAlbum = albumID
+		} else if albumID == firstAlbum {
+			t.Fatal("same-title chaptered videos share an album")
+		}
+	}
+	albums := f.albumsNamed("Same OST")
+	if len(albums) != 2 {
+		t.Fatalf("same-title releases = %d, want 2", len(albums))
+	}
+}

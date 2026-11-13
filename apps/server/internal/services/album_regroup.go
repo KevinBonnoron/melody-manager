@@ -118,9 +118,26 @@ func moveTracks(app core.App, trackIDs []string, albumID, mergeFrom string) erro
 		if strings.HasPrefix(track.GetString("origin"), "file://") {
 			continue
 		}
-		src := localFile(app, track, roots)
+		src, err := lookupLocalFile(app, track, roots, nil, true)
+		if err != nil {
+			return err
+		}
 		if src == "" {
+			if track.GetString("availability") == AvailabilityFile {
+				return fmt.Errorf("downloaded file not found for track %s", track.Id)
+			}
 			continue
+		}
+		// A single matching file still cannot be attributed to this record if
+		// another track in the album has the same on-disk title.
+		siblings, err := app.FindRecordsByFilter("tracks", "album = {:album} && id != {:track}", "", 0, 0, dbx.Params{"album": from, "track": track.Id})
+		if err != nil {
+			return err
+		}
+		for _, sibling := range siblings {
+			if sanitizeFilename(sibling.GetString("title")) == sanitizeFilename(track.GetString("title")) {
+				return fmt.Errorf("ambiguous downloaded file for tracks %s and %s in album %s", track.Id, sibling.Id, from)
+			}
 		}
 		dst := filepath.Join(rootOf(app, src), sanitizeFilename(artistName(app, track, target)), AlbumDirectoryName(target), filepath.Base(src))
 		if src != dst {
@@ -175,8 +192,7 @@ func moveTracks(app core.App, trackIDs []string, albumID, mergeFrom string) erro
 		}
 		return RefreshAlbumType(tx, target.Id)
 	}); err != nil {
-		undoMoves(moves)
-		return err
+		return errors.Join(err, undoMoves(moves))
 	}
 
 	for _, m := range moves {

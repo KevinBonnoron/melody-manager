@@ -154,9 +154,10 @@ export function TrackActionsCell({ track }: Props) {
           allowNew
           onPick={async (target) => {
             try {
+              const sourceAlbumId = track.album;
               const result = await tracksClient.move([track.id], target);
-              const sourcePath = router.buildLocation({ to: '/albums/$albumId', params: { albumId: track.album } }).pathname;
-              if (result.removedAlbumIds.includes(track.album) && router.latestLocation.pathname.replace(/\/$/, '') === sourcePath.replace(/\/$/, '')) {
+              const sourcePath = router.buildLocation({ to: '/albums/$albumId', params: { albumId: sourceAlbumId } }).pathname;
+              if (result.removedAlbumIds.includes(sourceAlbumId) && router.latestLocation.pathname.replace(/\/$/, '') === sourcePath.replace(/\/$/, '')) {
                 navigate({ to: '/albums/$albumId', params: { albumId: result.albumId } });
               }
               toast.success(t('TrackActionsMenu.moved', { title: track.title }));

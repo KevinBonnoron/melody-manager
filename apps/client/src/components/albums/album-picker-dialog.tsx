@@ -1,5 +1,5 @@
 import { Disc3 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -25,40 +25,67 @@ interface Props {
 }
 
 export function AlbumPickerDialog({ open, ...props }: Props) {
+  const [isBusy, setIsBusy] = useState(false);
+  const busyRef = useRef(false);
+
+  const pick = async (target: AlbumTarget) => {
+    if (busyRef.current) {
+      return;
+    }
+    busyRef.current = true;
+    setIsBusy(true);
+    try {
+      await props.onPick(target);
+    } catch {
+      // Callers report the error; keep the picker open for another attempt.
+      busyRef.current = false;
+      setIsBusy(false);
+      return;
+    }
+    busyRef.current = false;
+    setIsBusy(false);
+    props.onOpenChange(false);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!busyRef.current) {
+      props.onOpenChange(nextOpen);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={props.onOpenChange}>
-      {open && <AlbumPickerContent {...props} />}
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {open && <AlbumPickerContent {...props} onOpenChange={handleOpenChange} isBusy={isBusy} pick={pick} />}
     </Dialog>
   );
 }
 
-function AlbumPickerContent({ onOpenChange, title, description, excludeId, preferArtistId, allowNew, onPick }: Omit<Props, 'open'>) {
+function AlbumPickerContent({ onOpenChange, title, description, excludeId, preferArtistId, allowNew, isBusy, pick }: Omit<Props, 'open' | 'onPick'> & { isBusy: boolean; pick: (target: AlbumTarget) => Promise<void> }) {
   const { t } = useTranslation();
   const albumsById = useAlbumsById();
   const artistsById = useArtistsById();
   const [name, setName] = useState('');
-  const [isBusy, setIsBusy] = useState(false);
 
   const candidates = useMemo(() => {
     const preferred = (albumArtists: string[]) => (preferArtistId && albumArtists.includes(preferArtistId) ? 0 : 1);
     return [...albumsById.values()].filter((album) => album.id !== excludeId).sort((a, b) => preferred(a.artists) - preferred(b.artists) || a.name.localeCompare(b.name));
   }, [albumsById, excludeId, preferArtistId]);
 
-  const pick = async (target: AlbumTarget) => {
-    setIsBusy(true);
-    try {
-      await onPick(target);
-    } catch {
-      // Callers report the error; keep the picker open for another attempt.
-      setIsBusy(false);
-      return;
-    }
-    setIsBusy(false);
-    onOpenChange(false);
-  };
-
   return (
-    <DialogContent className="sm:max-w-md">
+    <DialogContent
+      className="sm:max-w-md"
+      closeButtonDisabled={isBusy}
+      onEscapeKeyDown={(event) => {
+        if (isBusy) {
+          event.preventDefault();
+        }
+      }}
+      onPointerDownOutside={(event) => {
+        if (isBusy) {
+          event.preventDefault();
+        }
+      }}
+    >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
