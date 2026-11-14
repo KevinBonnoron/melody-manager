@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
-    "@capacitor/assets": "^3.0.5",
+    "@capacitor/assets": "^4.0.0",
     "@playwright/test": "1.57.0",
     "@rolldown/plugin-babel": "0.2.4",
     "@tanstack/router-plugin": "1.168.14",
