@@ -27,7 +27,7 @@
     "cap:assets": "bun run --cwd apps/client cap:assets"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.6.6",
     "typescript": "6.0.3"
   }
 }
