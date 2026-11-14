@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.10 AS client
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.4 AS client
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/client/package.json apps/client/
@@ -44,7 +44,7 @@ RUN apk add --no-cache curl \
     && chmod +x /yt-dlp
 
 # Target arch, unlike the build stages: this bun ships in the image.
-FROM oven/bun:1.3.10 AS bunruntime
+FROM oven/bun:1.4.4 AS bunruntime
 
 FROM debian:bookworm-slim AS final
 RUN apt-get update \
