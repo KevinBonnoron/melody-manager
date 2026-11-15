@@ -69,9 +69,8 @@ anything you do not mount yourself. Anonymous volumes are easy to lose track of;
 
 | Tag | What it points at |
 |---|---|
-| `latest` | The tip of `main` |
-| `1.2.3`, `1.2`, `1` | A release, at three levels of pinning |
-| `sha-abc1234` | One exact commit |
+| `latest` | The latest release |
+| `1.2.3`, `1.2`, `1` | A release, at three levels of pinning; `1` only from 1.0 on, since before it a minor version may break |
 
 Built for `linux/amd64` and `linux/arm64`, so an x86 server and a Raspberry Pi 4
 or newer both work.

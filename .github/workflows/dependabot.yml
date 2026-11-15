@@ -1,0 +1,51 @@
+name: Dependabot
+
+# A Dependabot pull request that stays within its major versions and moves only
+# to stable releases merges itself, once every check the ruleset requires is
+# green. Merging it publishes nothing: an update reaches users only in a
+# release, and a release is merged by hand. Anything else, a major version or a
+# beta, a nightly, a release candidate, waits for review.
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      # Refused unless every update is a minor or a patch to a stable version,
+      # and only a plain X.Y.Z is taken as stable: a suffix of any kind, a beta,
+      # a nightly, a numeric prerelease such as 1.3.0-2 or a Go pseudo-version,
+      # waits for review. An update whose metadata could not be read is refused
+      # too, and so is a Docker image, whose updates carry no update type.
+      - name: Merge once the checks pass
+        env:
+          DEPENDENCIES: ${{ steps.metadata.outputs.updated-dependencies-json }}
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          if [ "$(jq 'length' <<< "${DEPENDENCIES:-[]}")" = 0 ]; then
+            echo "No dependency metadata: left for review."
+            exit 0
+          fi
+          refused="$(jq -r '
+            .[]
+            | select(
+                (.updateType != "version-update:semver-minor" and .updateType != "version-update:semver-patch")
+                or ((.newVersion // "") | test("^v?[0-9]+(\\.[0-9]+)*$") | not)
+              )
+            | "\(.dependencyName) \(.prevVersion) -> \(.newVersion) (\(.updateType))"
+          ' <<< "$DEPENDENCIES")"
+          if [ -n "$refused" ]; then
+            printf 'Left for review:\n%s\n' "$refused"
+            exit 0
+          fi
+          gh pr merge --auto --squash "$PR_URL"
